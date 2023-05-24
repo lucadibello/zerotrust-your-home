@@ -9,7 +9,7 @@ Welcome to my home server configuration! This setup showcases an impressive arra
 ## Services
 
 - [Traefik](https://traefik.io/): A versatile reverse proxy and load balancer designed for HTTP and TCP-based applications. It provides powerful routing and traffic management capabilities.
-- [CloudFlare Zero Trust](https://www.cloudflare.com/teams/zero-trust-access/): An advanced Zero Trust Network Access (ZTNA) solution provided by CloudFlare. It enhances security by allowing access to services based on user identity, regardless of network location.
+- [CloudFlare Zero Trust](https://www.cloudflare.com/zero-trust/): An advanced Zero Trust Network Access (ZTNA) solution provided by CloudFlare. It enhances security by allowing access to services based on user identity, regardless of network location.
 - [NextCloud](https://nextcloud.com/): A secure and privacy-focused file hosting service with collaborative and communication features. NextCloud empowers you to store, access, and share your files in a controlled and protected environment.
 - [Portainer](https://www.portainer.io/): A user-friendly Docker management UI that simplifies the administration of containers, images, networks, and volumes. Portainer offers an intuitive interface for managing your Docker environment.
 - [AdGuard Home](https://adguard.com/en/adguard-home/overview.html): A network-wide DNS server that blocks ads and trackers. AdGuard Home protects your devices from unwanted advertisements and improves your browsing experience.
