@@ -1,0 +1,32 @@
+version: '3'
+
+networks:
+  traefik-network:
+    external: true
+    
+volumes:
+  adguard-workdir:
+    driver: local
+  adguard-confdir:
+    driver: local
+
+services:
+  adguardhome:
+    container_name: adguardhome
+    image: adguard/adguardhome:latest
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguardhome.rule=Host(`adguard.local.example.ch`)"
+      - "traefik.http.routers.adguardhome.entrypoints=websecure"
+      - "traefik.http.routers.adguardhome.tls.certresolver=letsencrypt"
+      - "traefik.http.services.adguardhome.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-network"
+    restart: unless-stopped
+    volumes:
+      - adguard-workdir:/opt/adguardhome/work
+      - adguard-confdir:/opt/adguardhome/conf
+    networks:
+      - traefik-network
