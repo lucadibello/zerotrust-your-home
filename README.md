@@ -4,6 +4,7 @@ Home server configuration featuring Traefik, CloudFlare and some awesome service
 
 ## Available services
 
+- Traefik
 - CloudFlare Zero Trust
 - NextCloud
 - Portainer
