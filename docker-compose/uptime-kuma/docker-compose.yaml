@@ -1,0 +1,30 @@
+version: '3'
+
+volumes:
+  uptimekuma-data:
+    driver: local
+
+networks:
+  uptime-kuma:
+    external: true
+  traefik-network:
+    external: true
+
+services:
+  uptimekuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptimekuma
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptimekuma.rule=Host(`status.local.lucadibello.ch`)"
+      - "traefik.http.routers.uptimekuma.entrypoints=websecure"
+      - "traefik.http.routers.uptimekuma.tls.certresolver=letsencrypt"
+      - "traefik.http.services.uptimekuma.loadbalancer.server.port=3001"
+      - "traefik.docker.network=traefik-network"
+    volumes:
+      - uptimekuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - uptime-kuma
+      - traefik-network
