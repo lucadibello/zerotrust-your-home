@@ -22,13 +22,14 @@ services:
     ports:
       - "${IP_ADDRESS}:53:53/tcp"
       - "${IP_ADDRESS}:53:53/udp"
-    networks:
-      - dns-network
     volumes:
       - ./bind9/config:/etc/bind/
       - ./bind9/cache:/var/cache/bind
       - ./bind9/records:/var/lib/bind
     restart: always
+    networks:
+      - dns-network
+
 adguardhome:
   container_name: adguardhome
   image: adguard/adguardhome:latest
