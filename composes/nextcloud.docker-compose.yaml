@@ -1,0 +1,17 @@
+version: "3.9"
+
+volumes:
+  nextcloud_aio_mastercontainer:
+    external: true
+
+services:
+  all-in-one:
+    container_name: nextcloud-aio-mastercontainer
+    restart: always
+    environment:
+      - APACHE_PORT=11000
+      - NEXTCLOUD_DATADIR=/mnt/nas-data
+    volumes:
+      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
+      - var/run/docker.sock:/var/run/docker.sock:ro
+    image: "nextcloud/all-in-one:latest"

@@ -1,0 +1,14 @@
+options {
+  forwarders {
+    adguardhome;
+    1.1.1.1;
+    8.8.8.8;
+  };
+  allow-query { internal; };
+  dnssec-validation auto;
+};
+
+zone "<DOMAIN>" {
+  type master;
+  file "/etc/bind/<FILENAME>.zone";
+};

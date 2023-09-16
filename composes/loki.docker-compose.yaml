@@ -1,0 +1,35 @@
+version: "3.9"
+
+networks:
+  grafana-network:
+    external: true
+  prometheus-network:
+    external: true
+  loki-network:
+    external: true
+
+services:
+  loki:
+    # Port: 3100
+    # Connected to: Promtail, Grafana
+    image: grafana/loki:latest
+    container_name: loki
+    volumes:
+      - ./loki:/etc/loki
+    restart: always
+    command: -config.file=/etc/loki/loki.yml
+    networks:
+      - prometheus-network
+      - loki-network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail:/etc/promtail
+    restart: always
+    command: -config.file=/etc/promtail/promtail.yml
+    networks:
+      - loki-network

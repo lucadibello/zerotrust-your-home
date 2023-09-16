@@ -1,0 +1,58 @@
+version: "3.9"
+
+networks:
+  traefik-network:
+    external: true
+
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    restart: always
+    environment:
+      # CloudFlare
+      - "CF_API_EMAIL=${CLOUDFLARE_EMAIL}"
+      - "CF_API_KEY=${CLOUDFLARE_API_KEY}"
+    command:
+      # -- Setup default provider options
+      - "--providers.docker=true"
+      - "--api.insecure=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--log.level=DEBUG"
+      # -- enable traefik dashboard
+      - "--api.dashboard=true"
+      # -- set up LetsEncrypt
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.letsencrypt.acme.email=${CLOUDFLARE_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesResolvers.letsencrypt.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
+      # Set up an insecure listener that redirects all traffic to TLS
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # -- Set up the TLS configuration for our websecure listener
+      - "--entrypoints.websecure.http.tls=true"
+      - "--entrypoints.websecure.http.tls.certResolver=letsencrypt"
+      - "--entrypoints.websecure.http.tls.domains[0].main=${DNS_DOMAIN}"
+      - "--entrypoints.websecure.http.tls.domains[0].sans=*.${DNS_DOMAIN}"
+      # -- enable health checks
+      - "--ping=true"
+      - "--ping.entrypoint=web"
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=strip"
+      - "traefik.http.middlewares.strip.stripprefix.prefixes=/traefik"

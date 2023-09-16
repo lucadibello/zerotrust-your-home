@@ -1,0 +1,15 @@
+mqtt:
+  server: mqtts://mosquitto:8883
+  # SSL authentication key/cert
+  ca: "/app/certs/ca.crt"
+  key: "/app/certs/service.key"
+  cert: "/app/certs/service.crt"
+  # Client identifier
+  client_id: <GATEWAY_ID>
+serial:
+  port: /dev/ttyACM0
+frontend: true
+homeassistant: true
+permit_join: false
+advanced:
+  network_key: GENERATE

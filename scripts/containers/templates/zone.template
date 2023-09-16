@@ -1,0 +1,18 @@
+$TTL 2d
+
+$ORIGIN <DOMAIN>.
+
+@       IN      SOA     ns.<DOMAIN>. <EMAIL>. (
+                          <SERIAL>; serial
+                          12h; refresh
+                          15m; retry
+                          3w; expire
+                          2d; minimum ttl
+                        )
+
+        IN       NS     ns.<DOMAIN>.
+
+ns      IN       A      <IP_ADDRESS>
+
+; --- DNS Records for <DOMAIN> ---
+*       IN       A      <IP_ADDRESS>

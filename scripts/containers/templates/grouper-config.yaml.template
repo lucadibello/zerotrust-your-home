@@ -1,0 +1,27 @@
+# Example configuration file for the application
+cluster:
+  name: "<CLUSTER_NAME>"
+  node: "<NODE_NAME>"
+
+# MQTT driver configuration
+mqtt:
+  host: "mosquitto"
+  port: 8883
+  topics: ["zigbee2mqtt/#", "homeassistant/#"]
+  caPath: "certs/ca.crt"
+  certPath: "certs/service.crt"
+  keyPath: "certs/service.key"
+
+# Logger configuration
+logger:
+  level: "info"
+  prefix: "Grouper"
+  logFilePath: "logs/grouper.log"
+
+# RabbitMQ driver configuration
+rabbitmq:
+  host: "rabbit-tunnel"
+  port: 5672
+  user: "<MASTER_NODE_USERNAME>"
+  password: "<MASTER_NODE_PASSWORD>"
+  queue: "mqtt-grouper"

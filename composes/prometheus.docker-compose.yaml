@@ -1,0 +1,106 @@
+version: "3.9"
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+
+networks:
+  traefik-network:
+    external: true
+  prometheus-network:
+    external: true
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    restart: always
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    networks:
+      - prometheus-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.docker.network=traefik-network"
+    depends_on:
+      - cadvisor
+      - node_exporter
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    volumes:
+      - "./alertmanager:/config"
+      - alertmanager_data:/data
+    command:
+      - "--config.file=/config/alertmanager.yml"
+    depends_on:
+      - prometheus
+      - cadvisor
+      - node_exporter
+    networks:
+      - prometheus-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.alerts.rule=Host(`alerts.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.alerts.entrypoints=websecure"
+      - "traefik.http.routers.alerts.tls.certresolver=letsencrypt"
+      - "traefik.http.services.alerts.loadbalancer.server.port=9093"
+      - "traefik.docker.network=traefik-network"
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/settings/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/settings/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards
+    restart: always
+    networks:
+      - prometheus-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=traefik-network"
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    networks:
+      - prometheus-network
+    command:
+      - "--path.rootfs=/host"
+    pid: host
+    restart: always
+    volumes:
+      - "/:/host:ro,rslave"
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
+    restart: always
+    networks:
+      - prometheus-network
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg
+    privileged: true

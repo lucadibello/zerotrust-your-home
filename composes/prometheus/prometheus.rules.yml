@@ -1,0 +1,48 @@
+groups:
+  - name: usage-limits
+    rules:
+      # Simple alert for instance is down
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighDiskSpaceUsage
+        expr: 100 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk space usage detected"
+          description: "Disk space usage on '/' is above 80% for the last 10 minutes."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance)(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Average CPU usage is above 80% for the last 5 minutes."
+
+      - alert: HighNetworkTraffic
+        expr: sum(rate(node_network_receive_bytes_total[5m])) > 1e+7
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network traffic detected"
+          description: "The network receive traffic exceeds 10 Mbps for the last minute."
+
+      - alert: HighCPUTemperature
+        expr: node_hwmon_temp_celsius{chip="thermal_thermal_zone0", sensor="temp0"} > 70
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU temperature detected"
+          description: "The CPU temperature exceeds 70 degrees Celsius for the last minute."

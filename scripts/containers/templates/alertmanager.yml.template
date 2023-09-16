@@ -1,0 +1,15 @@
+global:
+  resolve_timeout: 5m
+route:
+  receiver: "telegram"
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+receivers:
+  - name: "telegram"
+    telegram_configs:
+      - bot_token: <BOT_TOKEN>
+        api_url: https://api.telegram.org
+        chat_id: <CHAT_ID>
+        parse_mode: ""

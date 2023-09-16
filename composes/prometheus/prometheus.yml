@@ -1,0 +1,35 @@
+global:
+  # How frequently to scrape targets
+  scrape_interval:     10s
+  # How frequently to evaluate rules
+  evaluation_interval: 10s
+
+# Rules and alerts are read from the specified file(s)
+rule_files:
+  - prometheus.rules.yml
+
+# Alerting specifies settings related to the Alertmanager
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - alertmanager:9093
+
+# Scrape configuration
+scrape_configs:
+  # Job for promethus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: 
+        - localhost:9090
+  # Job for node_exporter
+  - job_name: "node_exporter"
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+        - node_exporter:9100
+  # Job for cAdvisor
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: 
+        - cadvisor:8080

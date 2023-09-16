@@ -1,0 +1,48 @@
+version: "3.9"
+
+networks:
+  traefik-network:
+    external: true
+  dns-network:
+    driver: local
+
+volumes:
+  adguard-workdir:
+    driver: local
+  adguard-confdir:
+    driver: local
+
+services:
+  bind9:
+    container_name: bind9
+    image: ubuntu/bind9:latest
+    environment:
+      - BIND9_USER=root
+      - TZ=Europe/Zurich
+    ports:
+      - "${IP_ADDRESS}:53:53/tcp"
+      - "${IP_ADDRESS}:53:53/udp"
+    networks:
+      - dns-network
+    volumes:
+      - ./bind9/config:/etc/bind/
+      - ./bind9/cache:/var/cache/bind
+      - ./bind9/records:/var/lib/bind
+    restart: always
+adguardhome:
+  container_name: adguardhome
+  image: adguard/adguardhome:latest
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.adguardhome.rule=Host(`adguard.${DNS_DOMAIN}`)"
+    - "traefik.http.routers.adguardhome.entrypoints=websecure"
+    - "traefik.http.routers.adguardhome.tls.certresolver=letsencrypt"
+    - "traefik.http.services.adguardhome.loadbalancer.server.port=80"
+    - "traefik.docker.network=traefik-network"
+  restart: unless-stopped
+  volumes:
+    - adguard-workdir:/opt/adguardhome/work
+    - adguard-confdir:/opt/adguardhome/conf
+  networks:
+    - traefik-network
+    - dns-network

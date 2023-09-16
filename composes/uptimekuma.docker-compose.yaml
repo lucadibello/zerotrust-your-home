@@ -1,0 +1,34 @@
+version: "3.9"
+
+networks:
+  traefik-network:
+    external: true
+  prometheus-network:
+    external: true
+  home-network:
+    external: true
+  loki-network:
+    external: true
+
+services:
+  uptimekuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptimekuma
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptimekuma.rule=Host(`status.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.uptimekuma.entrypoints=websecure"
+      - "traefik.http.routers.uptimekuma.tls.certresolver=letsencrypt"
+      - "traefik.http.services.uptimekuma.loadbalancer.server.port=3001"
+      - "traefik.docker.network=traefik-network"
+    volumes:
+      # Manage the database file
+      - ./uptime-kuma/kuma.db:/app/data/kuma.db
+      # Docker socket for docker checks
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - traefik-network
+      - prometheus-network
+      - home-network
+      - loki-network

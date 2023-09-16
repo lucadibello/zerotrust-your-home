@@ -1,0 +1,80 @@
+version: "3.9"
+services:
+  # Service in charge on backing up data + store it on S3
+  backup:
+    image: mazzolino/restic:latest
+    hostname: docker
+    container_name: restic-backup
+    restart: always
+    environment:
+      RUN_ON_STARTUP: "true" # Backup on startup
+      BACKUP_CRON: "0 0 * * *" # Backup every day at 00:00
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY} # Set repository URI
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD} # Set repository password
+      RESTIC_BACKUP_SOURCES: /mnt/backup # Set volume to backup
+      RESTIC_BACKUP_ARGS: --tag backup --exclude='*.tmp' --verbose # Additional backup settings
+      RESTIC_FORGET_ARGS: --keep-last 5 --keep-daily 7 --keep-weekly 4 --keep-monthly 12
+      TZ: Europe/Zurich # Set timezone
+
+      # AWS S3 settings
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+      # Telegram bot environment variables
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+
+      # Clean up dangling volumes
+      PRE_COMMANDS: |-
+        docker volume prune -f
+
+      # Notification scripts
+      POST_COMMANDS_SUCCESS: |-
+        curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"✅ Docker volumes backup completed successfully!\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+      POST_COMMANDS_FAILURE: |-
+        curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"❌ An error occurred during Docker volumes backup! Check Restic logs for more details.\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+      POST_COMMANDS_INCOMPLETE: |-
+        curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"⚠️ The docker volumes backup was not completed successfully! Check Restic logs for more details.\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+    volumes:
+      # Backup docker volumes
+      - /var/lib/docker/volumes:/mnt/backup/docker
+      # Backup all project files
+      - ./:/mnt/backup/project
+
+  # Service in charge of periodically cleaning up old snapshots
+  prune:
+    image: mazzolino/restic
+    hostname: docker
+    container_name: restic-prune
+    restart: unless-stopped
+    environment:
+      - "RUN_ON_STARTUP=false" # Prune on startup
+      - "PRUNE_CRON=0 0 4 * * *"
+      - "RESTIC_REPOSITORY=${RESTIC_REPOSITORY}"
+      - "RESTIC_PASSWORD=${RESTIC_PASSWORD}"
+      - "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+      - "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+      - "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+      - "TZ=Europe/Zurich"
+    depends_on:
+      - backup
+
+  # Service that periodically checks the health and integrity of the backup repository
+  check:
+    image: mazzolino/restic
+    hostname: docker
+    container_name: restic-check
+    restart: unless-stopped
+    environment:
+      - "RUN_ON_STARTUP=false" # Prune on startup
+      - "CHECK_CRON=0 15 5 * * *"
+      - "RESTIC_CHECK_ARGS=--read-data-subset=10%"
+      - "RESTIC_REPOSITORY=${RESTIC_REPOSITORY}"
+      - "RESTIC_PASSWORD=${RESTIC_PASSWORD}"
+      - "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+      - "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
+      - "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+      - "TZ=Europe/Zurich"
+    depends_on:
+      - backup
