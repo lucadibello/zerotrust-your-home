@@ -36,8 +36,6 @@ required_vars=(
     "TUNNEL_TOKEN"
     "DNS_DOMAIN"
     "DNS_EMAIL"
-    "ZIGBEE2MQTT_DEVICE"
-    "ZIGBEE2MQTT_GATEWAY_ID"
 )
 
 # Ensure .env file exists in directory "../"
@@ -53,7 +51,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # Ask user confirmation before starting
-read -p "[!] This script will configure Armbian to run the home automation system, are you sure? (y/n) " -n 1 -r
+read -p "[!] This script will configure your OS to run the home system, are you sure? (y/n) " -n 1 -r
 
 # If user confirms, continue
 if [[ $REPLY =~ ^[Yy]$ ]]
