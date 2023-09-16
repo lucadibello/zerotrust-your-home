@@ -3,6 +3,8 @@ version: "3.9"
 networks:
   traefik-network:
     external: true
+  nextcloud-aio:
+    external: true
 
 services:
   traefik:
@@ -32,22 +34,28 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # -- Set up the TLS configuration for our websecure listener
+      # Set up the TLS configuration for our websecure listener
       - "--entrypoints.websecure.http.tls=true"
       - "--entrypoints.websecure.http.tls.certResolver=letsencrypt"
       - "--entrypoints.websecure.http.tls.domains[0].main=${DNS_DOMAIN}"
       - "--entrypoints.websecure.http.tls.domains[0].sans=*.${DNS_DOMAIN}"
-      # -- enable health checks
+      # Enable health checks
       - "--ping=true"
       - "--ping.entrypoint=web"
+
+      ## EXTRA - Setup nextcloud dynamic config
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
     ports:
       - "80:80" # HTTP
       - "443:443" # HTTPS
     volumes:
       - "./letsencrypt:/letsencrypt"
+      - "./traefik:/etc/traefik/dynamic:ro"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - traefik-network
+      - nextcloud-aio
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.rule=Host(`traefik.${DNS_DOMAIN}`)"
