@@ -3,6 +3,9 @@
 # Create required directories (ignore if already exists)
 mkdir -p ./composes/bind9/cache ./composes/bind9/records ./composes/bind9/config ./.tmp/bind9 || true
 
+# Create external driver
+sudo docker network create dns-network || true
+
 # Load environment variables
 set -a
 source .env

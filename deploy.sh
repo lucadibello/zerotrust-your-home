@@ -20,8 +20,7 @@ fi
 # - .tmp
 # - *.example
 # - composes/*/certs/
-cd project
-zip -r project.zip . -x .tmp\* .env.example.\* composes/\*/certs\* > /dev/null
+zip -r project.zip . -x .tmp\* .git .env.example.\* composes/\*/certs\* > /dev/null
 
 # Copy entire project directory to remote host using SCP
 scp -r -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null project.zip $user_name@$ip_address:/home/$user_name > /dev/null && rm project.zip

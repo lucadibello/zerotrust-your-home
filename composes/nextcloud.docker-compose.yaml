@@ -10,7 +10,7 @@ volumes:
 
 services:
   nextcloud:
-    container_name: nextcloud-master
+    container_name: nextcloud-aio-mastercontainer
     restart: always
     environment:
       - APACHE_PORT=11000
@@ -20,7 +20,7 @@ services:
       - SKIP_DOMAIN_VALIDATION=true
     volumes:
       - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
-      - var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     image: "nextcloud/all-in-one:latest"
     networks:
       - traefik-network

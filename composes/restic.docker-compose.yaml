@@ -41,6 +41,8 @@ services:
       - /var/lib/docker/volumes:/mnt/backup/docker
       # Backup all project files
       - ./:/mnt/backup/project
+      # Docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
 
   # Service in charge of periodically cleaning up old snapshots
   prune:

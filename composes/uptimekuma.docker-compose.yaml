@@ -5,9 +5,9 @@ networks:
     external: true
   prometheus-network:
     external: true
-  home-network:
-    external: true
   loki-network:
+    external: true
+  dns-network:
     external: true
 
 services:
@@ -30,5 +30,5 @@ services:
     networks:
       - traefik-network
       - prometheus-network
-      - home-network
       - loki-network
+      - dns-network
