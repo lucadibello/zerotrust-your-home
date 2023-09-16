@@ -4,24 +4,11 @@ letsencrypt
 # BIND9 generated files
 bind9/*
 
-# Home assistant generated files
-home-assistant/*
-!home-assistant/configuration.yaml
-!home-assistant/automations.yaml
-!home-assistant/mqtt.yaml
-
 # Alertmanager generated files
 alertmanager/*
 
 # Uptime-Kuma generated files
 uptime-kuma/*
-
-# zigbee2mqtt generated files
-zigbee2mqtt/*
-
-# Mosquitto
-mosquitto/*
-!mosquitto/mosquitto.conf
 
 # Certs settings generated on demand
 certs/*

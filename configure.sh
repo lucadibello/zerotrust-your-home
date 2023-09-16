@@ -134,18 +134,6 @@ done
 # Remove .tmp directory
 rm -rf ./.tmp
 
-# Now, generate TLS certificates for home automation system
-echo "[*] Generating TLS certificates for home automation system..."
-sudo bash ./scripts/certs/generate-certificates.sh
-
-# Check if error occurred
-if [ $? -ne 0 ]; then
-    echo "[!] An error occurred while generating TLS certificates for home automation system, aborting..."
-    exit
-else
-    echo "[OK] TLS certificates generated successfully"
-fi
-
 # Setting up firewall rules
 echo "[*] Setting up Zero Trust firewall rules..."
 sudo bash ./scripts/firewall/zero-trust-firewall.sh
