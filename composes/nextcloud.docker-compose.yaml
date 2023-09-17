@@ -14,20 +14,14 @@ services:
     restart: always
     environment:
       - APACHE_PORT=11000
-      - NEXTCLOUD_DATADIR=/mnt/nas-data
-      - APACHE_IP_BINDING=0.0.0.0
       - APACHE_IP_BINDING=127.0.0.1
+      - NEXTCLOUD_DATADIR=/mnt/nas-data
       - SKIP_DOMAIN_VALIDATION=true
     volumes:
       - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
       - /var/run/docker.sock:/var/run/docker.sock:ro
     image: "nextcloud/all-in-one:latest"
+    ports:
+      - 8080:8080
     networks:
-      - traefik-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`cloud.${DNS_DOMAIN}`)"
-      - "traefik.http.routers.nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud.tls.certresolver=letsencrypt"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=11000"
-      - "traefik.docker.network=traefik-network"
+      - traefik-network 
