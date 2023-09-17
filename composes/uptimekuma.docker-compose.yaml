@@ -9,6 +9,8 @@ networks:
     external: true
   dns-network:
     external: true
+  nextcloud-aio:
+    external: true
 
 services:
   uptimekuma:
@@ -32,3 +34,4 @@ services:
       - prometheus-network
       - loki-network
       - dns-network
+      - nextcloud-aio
