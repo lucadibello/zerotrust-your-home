@@ -1,0 +1,26 @@
+version: "3.9"
+
+volumes:
+  vaultwarden_data:
+    external: true
+
+networks:
+  traefik-network:
+    external: true
+
+services:
+  server:
+    container_name: vaultwarden
+    volumes:
+      - vaultwarden_data:/data/
+    restart: unless-stopped
+    image: "vaultwarden/server:latest"
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptimekuma.rule=Host(`vault.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.uptimekuma.entrypoints=websecure"
+      - "traefik.http.routers.uptimekuma.tls.certresolver=letsencrypt"
+      - "traefik.http.services.uptimekuma.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-network"
