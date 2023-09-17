@@ -3,14 +3,6 @@ version: "3.9"
 networks:
   traefik-network:
     external: true
-  dns-network:
-    external: true
-
-volumes:
-  adguard-workdir:
-    driver: local
-  adguard-confdir:
-    driver: local
 
 services:
   bind9:
@@ -28,4 +20,4 @@ services:
       - ./bind9/records:/var/lib/bind
     restart: always
     networks:
-      - dns-network
+      - traefik-network
