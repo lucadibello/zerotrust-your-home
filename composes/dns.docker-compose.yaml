@@ -29,21 +29,3 @@ services:
     restart: always
     networks:
       - dns-network
-
-  adguardhome:
-    container_name: adguardhome
-    image: adguard/adguardhome:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.adguardhome.rule=Host(`adguard.${DNS_DOMAIN}`)"
-      - "traefik.http.routers.adguardhome.entrypoints=websecure"
-      - "traefik.http.routers.adguardhome.tls.certresolver=letsencrypt"
-      - "traefik.http.services.adguardhome.loadbalancer.server.port=80"
-      - "traefik.docker.network=traefik-network"
-    restart: unless-stopped
-    volumes:
-      - adguard-workdir:/opt/adguardhome/work
-      - adguard-confdir:/opt/adguardhome/conf
-    networks:
-      - traefik-network
-      - dns-network
