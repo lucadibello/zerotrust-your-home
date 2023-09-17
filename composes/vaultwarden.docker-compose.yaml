@@ -19,8 +19,8 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.uptimekuma.rule=Host(`vault.${DNS_DOMAIN}`)"
-      - "traefik.http.routers.uptimekuma.entrypoints=websecure"
-      - "traefik.http.routers.uptimekuma.tls.certresolver=letsencrypt"
-      - "traefik.http.services.uptimekuma.loadbalancer.server.port=80"
+      - "traefik.http.routers.vaultwarden.rule=Host(`vault.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.vaultwarden.entrypoints=websecure"
+      - "traefik.http.routers.vaultwarden.tls.certresolver=letsencrypt"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
       - "traefik.docker.network=traefik-network"
