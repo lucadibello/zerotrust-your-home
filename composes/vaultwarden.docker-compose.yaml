@@ -10,11 +10,11 @@ networks:
 
 services:
   server:
+    image: "vaultwarden/server:latest"
     container_name: vaultwarden
     volumes:
       - vaultwarden_data:/data/
     restart: unless-stopped
-    image: "vaultwarden/server:latest"
     networks:
       - traefik-network
     labels:
