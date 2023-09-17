@@ -10,7 +10,9 @@ sudo docker-compose \
 	-f traefik.docker-compose.yaml \
 	-f tunnel.docker-compose.yaml \
 	-f uptimekuma.docker-compose.yaml \
+	-f vaultwarden.docker-compose.yaml \
 	-f watchtower.docker-compose.yaml \
+	-f website.docker-compose.yaml \
 	--env-file ../.env \
 	logs -f --tail=1000
 
