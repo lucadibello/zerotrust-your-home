@@ -14,6 +14,6 @@ sudo docker-compose \
 	-f watchtower.docker-compose.yaml \
 	-f website.docker-compose.yaml \
 	--env-file ../.env \
-	up -d --remove-orphans
+	up -d
 
 cd ..
