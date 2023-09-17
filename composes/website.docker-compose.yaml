@@ -1,0 +1,16 @@
+version: "3.9"
+
+networks:
+  traefik-network:
+    external: true
+
+services:
+  website:
+    container_name: lucadibello-website
+    image: lucadibello-website
+    build:
+      context: ./lucadibello
+      dockerfile: Dockerfile
+    restart: always
+    networks:
+      - traefik-network
