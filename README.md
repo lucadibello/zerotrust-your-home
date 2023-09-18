@@ -1,4 +1,4 @@
-# Home server - A safe and private environment for your data
+# ZeroTrust Home server - A safe and private environment for your data
 
 > NOTE: THIS TEXT IS A DRAFT AND IT IS STILL UNDER DEVELOPMENT.
 
