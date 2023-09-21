@@ -1,6 +1,6 @@
 # ZeroTrust Home server - A safe and private environment for your data
 
-> NOTE: THIS TEXT IS A DRAFT AND IT IS STILL UNDER DEVELOPMENT.
+> NOTE: THIS TEXT IS A DRAFT AND IT IS STILL UNDER DEVELOPMENT. I WILL UPDATE THE REPOSITORY AS SOON I HAVE SOME TIME 🥳
 
 This project showcases an autoconfigured home server environment that provides a powerful and secure infrastructure that leverages cutting-edge technologies to ensure security, privacy, and ease of use. It provides the user with a set of pre-configured services and applications that can be easily extended and customized to meet the user's needs.
 
