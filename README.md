@@ -1,6 +1,6 @@
-# ZeroTrust Smart Space - A safe and private environment for you and your data<!-- omit in toc -->
+# ZeroTrust Your Home - A safe and private environment for you and your data<!-- omit in toc -->
 
-![ZeroTrust SmartSpace](./assets/images/header.jpg)
+![ZeroTrust Your Home](./assets/images/header.jpg)
 
 ## Table of contents<!-- omit in toc -->
 
