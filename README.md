@@ -1,4 +1,4 @@
-# ZeroTrust Home server - A safe and private environment for your data
+# ZeroTrust Smart Space - A safe and private environment for you and your data
 
 > NOTE: THIS TEXT IS A DRAFT AND IT IS STILL UNDER DEVELOPMENT. I WILL UPDATE THE REPOSITORY AS SOON I HAVE SOME TIME 🥳
 
