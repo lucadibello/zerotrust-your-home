@@ -16,6 +16,7 @@
     - [3.3.2. Backup notifications](#332-backup-notifications)
     - [3.3.3. Backup and restore operations via CLI](#333-backup-and-restore-operations-via-cli)
   - [3.4. Home automation system](#34-home-automation-system)
+    - [Secure communication using TLS certificates](#secure-communication-using-tls-certificates)
   - [3.5. Automatic updates](#35-automatic-updates)
     - [3.5.1. System updates](#351-system-updates)
     - [3.5.2. Docker image updates](#352-docker-image-updates)
@@ -160,6 +161,18 @@ To support ZigBee devices, additional two software components have been added to
 *Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)*
 
 Since connecting ZigBee devices to Home Assistant requires some additional configuration, a dedicated document has been created to guide the user through the process. Refer to the [ZigBee devices pairing tutorial](./doc/zigbee-pairing-tutorial.md) for more details.
+
+#### Secure communication using TLS certificates
+
+To secure the communication between the MQTT broker, the MQTT bridge and the home automation software instance, TLS encryption and authentication has been implemented. This configuration ensures that only clients providing a valid TLS certificate (a certificate signed with the CA certificate) can establish a connection and communicate with the other components of the chain. All messages exchanged between the three instances are encrypted using the TLS protocol thus mitigating the risk of man-in-the-middle (MITM) attacks and ensure the integrity and confidentiality of the transmitted data (i.e., messages cannot be altered during the transmission).
+
+To automatically generate and distribute the TLS certificates and keys to Mosquito, Zigbee2MQTT and Home Assistant instances a Makefile target titled "generate-certs" have been devel- oped:
+
+```make
+make generate-certs
+```
+
+With the developed configuration, Zigbee2MQTT and Mosquito have TLS authentication and encryption enabled by default, loading the required certificates and keys during startup. However, is important to note that Home Assistant’s MQTT integration (learn more [here](https://www.home-assistant.io/integrations/mqtt/)) requires manual configuration via GUI, as it does not allow TLS certificates to be configured through the config file.
 
 ### 3.5. Automatic updates
 
