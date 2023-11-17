@@ -16,7 +16,7 @@
     - [3.3.2. Backup notifications](#332-backup-notifications)
     - [3.3.3. Backup and restore operations via CLI](#333-backup-and-restore-operations-via-cli)
   - [3.4. Home automation system](#34-home-automation-system)
-    - [Secure communication using TLS certificates](#secure-communication-using-tls-certificates)
+    - [3.4.1. Secure communication using TLS certificates](#341-secure-communication-using-tls-certificates)
   - [3.5. Automatic updates](#35-automatic-updates)
     - [3.5.1. System updates](#351-system-updates)
     - [3.5.2. Docker image updates](#352-docker-image-updates)
@@ -25,11 +25,21 @@
     - [3.6.2. Reverse proxy](#362-reverse-proxy)
       - [3.6.2.1. SSL certificate generation and renewal for internal domain names](#3621-ssl-certificate-generation-and-renewal-for-internal-domain-names)
 - [4. System extensibility and additional services](#4-system-extensibility-and-additional-services)
-- [5. Testing the system](#5-testing-the-system)
-  - [5.1. Hardware](#51-hardware)
-  - [5.2. Security tests](#52-security-tests)
-- [6. Additional resources](#6-additional-resources)
-  - [6.1. Docker containers network segmentation](#61-docker-containers-network-segmentation)
+- [5. System hardening](#5-system-hardening)
+  - [5.1. Disable core dumps](#51-disable-core-dumps)
+  - [5.2. Authentication and password policies](#52-authentication-and-password-policies)
+  - [5.3. Change default UMASK permissions](#53-change-default-umask-permissions)
+  - [5.4. Disable unused kernel modules](#54-disable-unused-kernel-modules)
+  - [5.5. SSH service hardening](#55-ssh-service-hardening)
+  - [5.6. Legal notice banner](#56-legal-notice-banner)
+  - [5.7. System auditing](#57-system-auditing)
+  - [5.8. Kernel hardening](#58-kernel-hardening)
+  - [5.9. Restrict compilers to root users](#59-restrict-compilers-to-root-users)
+- [6. Testing the system](#6-testing-the-system)
+  - [6.1. Hardware](#61-hardware)
+  - [6.2. Security tests](#62-security-tests)
+- [7. Additional resources](#7-additional-resources)
+  - [7.1. Docker containers network segmentation](#71-docker-containers-network-segmentation)
 
 ## 1. Motivation
 
@@ -73,7 +83,7 @@ For the purpose of this project, five alerting rules have been configured to mon
 
 #### 3.1.2. Service health monitoring
 
-*Uptime Kuma* allows to monitor the status of the applications and services of the system and to receive real-time notifications when a service is down. The uptime check is performed by periodically sending requests (i.e. HTTP, TCP, ICMP) to the monitored targets and alerting the system administrator using the configured Telegram bot in case of failures.
+[Uptime Kuma](https://github.com/louislam/uptime-kuma) allows to monitor the status of the applications and services of the system and to receive real-time notifications when a service is down. The uptime check is performed by periodically sending requests (i.e. HTTP, TCP, ICMP) to the monitored targets and alerting the system administrator using the configured Telegram bot in case of failures.
 
 ![Uptime Kuma](./assets/images/uptimekuma-dashboard.png)
 
@@ -87,13 +97,13 @@ The following image illustrates the architecture of the log management suite.
 
 ![Log management suite](./assets/images/log-management-flow.png)
 
-[Grafana Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. Stored logs can be queried via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!). This is a sample screenshot of the result of a query:
+[Grafana Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) is configured to collect logs from the system and the running *Docker* containers and to send them to [Grafana Loki](https://grafana.com/oss/loki/) for storage and indexing. Stored logs can be queried via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!). This is a sample screenshot of the result of a query:
 
 ![Grafana Explore](./assets/images/loki-grafana.png)
 
 ### 3.3. Backup and restore suite
 
-To ensure data integrity in case of disasters such as hardware failures or physical damage, a robust backup solution has been implemented to periodically backup critical data stored in the system.
+To ensure data integrity in case of disasters such as hardware failures or physical damage, a robust backup solution has been implemented to periodically backup critical data stored in the system. The backup solution is based on [Restic](https://restic.net/), an open-source backup software that is fast, efficient and secure.
 
 The use of a cloud storage solution like Amazon S3 (the one configured by default) is recommended as it provides a cheap and reliable solution to archive backups without incurring in disk capacity issues. It is important to highlight that the user can easily configure the backup solution to use a different cloud storage provider (i.e., Google Cloud Storage, Azure Blob Storage, etc.) or a local storage solution (i.e., NAS, external hard drive, etc.) (read official documentation [here](https://restic.readthedocs.io/en/latest/030_preparing_a_new_repo.html)).
 
@@ -103,11 +113,11 @@ The following image illustrates the architecture of the backup and restore suite
 
 In the figure is possible to notice that are present three different instances of *Restic* running at the same time. Each instance has a different purpose and is configured to perform specific tasks at specific times:
 
-1. The *backup* instance: configured to perform daily backups of the Docker volumes (every day at midnight). To guarantee data confidentiality, backups are encrypted before being sent to the cloud storage.
+1. **backup instance**: configured to perform daily backups of the Docker volumes (every day at midnight). To guarantee data confidentiality, backups are encrypted before being sent to the cloud storage.
 
-2. The *restore* instance: in charge of cleaning up the S3 bucket by removing old backups based on the configured retention policies (refer to the next section for more details).
+2. **restore instance**: in charge of cleaning up the S3 bucket by removing old backups based on the configured retention policies (refer to the next section for more details).
 
-3. The *check* instance: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
+3. **check instance**: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
 
 #### 3.3.1. Backup retention policies
 
@@ -119,7 +129,7 @@ Retention policies ensure the retention of a specific number of backups, while r
 
 #### 3.3.2. Backup notifications
 
-Leveraging Telegram APIs, the *Restic* is able to notify administrators when a backup operation is completed, when it fails (i.e., S3 bucket unavailable) and when it has been interrupted (i.e., one or more files are unreadable).
+Leveraging Telegram APIs, Restic *backup instance* is able to notify administrators when a backup operation is completed, when it fails (i.e., S3 bucket unavailable) and when it has been interrupted (i.e., one or more files are unreadable).
 
 The following image shows all the possible notifications sent by the backup instance.
 
@@ -154,25 +164,23 @@ The following image shows the architecture of the implemented home automation sy
 
 To support ZigBee devices, additional two software components have been added to the system:
 
-- **ZigBee2Mqtt**: is a software bridge that allows to integrate ZigBee devices with MQTT. It implements a ZigBee to MQTT bridge, which allows ZigBee devices to communicate with MQTT. The bridge automatically maps physical devices to MQTT topics. It also supports per-device settings, allowing to set a friendly name for each device.
+- [ZigBee2Mqtt](https://www.zigbee2mqtt.io/): is a software bridge that allows to integrate ZigBee devices with MQTT. It implements a ZigBee to MQTT bridge, which allows ZigBee devices to communicate with MQTT. The bridge automatically maps physical devices to MQTT topics. It also supports per-device settings, allowing to set a friendly name for each device.
 
-- **Mosquitto**: is an open-source message broker that implements the MQTT protocol. It is responsible for receiving messages from Zigbee2MQTT and forwarding them to Home Assistant via MQTT.
+- [Eclipse Mosquitto](https://mosquitto.org/): is an open-source message broker that implements the MQTT protocol. It is responsible for receiving messages from Zigbee2MQTT and forwarding them to Home Assistant via MQTT.
 
 *Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)*
 
 Since connecting ZigBee devices to Home Assistant requires some additional configuration, a dedicated document has been created to guide the user through the process. Refer to the [ZigBee devices pairing tutorial](./doc/zigbee-pairing-tutorial.md) for more details.
 
-#### Secure communication using TLS certificates
+#### 3.4.1. Secure communication using TLS certificates
 
 To secure the communication between the MQTT broker, the MQTT bridge and the home automation software instance, TLS encryption and authentication has been implemented. This configuration ensures that only clients providing a valid TLS certificate (a certificate signed with the CA certificate) can establish a connection and communicate with the other components of the chain. All messages exchanged between the three instances are encrypted using the TLS protocol thus mitigating the risk of man-in-the-middle (MITM) attacks and ensure the integrity and confidentiality of the transmitted data (i.e., messages cannot be altered during the transmission).
 
-To automatically generate and distribute the TLS certificates and keys to Mosquito, Zigbee2MQTT and Home Assistant instances a Makefile target titled "generate-certs" have been devel- oped:
+The generation and distribution of the TLS certificates and keys to the three instances have been added to the configuration script, avoiding the need for manual configuration.
 
-```make
-make generate-certs
-```
+With the developed configuration, Zigbee2MQTT and Mosquito have TLS authentication and encryption enabled by default, loading the required certificates and keys during startup.
 
-With the developed configuration, Zigbee2MQTT and Mosquito have TLS authentication and encryption enabled by default, loading the required certificates and keys during startup. However, is important to note that Home Assistant’s MQTT integration (learn more [here](https://www.home-assistant.io/integrations/mqtt/)) requires manual configuration via GUI, as it does not allow TLS certificates to be configured through the config file.
+> **Important note**: [Home Assistant’s MQTT integration](https://www.home-assistant.io/integrations/mqtt/) requires manual configuration via GUI, as it does not allow TLS certificates to be configured through the config file.
 
 ### 3.5. Automatic updates
 
@@ -228,16 +236,125 @@ To showcase the extensibility of the implemented system, the following services 
 - [Nextcloud](https://nextcloud.com/), a self-hosted cloud storage solution that allows to store and share files, manage calendars, contacts, and more.
 - [Personal website](https://lucadibello.ch/) to showcase how to host custom services on the server.
 
-## 5. Testing the system
+## 5. System hardening
 
-### 5.1. Hardware
+This section outlines the measures implemented to enhance system security, effectively reducing the attack surface of the system.
 
-### 5.2. Security tests
+All the listed measures have been implemented in the system configuration script, thus requiring no user intervention.
 
-## 6. Additional resources
+### 5.1. Disable core dumps
 
-### 6.1. Docker containers network segmentation
+A core dump is a file containing a process’s address space when it terminates unexpectedly. This file can be used to debug the process and identify the cause of the crash. However, attackers leverage this file to extract sensitive information, such as passwords and encryption keys. For this reason, it is critical to disable core dumps to prevent attackers from extracting sensitive information from the system memory.
+
+Learn more about core dumps [here](https://en.wikipedia.org/wiki/Core_dump).
+
+### 5.2. Authentication and password policies
+
+To ensure the security of the system, it is critical to enforce strong password policies to prevent attackers from guessing user passwords. These are the password policies enforced on the system to guarantee its security:
+
+- Increased number of hashing rounds in `/etc/login.defs`(`SHA_CRYPT_MIN_ROUNDS` from `5000` to `10000`)
+- Installed PAM module `pam_cracklib` to enforce strong passwords
+- Set minimum number of days allowed between password changes (`PASS_MIN_DAYS` from `0` to `1` days)
+- Set maximum number of days allowed to keep the same password (`PASS_MAX_DAYS` from `0` to `90` days)
+
+Enforcing strong passwords reduces the risk of successful cyberattacks.
+
+### 5.3. Change default UMASK permissions
+
+The default *umask* permissions are 022 (0022 in octal notation), which means that newly created files and directories will have the following permissions:
+
+- Files: 644 (-rw-r--r--)
+- Directories: 755 (drwxr-xr-x)
+
+The default *umask* value is too permissive and can lead to security issues. For this reason, it is critical to change the default *umask* permissions to 027 (0027 in octal notation), which means that newly created files and directories will have the following permissions:
+
+- Files: 640 (-rw-r-----)
+- Directories: 750 (drwxr-x---)
+
+By setting these permissions, it is possible to ensure that only the owner of the file or directory can read and write to it, while others in the same group can only list the directory contents.
+
+### 5.4. Disable unused kernel modules
+
+The system comes with a set of kernel modules that are not necessary for the system to function properly. As kernel modules can be exploited by attackers to gain access to the system, it is critical to removed unused ones to reduce the attack surface.
+
+This are the modules that have been removed from the system:
+
+- `dccp`
+- `sctp`
+- `rds`
+- `tipc`
+
+### 5.5. SSH service hardening
+
+The SSH server is the only service installed on the system that is not running in a Docker container. For this reason, it is critical to harden this service to prevent unauthorized access to the system. In the following section are presented the measures implemented to harden the SSH service.
+To further harden the SSH service, the following configuration changes have been made:
+
+- Disable SSH port forwarding (`AllowTcpForwarding` from `yes` to `no`)
+- Lower the maximum alive SSH sessions (`ClientAliveCountMax` from `3` to `2`)
+- Increase SSH service verbosity (`LogLevel` from `INFO` to `VERBOSE`)
+- Lower the maximum authentication attempts (`MaxAuthTries` from `6` to `3`)
+- Lower the maximum number of open SSH sessions (`MaxSessions` from `10` to `2`)
+- Change root login permissions (`PermitRootLogin` from `yes` to one of the following options: `FORCED-COMMANDS-ONLY`, `NO`, `PROHIBIT-PASSWORD`, `WITHOUT-PASSWORD`)
+- Disable TCP keepalive (`TCPKeepAlive` from `yes` to `no`)
+- Disable SSH X11 forwarding (`X11Forwarding` from `yes` to `no`)
+- Disable SSH agent forwarding (`AllowAgentForwarding` from `yes` to `no`)
+
+### 5.6. Legal notice banner
+
+Adding a legal notice banner to the system is a good practice as it informs users that the system is private and unauthorized access is prohibited. The banner is displayed when a user logs in to the system via SSH.
+
+This is the banner that has been added to the system:
+
+```text
+This system is private. Unauthorized access is prohibited.
+```
+
+While this is not a security measure, it is a good practice to inform users that the system is private, and that unauthorized access is not allowed.
+
+### 5.7. System auditing
+
+System audits allow system administrators to discover security violations and find relevant security information. By configuring [auditd](https://linux.die.net/man/8/auditd) service on the system is possible to record triggered system events. The information included in the audit logs can be leveraged to learn what configuration caused the problem, enabling administrators to enhance the system cybersecurity posture. This service logs system events to the `/var/log/audit/audit.log` file based on a comprehensive set of rules (i.e., file system events, system calls, etc.).
+
+The set of rules provided by default is the following: [audit.rules](https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules).
+
+### 5.8. Kernel hardening
+
+The Linux kernel comes with a set of parameters that can be configured to enhance the security of the system. In the following section are presented the measures implemented to harden the system kernel parameters.
+
+This is the script in charge of hardening the system kernel parameters:
+
+```bash
+echo "kernel.dmesg_restrict = 1" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+echo "kernel.sysrq = 0" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+echo "net.ipv4.conf.all.accept_redirects = 0" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+echo "net.ipv4.conf.all.log_martians = 1" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+echo "net.ipv4.conf.all.send_redirects = 0" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+echo "net.ipv4.conf.default.accept_redirects = 0" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+echo "net.ipv4.conf.default.log_martians = 1" | sudo tee -a /etc/sysctl.d/80-lynis.conf
+```
+
+### 5.9. Restrict compilers to root users
+
+Compilers are tools that allow to transform source code into executable code. Attackers can use these tools to compile malicious code and run it on the system. For this reason, it is critical to restrict the usage of compilers to root users only.
+
+The script will look for the following compilers (wildcards are used to match all versions of the compiler) and restrict their usage to root users only:
+
+- `gcc*`
+- `g++*`
+- `cc*`
+- `c++*`
+
+
+## 6. Testing the system
+
+### 6.1. Hardware
+
+### 6.2. Security tests
+
+## 7. Additional resources
+
+### 7.1. Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
-![Docker containers network segmentation](./images/docker-containers-network-diagram.png)
+![Docker containers network segmentation](./assets/images/docker-containers-network-diagram.png)
