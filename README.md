@@ -20,8 +20,10 @@
     - [3.5.1. System updates](#351-system-updates)
     - [3.5.2. Docker image updates](#352-docker-image-updates)
   - [3.6. Network infrastructure](#36-network-infrastructure)
-- [4. Additional services](#4-additional-services)
+- [4. System extensibility and additional services](#4-system-extensibility-and-additional-services)
 - [5. Testing the system](#5-testing-the-system)
+  - [Hardware](#hardware)
+  - [Security tests](#security-tests)
 - [6. Additional resources](#6-additional-resources)
   - [6.1. Docker containers network segmentation](#61-docker-containers-network-segmentation)
 
@@ -180,15 +182,19 @@ The *Watchtower* container has been configured to check for new versions of the 
 
 ### 3.6. Network infrastructure
 
+## 4. System extensibility and additional services
 
+To showcase the extensibility of the implemented system, the following services have been added to the system:
 
-## 4. Additional services
-
-- Vaultwarden
-- Nextcloud
-- Personal website (as example of possible additional services)
+- [Vaultwarden](https://github.com/dani-garcia/vaultwarden), a self-hosted password manager compatible with the Bitwarden clients.
+- [Nextcloud](https://nextcloud.com/), a self-hosted cloud storage solution that allows to store and share files, manage calendars, contacts, and more.
+- [Personal website](https://lucadibello.ch/) to showcase how to host custom services on the server.
 
 ## 5. Testing the system
+
+### Hardware
+
+### Security tests
 
 ## 6. Additional resources
 
