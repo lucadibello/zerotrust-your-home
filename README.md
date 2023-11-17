@@ -6,11 +6,10 @@
 
 - [1. Motivation](#1-motivation)
 - [2. Project description](#2-project-description)
-- [3. Server architecture - six pillars](#3-server-architecture---six-pillars)
+- [3. System capabilities](#3-system-capabilities)
   - [3.1. Continuous monitoring and alerting system](#31-continuous-monitoring-and-alerting-system)
     - [3.1.1. Alerting rules](#311-alerting-rules)
     - [3.1.2. Service health monitoring](#312-service-health-monitoring)
-    - [3.1.3. Example alerts](#313-example-alerts)
   - [3.2. Log management suite](#32-log-management-suite)
   - [3.3. Backup and restore suite](#33-backup-and-restore-suite)
     - [3.3.1. Backup retention policies](#331-backup-retention-policies)
@@ -38,7 +37,7 @@ Employing [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust
 
 The developed infrastructure has been designed to be easily extensible and customizable. In fact, a user can easily extend the server with additional services and applications without any additional configuration.
 
-## 3. Server architecture - six pillars
+## 3. System capabilities
 
 The server is based on six main components to provide a secure and private environment for the user data. In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
 
@@ -62,21 +61,9 @@ While *Prometheus* is charge of monitoring the status of the system and the runn
 
 #### 3.1.1. Alerting rules
 
-Alerting rules are conditions evaluated periodically by *Prometheus* that whenever are met, it will trigger an alert via *Prometheus Alertmanager*. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
+For the purpose of this project, five alerting rules have been configured to monitor the health of the system and the running containers. Refer to the [Prometheus Alerting Rules](./doc/prometheus-alerting-rules.md) document for more details.
 
-The following list outlines the alerting rules configured to monitor the system health:
-
-1. *Instance down*: triggers an alert when one of the core services of the monitoring suite (*Prometheus*, *Node Exporter* or *cAdvisor*) is down for more than 1 minute
-
-2. *High disk usage*: triggers an alert when the disk usage of the host machine on ’/’ exceeds 80% for more than 10 minutes.
-
-3. *High CPU usage*: triggers an alert when the CPU usage of the host machine exceeds 80% for more than 5 minutes.
-
-4. *High network traffic*: triggers an alert when the inbound network traffic of the host machine exceeds 10Mb/s for the last minute.
-
-5. *High CPU temperature*: triggers an alert when the CPU temperature of the host machine exceeds 70 °C for more than 1 minute.
-
-For the particular use case thought for this project, Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.
+*Note: For the particular use case thought for this project, Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.*
 
 #### 3.1.2. Service health monitoring
 
@@ -84,17 +71,9 @@ For the particular use case thought for this project, Telegram has been chosen a
 
 ![Uptime Kuma](./assets/images/uptimekuma-dashboard.png)
 
-To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to this [file](./doc/uptime-kuma-monitoring.md).
+To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md).
 
-#### 3.1.3. Example alerts
-
-The following image shows an example of an alert triggered by the *Instance Down* rule.
-
-<img src="./assets/images/cadvisor-telegram-alert.jpg" width="400">
-
-This is an example of a notification sent by *Uptime Kuma* when one of the monitored services is down.
-
-<img src="./assets/images/uptimekuma-alert.png" width="400">
+On the other hand, an example of the notifications sent by *Uptime Kuma* can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
 
 ### 3.2. Log management suite
 
