@@ -130,6 +130,10 @@ Retention policies ensure the retention of a specific number of backups, while r
 
 Leveraging Telegram APIs, the *Restic* is able to notify administrators when a backup operation is completed, when fails (i.e., S3 bucket unavailable) or when it is interrupted (i.e., one or more files are unreadable).
 
+The following image shows all the possible notifications sent by the backup instance.
+
+<img src="./assets/images/restic-backup-notification.jpeg" width="400">
+
 #### Backup and restore operations via CLI
 
 To simplify the backup and restore operations, a Makefile script has been developed to automate the backup and restore procedures as much as possible.
