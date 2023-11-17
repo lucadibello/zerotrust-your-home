@@ -16,9 +16,9 @@
     - [3.3.2. Backup notifications](#332-backup-notifications)
     - [3.3.3. Backup and restore operations via CLI](#333-backup-and-restore-operations-via-cli)
   - [3.4. Home automation system](#34-home-automation-system)
-    - [3.4.1. ZigBee devices pairing tutorial](#341-zigbee-devices-pairing-tutorial)
-    - [3.4.2.  ZigBee automation examples](#342-zigbee-automation-examples)
   - [3.5. Automatic updates](#35-automatic-updates)
+    - [3.5.1. System updates](#351-system-updates)
+    - [3.5.2. Docker image updates](#352-docker-image-updates)
   - [3.6. Network infrastructure](#36-network-infrastructure)
 - [4. Additional services](#4-additional-services)
 - [5. Testing the system](#5-testing-the-system)
@@ -71,9 +71,7 @@ For the purpose of this project, five alerting rules have been configured to mon
 
 ![Uptime Kuma](./assets/images/uptimekuma-dashboard.png)
 
-To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md).
-
-On the other hand, an example of the notifications sent by *Uptime Kuma* can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
+To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md). On the other hand, an example of the notifications sent by *Uptime Kuma* can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
 
 ### 3.2. Log management suite
 
@@ -83,7 +81,9 @@ The following image illustrates the architecture of the log management suite.
 
 ![Log management suite](./assets/images/log-management-flow.png)
 
-*Promtail* is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. All the stored logs can be accessed via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!).
+*Promtail* is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. All the stored logs can be accessed via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!). This is a screenshot of the *Explore* section:
+
+![Grafana Explore](./assets/images/loki-grafana.png)
 
 ### 3.3. Backup and restore suite
 
@@ -101,7 +101,7 @@ In the figure is possible to notice that are present three different instances o
 
 2. The *restore* instance: in charge of cleaning up the S3 bucket by removing old backups based on the configured retention policies (refer to the next section for more details).
 
-3. The "check" instance: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
+3. The *check* instance: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
 
 #### 3.3.1. Backup retention policies
 
@@ -113,7 +113,7 @@ Retention policies ensure the retention of a specific number of backups, while r
 
 #### 3.3.2. Backup notifications
 
-Leveraging Telegram APIs, the *Restic* is able to notify administrators when a backup operation is completed, when fails (i.e., S3 bucket unavailable) or when it is interrupted (i.e., one or more files are unreadable).
+Leveraging Telegram APIs, the *Restic* is able to notify administrators when a backup operation is completed, when it fails (i.e., S3 bucket unavailable) and when it has been interrupted (i.e., one or more files are unreadable).
 
 The following image shows all the possible notifications sent by the backup instance.
 
@@ -125,30 +125,62 @@ To simplify the backup and restore operations, a Makefile script has been develo
 
 The following commands are available:
 
-- *make backup*: creates a new incremental backup of the *Docker* volumes and sends it to the S3 bucket.
+- **make backup**: creates a new incremental backup of the *Docker* volumes and sends it to the S3 bucket.
 
-- *make restore*: wizard to restore the system from a backup selected by the user from the list of available backups. After the backup is performed, it will check the integrity of the restored data to ensure the integrity of the restored data.
+- **make restore**: wizard to restore the system from a backup selected by the user from the list of available backups. After the backup is performed, it will check the integrity of the restored data to ensure the integrity of the restored data.
 
 *Note: it is important to note that the restore command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
 
 ### 3.4. Home automation system
 
-WIP: Already implemented but not added to the project yet. The developed home automation system is based on Home Assistant and supports out-of-the-box the following kind of devices:
+$\textcolor{RED}{\text{WIP: Already implemented but not added to the project yet.}}$
+
+The developed home automation system is based on [Home Assistant](https://www.home-assistant.io/) thus supporting out-of-the-box the following IoT devices:
 
 - ZigBee devices
 - Ethernet devices
 - Wi-Fi devices
 - Bluetooth devices
 
+The following image shows the architecture of the implemented home automation system:
+
+![Home automation system](./assets/images/home-automation-flow.png)
+
+To support ZigBee devices, additional two software components have been added to the system:
+
+- **ZigBee2Mqtt**: is a software bridge that allows to integrate ZigBee devices with MQTT. It implements a ZigBee to MQTT bridge, which allows ZigBee devices to communicate with MQTT. The bridge automatically maps physical devices to MQTT topics. It also supports per-device settings, allowing to set a friendly name for each device.
+
+- **Mosquitto**: is an open-source message broker that implements the MQTT protocol. It is responsible for receiving messages from Zigbee2MQTT and forwarding them to Home Assistant via MQTT.
+
 *Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)*
 
-#### 3.4.1. ZigBee devices pairing tutorial
-
-#### 3.4.2.  ZigBee automation examples
+Since connecting ZigBee devices to Home Assistant requires some additional configuration, a dedicated document has been created to guide the user through the process. Refer to the [ZigBee devices pairing tutorial](./doc/zigbee-pairing-tutorial.md) for more details.
 
 ### 3.5. Automatic updates
 
+In a production environment, it is critical to keep the system and all the installed packages up to date with the latest security patches and updates to ensure the security and availability of the infrastructure. In the following section is presented the approach used to automate the update process of the system and the Docker containers running on the system.
+
+#### 3.5.1. System updates
+
+To ensure the security of the system, it is critical to keep the operating system and all the installed packages up to date with the latest security patches. This operation is usually done manually by the system administrator(s), requiring extra time and effort to keep the system up to date.
+
+To solve this problem, the system configuration script installs and configure the [unattended-upgrades](https://wiki.debian.org/UnattendedUpgrades) package, a tool that allows to systematically install security patches and updates without the need for user intervention. This approach guarantees the security and stability of the system, while reducing the time and effort required to keep the system up to date.
+
+#### 3.5.2. Docker image updates
+
+Given the virtualized nature of the system infrastructure, it is critical to keep Docker containers up to date with the latest security patches and updates. Similar to system updates, this can be done either manually by administrators or autonomously using dedicated tools that periodically check for new image versions and update running containers.
+
+To automate this process, the tool [Watchtower](https://github.com/containrrr/watchtower) has been selected due to its simplicity to deploy and use. This containerized tool periodically scans the running containers for out- dated images and based on the specified configuration, updates containers with the latest available image version (if any).
+
+Notably, this tool automatically restarts updated containers using the new image, ensuring the latest version of the image is always running. This is a critical feature as it allows to maintain the previous container configuration to prevent breaking changes.
+
+The *Watchtower* container has been configured to check for new versions of the images every 24 hours. After every cycle, a full report is generated and sent to the system administrator via Telegram. This is a screenshot of the update report sent by *Watchtower*:
+
+<img src="./assets/images/watchtower-notification.jpg" width="400">
+
 ### 3.6. Network infrastructure
+
+
 
 ## 4. Additional services
 
