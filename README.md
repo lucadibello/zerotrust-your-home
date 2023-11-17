@@ -1,28 +1,37 @@
 # ZeroTrust Smart Space - A safe and private environment for you and your data<!-- omit in toc -->
 
+![ZeroTrust SmartSpace](./assets/images/header.jpg)
+
 ## Table of contents<!-- omit in toc -->
 
-- [1. Introduction](#1-introduction)
-- [2. Technical details](#2-technical-details)
-- [3. Six main components](#3-six-main-components)
-  - [3.1. Continuous monitoring and alerting system](#31-continuous-monitoring-and-alerting-system)
-    - [3.1.1. Alerting rules](#311-alerting-rules)
-    - [3.1.2. Service health monitoring](#312-service-health-monitoring)
-    - [3.1.3. Example alerts](#313-example-alerts)
-  - [3.2. Log management suite](#32-log-management-suite)
-  - [3.3. Backup and restore suite](#33-backup-and-restore-suite)
-    - [Backup retention policies](#backup-retention-policies)
-    - [Backup notifications](#backup-notifications)
-    - [Backup and restore operations via CLI](#backup-and-restore-operations-via-cli)
-  - [3.4. Home automation system](#34-home-automation-system)
-    - [3.4.1. ZigBee devices pairing tutorial](#341-zigbee-devices-pairing-tutorial)
-    - [3.4.2.  ZigBee automation examples](#342-zigbee-automation-examples)
-    - [3.4.3. Automatic updates](#343-automatic-updates)
-    - [3.4.4. Network infrastructure](#344-network-infrastructure)
-- [4. Additional services](#4-additional-services)
-- [5. Docker containers network segmentation](#5-docker-containers-network-segmentation)
+- [1. Motivation](#1-motivation)
+- [2. Project description](#2-project-description)
+- [3. Technical details](#3-technical-details)
+- [4. Six main components](#4-six-main-components)
+  - [4.1. Continuous monitoring and alerting system](#41-continuous-monitoring-and-alerting-system)
+    - [4.1.1. Alerting rules](#411-alerting-rules)
+    - [4.1.2. Service health monitoring](#412-service-health-monitoring)
+    - [4.1.3. Example alerts](#413-example-alerts)
+  - [4.2. Log management suite](#42-log-management-suite)
+  - [4.3. Backup and restore suite](#43-backup-and-restore-suite)
+    - [4.3.1. Backup retention policies](#431-backup-retention-policies)
+    - [4.3.2. Backup notifications](#432-backup-notifications)
+    - [4.3.3. Backup and restore operations via CLI](#433-backup-and-restore-operations-via-cli)
+  - [4.4. Home automation system](#44-home-automation-system)
+    - [4.4.1. ZigBee devices pairing tutorial](#441-zigbee-devices-pairing-tutorial)
+    - [4.4.2.  ZigBee automation examples](#442-zigbee-automation-examples)
+  - [4.5. Automatic updates](#45-automatic-updates)
+  - [4.6. Network infrastructure](#46-network-infrastructure)
+- [5. Additional services](#5-additional-services)
+- [7. Testing the system](#7-testing-the-system)
+- [Additional resources](#additional-resources)
+  - [Docker containers network segmentation](#docker-containers-network-segmentation)
 
-## 1. Introduction
+## 1. Motivation
+
+Information systems play an increasingly key role in our daily lives, in sectors as diverse as public services, healthcare, finance, industry and more. Ensuring the security and privacy of systems is of critical importance as it protects the data of users and the integrity of the systems themselves.
+
+## 2. Project description
 
 This project showcases an autoconfigured home server environment that provides a powerful and secure infrastructure that leverages cutting-edge technologies to ensure security, privacy, and ease of use. It provides the user with a set of pre-configured services and applications that can be easily extended and customized to meet the user's needs.
 
@@ -30,19 +39,19 @@ Employing [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust
 
 The developed infrastructure has been designed to be easily extensible and customizable. In fact, a user can easily extend the server with additional services and applications without any additional configuration.
 
-## 2. Technical details
+## 3. Technical details
 
 The server is based on five main components to provide a secure and private environment for the user data. In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
 
 The entire system is based upon [Docker](https://www.docker.com/) containers to leverage application virtualization, aiming to provide a secure and isolated environment for each application.
 
-## 3. Six main components
+## 4. Six main components
 
 ![System six pillars](./assets/images/system-components.png)
 
 In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
 
-### 3.1. Continuous monitoring and alerting system
+### 4.1. Continuous monitoring and alerting system
 
 With a continuous monitoring solution system administrators can be notified in real-time when an issue is detected, allowing to respond quickly and effectively. For this purpose, the open-source monitoring solution *Prometheus* has been used in pair with *Grafana* to collect and visualize metrics of the operating system and the various *Docker* containers.
 
@@ -54,7 +63,7 @@ While *Prometheus* is charge of monitoring the status of the system and the runn
 
 *Note: Grafana has been configured to automatically import the custom dashboards, without any additional configuration.*
 
-#### 3.1.1. Alerting rules
+#### 4.1.1. Alerting rules
 
 Alerting rules are conditions evaluated periodically by *Prometheus* that whenever are met, it will trigger an alert via *Prometheus Alertmanager*. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
 
@@ -72,7 +81,7 @@ The following list outlines the alerting rules configured to monitor the system 
 
 For the particular use case thought for this project, Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.
 
-#### 3.1.2. Service health monitoring
+#### 4.1.2. Service health monitoring
 
 *Uptime Kuma* allows to monitor the status of the applications and services of the system and to receive real-time notifications when a service is down. The uptime check is performed by periodically sending requests (i.e. HTTP, TCP, ICMP) to the monitored targets and alerting the system administrator using the configured Telegram bot in case of failures.
 
@@ -80,7 +89,7 @@ For the particular use case thought for this project, Telegram has been chosen a
 
 To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to this [file](./doc/uptime-kuma-monitoring.md).
 
-#### 3.1.3. Example alerts
+#### 4.1.3. Example alerts
 
 The following image shows an example of an alert triggered by the *Instance Down* rule.
 
@@ -90,7 +99,7 @@ This is an example of a notification sent by *Uptime Kuma* when one of the monit
 
 <img src="./assets/images/uptimekuma-alert.png" width="400">
 
-### 3.2. Log management suite
+### 4.2. Log management suite
 
 A log management solution has been implemented to centralize the collection, storage, and visualization of logs of the system services and Docker containers. The centralization of logs enables system administrators to access, query and visualize logs of different components of the system from a single interface, simplifying the process of troubleshooting and debugging of the system.
 
@@ -100,7 +109,7 @@ The following image illustrates the architecture of the log management suite.
 
 *Promtail* is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. All the stored logs can be accessed via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!).
 
-### 3.3. Backup and restore suite
+### 4.3. Backup and restore suite
 
 To ensure data integrity in case of disasters such as hardware failures or physical damage, a robust backup solution has been implemented to periodically backup critical data stored in the system.
 
@@ -118,7 +127,7 @@ In the figure is possible to notice that are present three different instances o
 
 3. The "check" instance: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
 
-#### Backup retention policies
+#### 4.3.1. Backup retention policies
 
 Retention policies ensure the retention of a specific number of backups, while removing the oldest one as the limit is reached. These are the configured retention policies:
 
@@ -126,7 +135,7 @@ Retention policies ensure the retention of a specific number of backups, while r
 - Keep last four weekly backups
 - Keep last twelve monthly backups
 
-#### Backup notifications
+#### 4.3.2. Backup notifications
 
 Leveraging Telegram APIs, the *Restic* is able to notify administrators when a backup operation is completed, when fails (i.e., S3 bucket unavailable) or when it is interrupted (i.e., one or more files are unreadable).
 
@@ -134,7 +143,7 @@ The following image shows all the possible notifications sent by the backup inst
 
 <img src="./assets/images/restic-backup-notification.jpeg" width="400">
 
-#### Backup and restore operations via CLI
+#### 4.3.3. Backup and restore operations via CLI
 
 To simplify the backup and restore operations, a Makefile script has been developed to automate the backup and restore procedures as much as possible.
 
@@ -146,7 +155,7 @@ The following commands are available:
 
 *Note: it is important to note that the restore command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
 
-### 3.4. Home automation system
+### 4.4. Home automation system
 
 WIP: Already implemented but not added to the project yet. The developed home automation system is based on Home Assistant and supports out-of-the-box the following kind of devices:
 
@@ -157,21 +166,25 @@ WIP: Already implemented but not added to the project yet. The developed home au
 
 *Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)*
 
-#### 3.4.1. ZigBee devices pairing tutorial
+#### 4.4.1. ZigBee devices pairing tutorial
 
-#### 3.4.2.  ZigBee automation examples
+#### 4.4.2.  ZigBee automation examples
 
-#### 3.4.3. Automatic updates
+### 4.5. Automatic updates
 
-#### 3.4.4. Network infrastructure
+### 4.6. Network infrastructure
 
-## 4. Additional services
+## 5. Additional services
 
 - Vaultwarden
 - Nextcloud
 - Personal website (as example of possible additional services)
 
-## 5. Docker containers network segmentation
+## 7. Testing the system
+
+## Additional resources
+
+### Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
