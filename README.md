@@ -6,8 +6,7 @@
 
 - [1. Motivation](#1-motivation)
 - [2. Project description](#2-project-description)
-- [3. Technical details](#3-technical-details)
-- [4. Six main components](#4-six-main-components)
+- [4. Server architecture - six pillars](#4-server-architecture---six-pillars)
   - [4.1. Continuous monitoring and alerting system](#41-continuous-monitoring-and-alerting-system)
     - [4.1.1. Alerting rules](#411-alerting-rules)
     - [4.1.2. Service health monitoring](#412-service-health-monitoring)
@@ -39,13 +38,11 @@ Employing [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust
 
 The developed infrastructure has been designed to be easily extensible and customizable. In fact, a user can easily extend the server with additional services and applications without any additional configuration.
 
-## 3. Technical details
+## 4. Server architecture - six pillars
 
-The server is based on five main components to provide a secure and private environment for the user data. In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
+The server is based on six main components to provide a secure and private environment for the user data. In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
 
 The entire system is based upon [Docker](https://www.docker.com/) containers to leverage application virtualization, aiming to provide a secure and isolated environment for each application.
-
-## 4. Six main components
 
 ![System six pillars](./assets/images/system-components.png)
 
