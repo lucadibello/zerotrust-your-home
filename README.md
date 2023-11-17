@@ -20,10 +20,13 @@
     - [3.5.1. System updates](#351-system-updates)
     - [3.5.2. Docker image updates](#352-docker-image-updates)
   - [3.6. Network infrastructure](#36-network-infrastructure)
+    - [3.6.1. DNS Server](#361-dns-server)
+    - [3.6.2. Reverse proxy](#362-reverse-proxy)
+      - [3.6.2.1. SSL certificate generation and renewal for internal domain names](#3621-ssl-certificate-generation-and-renewal-for-internal-domain-names)
 - [4. System extensibility and additional services](#4-system-extensibility-and-additional-services)
 - [5. Testing the system](#5-testing-the-system)
-  - [Hardware](#hardware)
-  - [Security tests](#security-tests)
+  - [5.1. Hardware](#51-hardware)
+  - [5.2. Security tests](#52-security-tests)
 - [6. Additional resources](#6-additional-resources)
   - [6.1. Docker containers network segmentation](#61-docker-containers-network-segmentation)
 
@@ -51,15 +54,15 @@ In the following sections, each component will be described in detail to provide
 
 ### 3.1. Continuous monitoring and alerting system
 
-With a continuous monitoring solution system administrators can be notified in real-time when an issue is detected, allowing to respond quickly and effectively. For this purpose, the open-source monitoring solution *Prometheus* has been used in pair with *Grafana* to collect and visualize metrics of the operating system and the various *Docker* containers.
+With a continuous monitoring solution system administrators can be notified in real-time when an issue is detected, allowing to respond quickly and effectively. For this purpose, the open-source monitoring solution [Prometheus](https://prometheus.io/) has been used in pair with [Grafana](https://grafana.com/) to collect and visualize metrics of the operating system and the various *Docker* containers.
 
-To provide real-time notifications, *Prometheus Alerts* have been configured to trigger alerts when specific system metrics exceeds a predefined threshold.
+To provide real-time notifications, [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) have been configured to trigger alerts when specific system metrics exceeds a predefined threshold.
 
-While *Prometheus* is charge of monitoring the status of the system and the running containers, *Uptime Kuma* has been employed to monitor the health of the many applications and services running on the server.
+While *Prometheus* is charge of monitoring the status of the system and the running containers, [Uptime Kuma](https://github.com/louislam/uptime-kuma) has been employed to monitor the health of the many applications and services running on the server.
 
 ![Monitoring and alerting system](./assets/images/continuous-monitoring-flow.png)
 
-*Note: Grafana has been configured to automatically import the custom dashboards, without any additional configuration.*
+*Note: Grafana has been configured to ship two custom dashboards via [provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/), out-of-the-box, without any additional configuration.*
 
 #### 3.1.1. Alerting rules
 
@@ -83,7 +86,7 @@ The following image illustrates the architecture of the log management suite.
 
 ![Log management suite](./assets/images/log-management-flow.png)
 
-*Promtail* is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. All the stored logs can be accessed via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!). This is a screenshot of the *Explore* section:
+[Grafana Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. Stored logs can be queried via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!). This is a sample screenshot of the result of a query:
 
 ![Grafana Explore](./assets/images/loki-grafana.png)
 
@@ -91,7 +94,7 @@ The following image illustrates the architecture of the log management suite.
 
 To ensure data integrity in case of disasters such as hardware failures or physical damage, a robust backup solution has been implemented to periodically backup critical data stored in the system.
 
-The use of a cloud storage solution like Amazon S3 (the one supported by default) is recommended as it provides a cheap and reliable solution to archive backups without incurring in disk capacity issues.
+The use of a cloud storage solution like Amazon S3 (the one configured by default) is recommended as it provides a cheap and reliable solution to archive backups without incurring in disk capacity issues. It is important to highlight that the user can easily configure the backup solution to use a different cloud storage provider (i.e., Google Cloud Storage, Azure Blob Storage, etc.) or a local storage solution (i.e., NAS, external hard drive, etc.) (read official documentation [here](https://restic.readthedocs.io/en/latest/030_preparing_a_new_repo.html)).
 
 The following image illustrates the architecture of the backup and restore suite.
 
@@ -182,6 +185,28 @@ The *Watchtower* container has been configured to check for new versions of the 
 
 ### 3.6. Network infrastructure
 
+#### 3.6.1. DNS Server
+
+As exposed services are behind a reverse proxy, it is necessary to configure a DNS server to resolve the domain names of the services hosted on the server. To address these requirements, the open-source DNS server [BIND9](https://www.isc.org/bind/) has been used. BIND9 is the most widely used DNS server software, that provides a robust and stable platform on top of which organizations can build distributed computing systems fully compliant with published DNS standards.
+
+Based on the domain name specified in the configuration file prior to the deployment of the system, the DNS server will be configured with a specific zone file that maps the domain name to the IP address of the server via a wildcard record. This allows to easily add new services to the system without the need to manually configure the DNS server.
+
+To enhance security, the DNS server has been configured to only accept queries from the internal network, thus preventing external users from querying the DNS server. To limit even more the attack-surface DNSSEC enabled to provide authentication and integrity to the DNS responses.
+
+#### 3.6.2. Reverse proxy
+
+To provide an additional layer of security to the system and to simplify the exposure of internal services to the LAN (i.e., Home Assistant dashboard), the reverse proxy [Traefik](https://traefik.io/traefik/) has been implemented.
+
+Traefik is a modern HTTP reverse proxy and load balancer written in Go, designed specifically for *dockerized* environments. It is a lightweight and easy to use solution that provides advanced features such as automatic SSL certificate generation and renewal, HTTP/2 sup- port, load balancing and circuit breakers.
+
+The choice of Traefik is motivated by its key feature: its ability to automatically discover containers and dynamically update its configuration, allowing to easily expose securely new system services without ever touching configuration files. This enhances the extensibility of the system, allowing to easily add new services without breaking the existing ones.
+
+##### 3.6.2.1. SSL certificate generation and renewal for internal domain names
+
+If the user has a domain name registered on Cloudflare, it is possible to leverage the Cloudflare API to automatically generate and renew SSL certificates for the internal domain names used by the system without exposing them to the internet. This approach allows to easily add new services to the system without the need to manually generate and renew SSL certificates.
+
+This process is fully automated and requires no user intervention. For more details about the implementation of this feature, please refer to the official Traefik documentation [here](https://doc.traefik.io/traefik/https/acme/#dnschallenge).
+
 ## 4. System extensibility and additional services
 
 To showcase the extensibility of the implemented system, the following services have been added to the system:
@@ -192,9 +217,9 @@ To showcase the extensibility of the implemented system, the following services 
 
 ## 5. Testing the system
 
-### Hardware
+### 5.1. Hardware
 
-### Security tests
+### 5.2. Security tests
 
 ## 6. Additional resources
 
