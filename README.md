@@ -8,14 +8,16 @@
   - [3.1. Continuous monitoring and alerting system](#31-continuous-monitoring-and-alerting-system)
     - [3.1.1. Alerting rules](#311-alerting-rules)
     - [3.1.2. Service health monitoring](#312-service-health-monitoring)
-  - [3.1.2. Log management suite](#312-log-management-suite)
-  - [3.1.3. Backup and restore suite](#313-backup-and-restore-suite)
-  - [3.1.4. Home automation system](#314-home-automation-system)
-    - [3.1.5. ZigBee devices pairing tutorial](#315-zigbee-devices-pairing-tutorial)
-    - [3.1.6.  ZigBee automation examples](#316-zigbee-automation-examples)
-    - [3.1.7. Automatic updates](#317-automatic-updates)
-    - [3.1.8. Network infrastructure](#318-network-infrastructure)
-  - [3.2. Docker containers network segmentation](#32-docker-containers-network-segmentation)
+    - [3.1.3. Example alerts](#313-example-alerts)
+  - [3.2. Log management suite](#32-log-management-suite)
+  - [3.3. Backup and restore suite](#33-backup-and-restore-suite)
+  - [3.4. Home automation system](#34-home-automation-system)
+    - [3.4.1. ZigBee devices pairing tutorial](#341-zigbee-devices-pairing-tutorial)
+    - [3.4.2.  ZigBee automation examples](#342-zigbee-automation-examples)
+    - [3.4.3. Automatic updates](#343-automatic-updates)
+    - [3.4.4. Network infrastructure](#344-network-infrastructure)
+- [4. Additional services](#4-additional-services)
+- [5. Docker containers network segmentation](#5-docker-containers-network-segmentation)
 
 ## 1. Introduction
 
@@ -67,25 +69,37 @@ The following list outlines the alerting rules configured to monitor the system 
 
 For the particular use case thought for this project, Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.
 
-The following image shows an example of an alert triggered by the *Instance Down* rule.
-
-![Instance down alert](./assets/images/cadvisor-telegram-alert.jpg)
-
 #### 3.1.2. Service health monitoring
 
 *Uptime Kuma* allows to monitor the status of the applications and services of the system and to receive real-time notifications when a service is down. The uptime check is performed by periodically sending requests (i.e. HTTP, TCP, ICMP) to the monitored targets and alerting the system administrator using the configured Telegram bot in case of failures.
 
 ![Uptime Kuma](./assets/images/uptimekuma-dashboard.png)
 
+To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to this [file](./doc/uptime-kuma-monitoring.md).
+
+#### 3.1.3. Example alerts
+
+The following image shows an example of an alert triggered by the *Instance Down* rule.
+
+<img src="./assets/images/cadvisor-telegram-alert.jpg" width="400">
+
 This is an example of a notification sent by *Uptime Kuma* when one of the monitored services is down.
 
-![Uptime Kuma alert](./assets/images/uptimekuma-alert.png)
+<img src="./assets/images/uptimekuma-alert.png" width="400">
 
-### 3.1.2. Log management suite
+### 3.2. Log management suite
 
-### 3.1.3. Backup and restore suite
+A log management solution has been implemented to centralize the collection, storage, and visualization of logs of the system services and Docker containers. The centralization of logs enables system administrators to access, query and visualize logs of different components of the system from a single interface, simplifying the process of troubleshooting and debugging of the system.
 
-### 3.1.4. Home automation system
+The following image illustrates the architecture of the log management suite.
+
+![Log management suite](./assets/images/low-log-management-flow.png)
+
+*Promtail* is configured to collect logs from the system and the running *Docker* containers and to send them to *Loki* for storage and indexing. All the stored logs can be accessed via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!).
+
+### 3.3. Backup and restore suite
+
+### 3.4. Home automation system
 
 WIP: Already implemented but not added to the project yet. The developed home automation system is based on Home Assistant and supports out-of-the-box the following kind of devices:
 
@@ -96,15 +110,21 @@ WIP: Already implemented but not added to the project yet. The developed home au
 
 *Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)*
 
-#### 3.1.5. ZigBee devices pairing tutorial
+#### 3.4.1. ZigBee devices pairing tutorial
 
-#### 3.1.6.  ZigBee automation examples
+#### 3.4.2.  ZigBee automation examples
 
-#### 3.1.7. Automatic updates
+#### 3.4.3. Automatic updates
 
-#### 3.1.8. Network infrastructure
+#### 3.4.4. Network infrastructure
 
-### 3.2. Docker containers network segmentation
+## 4. Additional services
+
+- Vaultwarden
+- Nextcloud
+- Personal website (as example of possible additional services)
+
+## 5. Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
