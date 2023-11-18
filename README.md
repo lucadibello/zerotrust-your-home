@@ -9,53 +9,54 @@
 - [1. Motivation](#1-motivation)
 - [2. Project description](#2-project-description)
 - [3. Regulations and standards](#3-regulations-and-standards)
-- [4. System capabilities](#4-system-capabilities)
-  - [4.1. Continuous monitoring and alerting system](#41-continuous-monitoring-and-alerting-system)
-    - [4.1.1. Alerting rules](#411-alerting-rules)
-    - [4.1.2. Service health monitoring](#412-service-health-monitoring)
-  - [4.2. Log management suite](#42-log-management-suite)
-  - [4.3. Backup and restore suite](#43-backup-and-restore-suite)
-    - [4.3.1. Backup retention policies](#431-backup-retention-policies)
-    - [4.3.2. Backup notifications](#432-backup-notifications)
-    - [4.3.3. Backup and restore operations via CLI](#433-backup-and-restore-operations-via-cli)
-  - [4.4. Home automation system](#44-home-automation-system)
-    - [4.4.1. Secure communication using TLS certificates](#441-secure-communication-using-tls-certificates)
-    - [4.4.2. ZigBee network security](#442-zigbee-network-security)
-  - [4.5. Automatic updates](#45-automatic-updates)
-    - [4.5.1. System updates](#451-system-updates)
-    - [4.5.2. Docker image updates](#452-docker-image-updates)
-  - [4.6. Network infrastructure](#46-network-infrastructure)
-    - [4.6.1. DNS Server](#461-dns-server)
-    - [4.6.2. Reverse proxy](#462-reverse-proxy)
-      - [4.6.2.1. SSL certificate generation and renewal for internal domain names](#4621-ssl-certificate-generation-and-renewal-for-internal-domain-names)
-- [5. Exposing services to the internet securely via Cloudflare Tunnel](#5-exposing-services-to-the-internet-securely-via-cloudflare-tunnel)
-- [6. Secure remote access to the system via Cloudflare Access and Cloudflare WARP](#6-secure-remote-access-to-the-system-via-cloudflare-access-and-cloudflare-warp)
-    - [6.0.1. Security features](#601-security-features)
-      - [6.0.1.1. Tunnel monitoring and alerting](#6011-tunnel-monitoring-and-alerting)
-      - [6.0.1.2. Logging and monitoring of tunnel usage and user activity](#6012-logging-and-monitoring-of-tunnel-usage-and-user-activity)
-      - [6.0.1.3. Device posture checks](#6013-device-posture-checks)
-      - [6.0.1.4. File antivirus inspection](#6014-file-antivirus-inspection)
-      - [6.0.1.5. Geolocation restrictions](#6015-geolocation-restrictions)
-- [7. Software firewall](#7-software-firewall)
-- [8. System extensibility and additional services](#8-system-extensibility-and-additional-services)
-- [9. System hardening measures](#9-system-hardening-measures)
-  - [9.1. Disable core dumps](#91-disable-core-dumps)
-  - [9.2. Authentication and password policies](#92-authentication-and-password-policies)
-  - [9.3. Change default UMASK permissions](#93-change-default-umask-permissions)
-  - [9.4. Disable unused kernel modules](#94-disable-unused-kernel-modules)
-  - [9.5. SSH service hardening](#95-ssh-service-hardening)
-  - [9.6. Legal notice banner](#96-legal-notice-banner)
-  - [9.7. System auditing](#97-system-auditing)
-  - [9.8. Kernel hardening](#98-kernel-hardening)
-  - [9.9. Restrict compilers to root users](#99-restrict-compilers-to-root-users)
-- [10. Testing the system](#10-testing-the-system)
-  - [10.1. Hardware](#101-hardware)
-  - [10.2. Security tests](#102-security-tests)
-- [11. Summary of the system architecture](#11-summary-of-the-system-architecture)
-  - [11.1. System services](#111-system-services)
-  - [11.2. Docker external networks](#112-docker-external-networks)
-  - [11.3. Docker container list](#113-docker-container-list)
-  - [11.4. Docker containers network segmentation](#114-docker-containers-network-segmentation)
+- [4. Getting started](#4-getting-started)
+- [5. System capabilities](#5-system-capabilities)
+  - [5.1. Continuous monitoring and alerting system](#51-continuous-monitoring-and-alerting-system)
+    - [5.1.1. Alerting rules](#511-alerting-rules)
+    - [5.1.2. Service health monitoring](#512-service-health-monitoring)
+  - [5.2. Log management suite](#52-log-management-suite)
+  - [5.3. Backup and restore suite](#53-backup-and-restore-suite)
+    - [5.3.1. Backup retention policies](#531-backup-retention-policies)
+    - [5.3.2. Backup notifications](#532-backup-notifications)
+    - [5.3.3. Backup and restore operations via CLI](#533-backup-and-restore-operations-via-cli)
+  - [5.4. Home automation system](#54-home-automation-system)
+    - [5.4.1. Secure communication using TLS certificates](#541-secure-communication-using-tls-certificates)
+    - [5.4.2. ZigBee network security](#542-zigbee-network-security)
+  - [5.5. Automatic updates](#55-automatic-updates)
+    - [5.5.1. System updates](#551-system-updates)
+    - [5.5.2. Docker image updates](#552-docker-image-updates)
+  - [5.6. Network infrastructure](#56-network-infrastructure)
+    - [5.6.1. DNS Server](#561-dns-server)
+    - [5.6.2. Reverse proxy](#562-reverse-proxy)
+      - [5.6.2.1. SSL certificate generation and renewal for internal domain names](#5621-ssl-certificate-generation-and-renewal-for-internal-domain-names)
+- [6. Exposing services to the internet securely via Cloudflare Tunnel](#6-exposing-services-to-the-internet-securely-via-cloudflare-tunnel)
+- [7. Secure remote access to the system via Cloudflare Access and Cloudflare WARP](#7-secure-remote-access-to-the-system-via-cloudflare-access-and-cloudflare-warp)
+    - [7.0.1. Security features](#701-security-features)
+      - [7.0.1.1. Tunnel monitoring and alerting](#7011-tunnel-monitoring-and-alerting)
+      - [7.0.1.2. Logging and monitoring of tunnel usage and user activity](#7012-logging-and-monitoring-of-tunnel-usage-and-user-activity)
+      - [7.0.1.3. Device posture checks](#7013-device-posture-checks)
+      - [7.0.1.4. File antivirus inspection](#7014-file-antivirus-inspection)
+      - [7.0.1.5. Geolocation restrictions](#7015-geolocation-restrictions)
+- [8. Software firewall](#8-software-firewall)
+- [9. System extensibility and additional services](#9-system-extensibility-and-additional-services)
+- [10. System hardening measures](#10-system-hardening-measures)
+  - [10.1. Disable core dumps](#101-disable-core-dumps)
+  - [10.2. Authentication and password policies](#102-authentication-and-password-policies)
+  - [10.3. Change default UMASK permissions](#103-change-default-umask-permissions)
+  - [10.4. Disable unused kernel modules](#104-disable-unused-kernel-modules)
+  - [10.5. SSH service hardening](#105-ssh-service-hardening)
+  - [10.6. Legal notice banner](#106-legal-notice-banner)
+  - [10.7. System auditing](#107-system-auditing)
+  - [10.8. Kernel hardening](#108-kernel-hardening)
+  - [10.9. Restrict compilers to root users](#109-restrict-compilers-to-root-users)
+- [11. Testing the system](#11-testing-the-system)
+  - [11.1. Hardware](#111-hardware)
+  - [11.2. Security tests](#112-security-tests)
+- [12. Summary of the system architecture](#12-summary-of-the-system-architecture)
+  - [12.1. System services](#121-system-services)
+  - [12.2. Docker external networks](#122-docker-external-networks)
+  - [12.3. Docker container list](#123-docker-container-list)
+  - [12.4. Docker containers network segmentation](#124-docker-containers-network-segmentation)
 
 ## 1. Motivation
 
@@ -87,7 +88,11 @@ The following international, European, and Swiss regulations, standards and publ
 
 In addition to the regulations and standards listed above, the paper titled *Recommended Practices Guide for Securing ZigBee Wireless Networks in Process Control System Environments*, published by the *U.S. Department of Energy* has been considered to ensure the security of the ZigBee network.
 
-## 4. System capabilities
+## 4. Getting started
+
+To deploy the system, follow the instructions in the [Getting Started](./doc/getting-started.md) document.
+
+## 5. System capabilities
 
 The server comprises six key components, ensuring a secure and private environment for user data. Each component contributes to the robust architecture of the server.
 
@@ -97,7 +102,7 @@ Docker containers form the backbone of the system, offering secure, isolated app
 
 Each component is detailed below, elucidating the server's architecture.
 
-### 4.1. Continuous monitoring and alerting system
+### 5.1. Continuous monitoring and alerting system
 
 The integration of [Prometheus](https://prometheus.io/) and [Grafana](https://grafana.com/) provides real-time system and Docker container monitoring. [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) trigger notifications upon exceeding predefined thresholds.
 
@@ -107,7 +112,7 @@ The integration of [Prometheus](https://prometheus.io/) and [Grafana](https://gr
 
 Grafana has been configured to provide two default dashboards, visualizing system and Docker container metrics collected by Prometheus. To learn more about the dashboards, refer to [Grafana Dashboards](./doc/grafana-dashboards.md).
 
-#### 4.1.1. Alerting rules
+#### 5.1.1. Alerting rules
 
 Alerting rules are conditions evaluated periodically by *Prometheus* that whenever are met, it will trigger an alert via *Prometheus Alertmanager*. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
 
@@ -125,7 +130,7 @@ The following list outlines the alerting rules configured to monitor the system 
 
 *Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system might not have technical skills and might not be familiar with other platforms such as Slack or WeChat.*
 
-#### 4.1.2. Service health monitoring
+#### 5.1.2. Service health monitoring
 
 [Uptime Kuma](https://github.com/louislam/uptime-kuma) allows to monitor the status of the applications and services of the system and to receive real-time notifications when a service is down. The uptime check is performed by periodically sending requests (i.e. HTTP, TCP, ICMP) to the monitored targets and alerting the system administrator using the configured Telegram bot in case of failures.
 
@@ -133,7 +138,7 @@ The following list outlines the alerting rules configured to monitor the system 
 
 To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md). On the other hand, an example of the notifications sent by *Uptime Kuma* can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
 
-### 4.2. Log management suite
+### 5.2. Log management suite
 
 A log management solution has been implemented to centralize the collection, storage, and visualization of logs of the system services and Docker containers. The centralization of logs enables system administrators to access, query and visualize logs of different components of the system from a single interface, simplifying the process of troubleshooting and debugging of the system.
 
@@ -145,7 +150,7 @@ The following image illustrates the architecture of the log management suite.
 
 ![Grafana Explore](./assets/images/loki-grafana.png)
 
-### 4.3. Backup and restore suite
+### 5.3. Backup and restore suite
 
 To ensure data integrity in case of disasters such as hardware failures or physical damage, a robust backup solution has been implemented to periodically backup critical data stored in the system. The backup solution is based on [Restic](https://restic.net/), an open-source backup software that is fast, efficient and secure.
 
@@ -163,7 +168,7 @@ In the figure above is possible to notice that are present three different insta
 
 3. **check instance**: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
 
-#### 4.3.1. Backup retention policies
+#### 5.3.1. Backup retention policies
 
 Retention policies play a pivotal role in maintaining an optimal number of backups while ensuring older backups are systematically purged upon reaching set limits. The following retention policies have been configured:
 
@@ -171,7 +176,7 @@ Retention policies play a pivotal role in maintaining an optimal number of backu
 - Preserve the last four weekly backups
 - Maintain the latest twelve monthly backups
 
-#### 4.3.2. Backup notifications
+#### 5.3.2. Backup notifications
 
 Leveraging Telegram APIs, Restic *backup instance* is able to notify administrators when a backup operation is completed, when it fails (i.e., S3 bucket unavailable) and when it has been interrupted (i.e., one or more files are unreadable).
 
@@ -179,7 +184,7 @@ The following image shows all the possible notifications sent by the backup inst
 
 <img src="./assets/images/restic-backup-notification.jpeg" width="400">
 
-#### 4.3.3. Backup and restore operations via CLI
+#### 5.3.3. Backup and restore operations via CLI
 
 To simplify the backup and restore operations, a Makefile script has been developed to automate the backup and restore procedures as much as possible.
 
@@ -191,7 +196,7 @@ The following commands are available:
 
 *Note: it is important to note that the **restore** command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
 
-### 4.4. Home automation system
+### 5.4. Home automation system
 
 The integrated home automation system seamlessly integrates with [Home Assistant](https://www.home-assistant.io/), offering native support for a wide array of IoT devices right out of the box, including:
 
@@ -214,7 +219,7 @@ To support ZigBee devices, additional two software components have been added to
 
 Since connecting ZigBee devices to Home Assistant requires some additional configuration, a dedicated document has been created to guide the user through the process. Refer to the [ZigBee devices pairing tutorial](./doc/zigbee-pairing-tutorial.md) for more details.
 
-#### 4.4.1. Secure communication using TLS certificates
+#### 5.4.1. Secure communication using TLS certificates
 
 To secure the communication between the MQTT broker, the MQTT bridge and the home automation software instance, TLS encryption and authentication has been implemented. This configuration ensures that only clients providing a valid TLS certificate (a certificate signed with the CA certificate) can establish a connection and communicate with the other components of the chain. All messages exchanged between the three instances are encrypted using the TLS protocol thus mitigating the risk of man-in-the-middle (MITM) attacks and ensure the integrity and confidentiality of the transmitted data (i.e., messages cannot be altered during the transmission).
 
@@ -224,7 +229,7 @@ With the developed configuration, Zigbee2MQTT and Mosquito have TLS authenticati
 
 > **Important note**: [Home Assistant’s MQTT integration](https://www.home-assistant.io/integrations/mqtt/) requires manual configuration via GUI, as it does not allow TLS certificates to be configured through the config file.
 
-#### 4.4.2. ZigBee network security
+#### 5.4.2. ZigBee network security
 
 As the IoT network developed in this project is deployed in a non-critical setting where the system administrators might have limited budget and technical knowledge to properly manage the
 system, the use of a dedicated *ZigBee Trust Center* (ZTC) has not been considered as it would have required additional hardware and efforts to configure and maintain.
@@ -241,17 +246,17 @@ To have a baseline level of security, the *Zigbee2MQTT* instance has been config
 
 - **Access Control List (ACL)**: From the web interface is possible to open a joining window (i.e., 60 seconds) during which new devices can join the network and be added to the ACL. After the window expires, the joining of new devices is disabled, allowing only the devices in the ACL to connect the network. The GUI provide options to manage the Access Control List. For example, is possible to add or remove specific nodes from the ZigBee network.
 
-### 4.5. Automatic updates
+### 5.5. Automatic updates
 
 In a production environment, it is critical to keep the system and all the installed packages up to date with the latest security patches and updates to ensure the security and availability of the infrastructure. In the following section is presented the approach used to automate the update process of the system and the Docker containers running on the system.
 
-#### 4.5.1. System updates
+#### 5.5.1. System updates
 
 To ensure the security of the system, it is critical to keep the operating system and all the installed packages up to date with the latest security patches. This operation is usually done manually by the system administrator(s), requiring extra time and effort to keep the system up to date.
 
 To solve this problem, the system configuration script installs and configure the [unattended-upgrades](https://wiki.debian.org/UnattendedUpgrades) package, a tool that allows to systematically install security patches and updates without the need for user intervention. This approach guarantees the security and stability of the system, while reducing the time and effort required to keep the system up to date.
 
-#### 4.5.2. Docker image updates
+#### 5.5.2. Docker image updates
 
 Given the virtualized nature of the system infrastructure, it is critical to keep Docker containers up to date with the latest security patches and updates. Similar to system updates, this can be done either manually by administrators or autonomously using dedicated tools that periodically check for new image versions and update running containers.
 
@@ -263,9 +268,9 @@ The *Watchtower* container has been configured to check for new versions of the 
 
 <img src="./assets/images/watchtower-notification.jpg" width="400">
 
-### 4.6. Network infrastructure
+### 5.6. Network infrastructure
 
-#### 4.6.1. DNS Server
+#### 5.6.1. DNS Server
 
 As exposed services are behind a reverse proxy, it is necessary to configure a DNS server to resolve the domain names of the services hosted on the server. To address these requirements, the open-source DNS server [BIND9](https://www.isc.org/bind/) has been used. BIND9 is the most widely used DNS server software, that provides a robust and stable platform on top of which organizations can build distributed computing systems fully compliant with published DNS standards.
 
@@ -273,7 +278,7 @@ Based on the domain name specified in the configuration file prior to the deploy
 
 To enhance security, the DNS server has been configured to only accept queries from the internal network, thus preventing external users from querying the DNS server. To limit even more the attack-surface DNSSEC enabled to provide authentication and integrity to the DNS responses.
 
-#### 4.6.2. Reverse proxy
+#### 5.6.2. Reverse proxy
 
 To provide an additional layer of security to the system and to simplify the exposure of internal services to the LAN (i.e., Home Assistant dashboard), the reverse proxy [Traefik](https://traefik.io/traefik/) has been implemented.
 
@@ -281,13 +286,13 @@ Traefik is a modern HTTP reverse proxy and load balancer written in Go, designed
 
 The choice of Traefik is motivated by its key feature: its ability to automatically discover containers and dynamically update its configuration, allowing to easily expose securely new system services without ever touching configuration files. This enhances the extensibility of the system, allowing to easily add new services without breaking the existing ones.
 
-##### 4.6.2.1. SSL certificate generation and renewal for internal domain names
+##### 5.6.2.1. SSL certificate generation and renewal for internal domain names
 
 If the user has a domain name registered on Cloudflare, it is possible to leverage the Cloudflare API to automatically generate and renew SSL certificates for the internal domain names used by the system without exposing them to the internet. This approach allows to easily add new services to the system without the need to manually generate and renew SSL certificates.
 
 This process is fully automated and requires no user intervention. For more details about the implementation of this feature, please refer to the official Traefik documentation [here](https://doc.traefik.io/traefik/https/acme/#dnschallenge).
 
-## 5. Exposing services to the internet securely via Cloudflare Tunnel
+## 6. Exposing services to the internet securely via Cloudflare Tunnel
 
 To avoid the need to open ports in both the router and the server firewalls, is possible to leverage the services offered by [Cloudflare’s SSE & SASE Platform](https://www.cloudflare.com/zero-trust/). This platform offers a set of security services to facilitate the secure access to internal services and resources, one of these services is [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/).
 
@@ -295,7 +300,7 @@ This solution allows to expose internal services to the internet without opening
 
 ![Cloudflare Tunnel architecture](./assets/images/cloudflare-tunnel.png)
 
-## 6. Secure remote access to the system via Cloudflare Access and Cloudflare WARP
+## 7. Secure remote access to the system via Cloudflare Access and Cloudflare WARP
 
 The same platform used to expose services to the internet securely can be used to provide secure remote access to the system. Via [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/), [Cloudflare Access](https://www.cloudflare.com/zero-trust/products/access/) and [Cloudflare WARP](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/download-warp/), it is possible to implement a secure remote access solution that allows to access the system from anywhere in the world without ever exposing the system to the internet, while keeping the system security posture high.
 
@@ -306,11 +311,11 @@ This is a diagram that depicts the architecture of the system when with a split 
 ![Cloudflare Tunnel split tunnel architecture](./assets/images/split-tunneling.jpg)
 
 
-#### 6.0.1. Security features
+#### 7.0.1. Security features
 
 To ensure the security and privacy of both the remote connection to the private infrastructure and the internal services exposed to the Internet, the following security features should be enabled in the *Zero Trust* organization:
 
-##### 6.0.1.1. Tunnel monitoring and alerting
+##### 7.0.1.1. Tunnel monitoring and alerting
 
 Cloudflare Notifications enable system administrators to receive real-time E-Mail alerts when a specific event occurs. To ensure the security and privacy of the infrastructure and the data stored in it, the following notifications
 should be enabled:
@@ -322,7 +327,7 @@ allows for a quick response to any potential issue and ensures the availability 
 
 3. **Route Leak Detection alert**: an alert is triggered when a *Route Leak* attack (learn more [here](https://blog.cloudflare.com/route-leak-detection/)) is detected. This alert allows the system administrator(s) to detect potential misconfigurations in the tunnel routing and enables them to quickly respond to the incident.
 
-##### 6.0.1.2. Logging and monitoring of tunnel usage and user activity
+##### 7.0.1.2. Logging and monitoring of tunnel usage and user activity
 
 Via *Cloudflare Zero Trust* settings, is possible to enable logging and monitoring for tunnel usage and user activity. To allow system administrators a global view of the Zero Trust network, the following logs should be enabled:
 
@@ -335,7 +340,7 @@ Via *Cloudflare Zero Trust* settings, is possible to enable logging and monitori
 - *Gateway activity logs*: these logs record the network packets, HTTP and DNS requests inspected by the Zero Trust Gateway. Encrypted SSH command logs for sessions proxied by the Zero Trust Gateway are also available for download and can be
 decrypted using the private key generated during the SSH command logging configuration.
 
-##### 6.0.1.3. Device posture checks
+##### 7.0.1.3. Device posture checks
 
 Device posture checks allows system administrators to assess the well-being of devices connected to the Zero Trust network, allowing only healthy devices to access network resources and services. The following posture checks should be configured:
 
@@ -351,18 +356,18 @@ Device posture checks allows system administrators to assess the well-being of d
 
 With this configuration is possible to limit access to the network to only up-to-date and healthy devices, reducing the risk of a successful cyberattack.
 
-##### 6.0.1.4. File antivirus inspection
+##### 7.0.1.4. File antivirus inspection
 
 Files passing through the Zero Trust network, both
 downloading and uploading, are scanned for viruses and malware using the layer 7 Zero Trust network firewall. This functionality ensures the identification and prevention of malware and viruses from entering the network, reducing the risk of data breaches and cyberattacks.
 
-##### 6.0.1.5. Geolocation restrictions
+##### 7.0.1.5. Geolocation restrictions
 
 To reduce the potential attack surface of the Zero Trust network, access to the network can be confined to specific countries (i.e. limiting access to the network to only the country where the system administrators are located).
 
 By enabling access geolocation restriction is possible to reinforce the security posture of the Zero Trust network introducing an additional layer of defense
 
-## 7. Software firewall
+## 8. Software firewall
 
 By employing a software firewall is possible to get control over incoming and outgoing traffic, preventing unauthorized access connections to and from the system and its services. To address this requirement, the built-in tool [iptables](https://linux.die.net/man/8/iptables) has been employed.
 
@@ -370,7 +375,7 @@ To adhere to the Zero Trust security model, the firewall have been configured to
 
 The script in charge of configuring the firewall can be found [here](./scripts/firewall/zero-trust-firewall.sh).
 
-## 8. System extensibility and additional services
+## 9. System extensibility and additional services
 
 To showcase the extensibility of the implemented system, the following services have been added to the system:
 
@@ -378,19 +383,19 @@ To showcase the extensibility of the implemented system, the following services 
 - [Nextcloud](https://nextcloud.com/), a self-hosted cloud storage solution that allows to store and share files, manage calendars, contacts, and more.
 - [Personal website](https://lucadibello.ch/) to showcase how to host custom services on the server.
 
-## 9. System hardening measures
+## 10. System hardening measures
 
 This section outlines the measures implemented to enhance system security, effectively reducing the attack surface of the system.
 
 All the listed measures have been implemented in the system configuration script, thus requiring no user intervention.
 
-### 9.1. Disable core dumps
+### 10.1. Disable core dumps
 
 A core dump is a file containing a process’s address space when it terminates unexpectedly. This file can be used to debug the process and identify the cause of the crash. However, attackers leverage this file to extract sensitive information, such as passwords and encryption keys. For this reason, it is critical to disable core dumps to prevent attackers from extracting sensitive information from the system memory.
 
 Learn more about core dumps [here](https://en.wikipedia.org/wiki/Core_dump).
 
-### 9.2. Authentication and password policies
+### 10.2. Authentication and password policies
 
 To ensure the security of the system, it is critical to enforce strong password policies to prevent attackers from guessing user passwords. These are the password policies enforced on the system to guarantee its security:
 
@@ -401,7 +406,7 @@ To ensure the security of the system, it is critical to enforce strong password 
 
 Enforcing strong passwords reduces the risk of successful cyberattacks.
 
-### 9.3. Change default UMASK permissions
+### 10.3. Change default UMASK permissions
 
 The default *umask* permissions are 022 (0022 in octal notation), which means that newly created files and directories will have the following permissions:
 
@@ -415,7 +420,7 @@ The default *umask* value is too permissive and can lead to security issues. For
 
 By setting these permissions, it is possible to ensure that only the owner of the file or directory can read and write to it, while others in the same group can only list the directory contents.
 
-### 9.4. Disable unused kernel modules
+### 10.4. Disable unused kernel modules
 
 The system comes with a set of kernel modules that are not necessary for the system to function properly. As kernel modules can be exploited by attackers to gain access to the system, it is critical to removed unused ones to reduce the attack surface.
 
@@ -426,7 +431,7 @@ This are the modules that have been removed from the system:
 - `rds`
 - `tipc`
 
-### 9.5. SSH service hardening
+### 10.5. SSH service hardening
 
 The SSH server is the only service installed on the system that is not running in a Docker container. For this reason, it is critical to harden this service to prevent unauthorized access to the system. In the following section are presented the measures implemented to harden the SSH service.
 To further harden the SSH service, the following configuration changes have been made:
@@ -441,7 +446,7 @@ To further harden the SSH service, the following configuration changes have been
 - Disable SSH X11 forwarding (`X11Forwarding` from `yes` to `no`)
 - Disable SSH agent forwarding (`AllowAgentForwarding` from `yes` to `no`)
 
-### 9.6. Legal notice banner
+### 10.6. Legal notice banner
 
 Adding a legal notice banner to the system is a good practice as it informs users that the system is private and unauthorized access is prohibited. The banner is displayed when a user logs in to the system via SSH.
 
@@ -453,13 +458,13 @@ This system is private. Unauthorized access is prohibited.
 
 While this is not a security measure, it is a good practice to inform users that the system is private, and that unauthorized access is not allowed.
 
-### 9.7. System auditing
+### 10.7. System auditing
 
 System audits allow system administrators to discover security violations and find relevant security information. By configuring [auditd](https://linux.die.net/man/8/auditd) service on the system is possible to record triggered system events. The information included in the audit logs can be leveraged to learn what configuration caused the problem, enabling administrators to enhance the system cybersecurity posture. This service logs system events to the `/var/log/audit/audit.log` file based on a comprehensive set of rules (i.e., file system events, system calls, etc.).
 
 The set of rules provided by default is the following: [audit.rules](https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules).
 
-### 9.8. Kernel hardening
+### 10.8. Kernel hardening
 
 The Linux kernel comes with a set of parameters that can be configured to enhance the security of the system. In the following section are presented the measures implemented to harden the system kernel parameters.
 
@@ -475,7 +480,7 @@ echo "net.ipv4.conf.default.accept_redirects = 0" | sudo tee -a /etc/sysctl.d/80
 echo "net.ipv4.conf.default.log_martians = 1" | sudo tee -a /etc/sysctl.d/80-lynis.conf
 ```
 
-### 9.9. Restrict compilers to root users
+### 10.9. Restrict compilers to root users
 
 Compilers are tools that allow to transform source code into executable code. Attackers can use these tools to compile malicious code and run it on the system. For this reason, it is critical to restrict the usage of compilers to root users only.
 
@@ -486,9 +491,9 @@ The script will look for the following compilers (wildcards are used to match al
 - `cc*`
 - `c++*`
 
-## 10. Testing the system
+## 11. Testing the system
 
-### 10.1. Hardware
+### 11.1. Hardware
 
 The system has been tested successfully on the following low-end single-board computers both running [Armbian](https://www.armbian.com/):
 
@@ -504,7 +509,7 @@ The system has been tested successfully on the following low-end single-board co
 
 *[Image source](https://wiki.banana-pi.org/Banana_Pi_BPI-M64)*
 
-### 10.2. Security tests
+### 11.2. Security tests
 
 To test the security of the system, the following tools have been used:
 
@@ -514,14 +519,14 @@ To test the security of the system, the following tools have been used:
 
 The system hardening measures implemented in the system configuration script have been tested using the tools listed above. Globally, the system has been rated as secure by the tools, with a few minor issues that have been fixed later in the development process.
 
-## 11. Summary of the system architecture
+## 12. Summary of the system architecture
 
 This section provides a concise overview of the implemented home automation system. The provided summary tables highlight key aspects like software components, running services, Docker containers, and network configuration.
 
 The information is particularly valuable as it offers a comprehensive view of the implemented infrastructure. In fact, in just a few pages the reader can grasp how distinct parts of the system work together. The details related to created Docker networks also show how different services are connected to each other, providing a better understanding of the overall system
 architecture and the measures implemented to protect it. Refactoring of IT projects to increase security, safety and privacy
 
-### 11.1. System services
+### 12.1. System services
 
 The following table outlines the services used to build the current infrastructure. The table provides key information about each component, including the name, description, whether the component is virtualized using Docker, the DNS name used by the reverse proxy, and port used by the service to communicate with other components.
 
@@ -553,7 +558,7 @@ The following table outlines the services used to build the current infrastructu
 | Watchtower | Automatic Docker images updates | Yes | - | - |
 | Unattended-upgrades | Automatic system updates and security patches  | No | - | - |
 
-### 11.2. Docker external networks
+### 12.2. Docker external networks
 
 The following table outlines the external Docker networks created to implement the system architecture. The table provides information about the network name, IP range and purpose.
 
@@ -565,7 +570,7 @@ The following table outlines the external Docker networks created to implement t
 | `prometheus-network` | `172.20.0.0/16` | Docker network shared with all containers part of the system monitoring suite |
 | `home-network` | `172.21.0.0/16` | Docker network shared with all containers part of the home automation system |
 
-### 11.3. Docker container list
+### 12.3. Docker container list
 
 The following table lists all information about the containers used by the server.
 
@@ -588,7 +593,7 @@ The following table lists all information about the containers used by the serve
 | `promtail` | `grafana/promtail:latest` | `loki-network` | `always` |
 | `watchtower` | `containrrr/watchtower:latest` | `bridge` | `always` |
 
-### 11.4. Docker containers network segmentation
+### 12.4. Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
