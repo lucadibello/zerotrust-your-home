@@ -59,11 +59,13 @@
 
 ## 1. Motivation
 
-In today's world, information systems are integral to diverse sectors like public services, healthcare, finance, and industry. The security and privacy of these systems are paramount, safeguarding user data and maintaining system integrity.
+In today's world where information systems play a pivotal role in our daily lives, it is critical to ensure the security and privacy of our digital data. The recent increase in cyberattacks and data breaches has highlighted the importance of protecting our digital assets from malicious actors.
+
+Self-hosting services and applications is a great way to ensure the security and privacy of our data, as it allows us to have full control over the infrastructure and the data stored in it. However, setting up a secure and reliable infrastructure is not an easy task, as it requires a deep understanding of the technologies involved and the security risks associated with them.
 
 ## 2. Project description
 
-This project represents autoconfigured home server environment that delivers a robust, secure infrastructure in a matter of minutes.
+This project represents autoconfigured home automation system that delivers a robust, secure infrastructure in a matter of minutes (literally!).
 
 Leveraging cutting-edge technologies, it ensures top-notch security, privacy, and user-friendliness while maintaining a low cost of ownership. The server is designed to be deployed on a low-end single-board computer, such as [Raspberry Pi](https://www.raspberrypi.org/) or alternatives like [Orange Pi](http://www.orangepi.org/) and [Banana Pi](https://www.banana-pi.org/).
 
