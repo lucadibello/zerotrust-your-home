@@ -54,8 +54,8 @@
 - [11. Summary of the system architecture](#11-summary-of-the-system-architecture)
   - [11.1. System services](#111-system-services)
   - [11.2. Docker external networks](#112-docker-external-networks)
-  - [11.3. Docker containers network segmentation](#113-docker-containers-network-segmentation)
-  - [11.4. Container list](#114-container-list)
+  - [11.3. Docker container list](#113-docker-container-list)
+  - [11.4. Docker containers network segmentation](#114-docker-containers-network-segmentation)
 
 ## 1. Motivation
 
@@ -563,15 +563,31 @@ The following table outlines the external Docker networks created to implement t
 | `prometheus-network` | `172.20.0.0/16` | Docker network shared with all containers part of the system monitoring suite |
 | `home-network` | `172.21.0.0/16` | Docker network shared with all containers part of the home automation system |
 
-### 11.3. Docker containers network segmentation
+### 11.3. Docker container list
+
+The following table lists all information about the containers used by the server.
+
+| Container name | Image | Network | Restart policy |
+| -------------- | ----- | ------- | -------------- |
+| `bind9` | `ubuntu/bind9:latest` | `traefik-network` | `always` |
+| `traefik` | `traefik:latest` | `traefik-network` | `always` |
+| `cloudflare-tunnel` | `cloudflare/cloudflared:latest` | `traefik-network` | `always` |
+| `prometheus` | `prom/prometheus:latest` | `traefik-network`, `prometheus-network` | `always` |
+| `node-exporter` | `quay.io/prometheus/node-exporter:latest` | `traefik-network`, `prometheus-network` | `always` |
+| `cadvisor` | `gcr.io/cadvisor/cadvisor:latest` | `prometheus-network` | `always` |
+| `grafana` | `grafana/grafana-oss:latest` | `traefik-network`, `prometheus-network` | `always` |
+| `uptimekuma` | `louislam/uptime-kuma:latest` | `traefik-network`, `prometheus-network`, `home-network`, `loki-network` | `always` |
+| `alertmanager` | `prom/alertmanager:latest` | `traefik-network`, `prometheus-network` | `always` |
+| `mosquitto` | `eclipse-mosquitto:latest` | `home-network` | `always` |
+| `zigbee2mqtt` | `koenkk/zigbee2mqtt:latest` | `traefik-network`, `home-network` | `always` |
+| `homeassistant` | `ghcr.io/home-assistant/home-assistant:stable` | `traefik-network`, `home-network` | `always` |
+| `restic` | `mazzolino/restic:latest` | `bridge` | `always` |
+| `loki` | `grafana/loki:latest` | `traefik-network`, `loki-network` | `always` |
+| `promtail` | `grafana/promtail:latest` | `loki-network` | `always` |
+| `watchtower` | `containrrr/watchtower:latest` | `bridge` | `always` |
+
+### 11.4. Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
 ![Docker containers network segmentation](./assets/images/docker-containers-network-diagram.png)
-
-
-### 11.4. Container list
-
-The following table lists all information about the containers used by the server.
-
-
