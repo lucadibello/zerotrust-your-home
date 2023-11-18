@@ -1,6 +1,8 @@
-# ZeroTrust Your Home - A safe and private environment for you and your data<!-- omit in toc -->
+# ZeroTrust Your Home<!-- omit in toc -->
 
 ![ZeroTrust Your Home](./assets/images/header.jpg)
+
+<p align="center"><strong>🔐 Securing Your Digital Sanctuary, Trust None, Protect Everything.</strong></p>
 
 ## Table of contents<!-- omit in toc -->
 
@@ -24,22 +26,25 @@
     - [3.6.1. DNS Server](#361-dns-server)
     - [3.6.2. Reverse proxy](#362-reverse-proxy)
       - [3.6.2.1. SSL certificate generation and renewal for internal domain names](#3621-ssl-certificate-generation-and-renewal-for-internal-domain-names)
-- [4. System extensibility and additional services](#4-system-extensibility-and-additional-services)
-- [5. System hardening](#5-system-hardening)
-  - [5.1. Disable core dumps](#51-disable-core-dumps)
-  - [5.2. Authentication and password policies](#52-authentication-and-password-policies)
-  - [5.3. Change default UMASK permissions](#53-change-default-umask-permissions)
-  - [5.4. Disable unused kernel modules](#54-disable-unused-kernel-modules)
-  - [5.5. SSH service hardening](#55-ssh-service-hardening)
-  - [5.6. Legal notice banner](#56-legal-notice-banner)
-  - [5.7. System auditing](#57-system-auditing)
-  - [5.8. Kernel hardening](#58-kernel-hardening)
-  - [5.9. Restrict compilers to root users](#59-restrict-compilers-to-root-users)
-- [6. Testing the system](#6-testing-the-system)
-  - [6.1. Hardware](#61-hardware)
-  - [6.2. Security tests](#62-security-tests)
-- [7. Additional resources](#7-additional-resources)
-  - [7.1. Docker containers network segmentation](#71-docker-containers-network-segmentation)
+- [4. Exposing services to the internet securely via Cloudflare Tunnel](#4-exposing-services-to-the-internet-securely-via-cloudflare-tunnel)
+- [5. Secure remote access to the system via Cloudflare Access and Cloudflare WARP](#5-secure-remote-access-to-the-system-via-cloudflare-access-and-cloudflare-warp)
+- [6. Software firewall](#6-software-firewall)
+- [7. System extensibility and additional services](#7-system-extensibility-and-additional-services)
+- [8. System hardening measures](#8-system-hardening-measures)
+  - [8.1. Disable core dumps](#81-disable-core-dumps)
+  - [8.2. Authentication and password policies](#82-authentication-and-password-policies)
+  - [8.3. Change default UMASK permissions](#83-change-default-umask-permissions)
+  - [8.4. Disable unused kernel modules](#84-disable-unused-kernel-modules)
+  - [8.5. SSH service hardening](#85-ssh-service-hardening)
+  - [8.6. Legal notice banner](#86-legal-notice-banner)
+  - [8.7. System auditing](#87-system-auditing)
+  - [8.8. Kernel hardening](#88-kernel-hardening)
+  - [8.9. Restrict compilers to root users](#89-restrict-compilers-to-root-users)
+- [9. Testing the system](#9-testing-the-system)
+  - [9.1. Hardware](#91-hardware)
+  - [9.2. Security tests](#92-security-tests)
+- [10. Additional resources](#10-additional-resources)
+  - [10.1. Docker containers network segmentation](#101-docker-containers-network-segmentation)
 
 ## 1. Motivation
 
@@ -52,6 +57,8 @@ This project showcases an autoconfigured home server environment that provides a
 Employing [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust/#zt-features), the server adheres with the Zero Trust security model, in fact, to be able to access the services the user needs to be authenticated, authorized and the device security must be verified through automated posture checks.
 
 The developed infrastructure has been designed to be easily extensible and customizable. In fact, a user can easily extend the server with additional services and applications without any additional configuration.
+
+![Project result](assets/images/project-result.jpg)
 
 ## 3. System capabilities
 
@@ -228,7 +235,33 @@ If the user has a domain name registered on Cloudflare, it is possible to levera
 
 This process is fully automated and requires no user intervention. For more details about the implementation of this feature, please refer to the official Traefik documentation [here](https://doc.traefik.io/traefik/https/acme/#dnschallenge).
 
-## 4. System extensibility and additional services
+## 4. Exposing services to the internet securely via Cloudflare Tunnel
+
+To avoid the need to open ports in both the router and the server firewalls, is possible to leverage the services offered by [Cloudflare’s SSE & SASE Platform](https://www.cloudflare.com/zero-trust/). This platform offers a set of security services to facilitate the secure access to internal services and resources, one of these services is [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/).
+
+This solution allows to expose internal services to the internet without opening ports in the router and the server firewalls, thus reducing the attack surface of the system. Additionally, this approach allows to leverage the Cloudflare edge network to protect the exposed services from DDoS attacks and other malicious traffic. The following diagram illustrates the architecture of the system when Cloudflare Tunnel is enabled.
+
+![Cloudflare Tunnel architecture](./assets/images/cloudflare-tunnel.png)
+
+## 5. Secure remote access to the system via Cloudflare Access and Cloudflare WARP
+
+The same platform used to expose services to the internet securely can be used to provide secure remote access to the system. Via [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/), [Cloudflare Access](https://www.cloudflare.com/zero-trust/products/access/) and [Cloudflare WARP](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/download-warp/), it is possible to implement a secure remote access solution that allows to access the system from anywhere in the world without ever exposing the system to the internet, while keeping the system security posture high.
+
+By configuring a *split tunnel* in the Zero Trust network, it is possible to route all the traffic destined to the internal network through the secure tunnel created by Cloudflare Tunnel, while all the other traffic will be routed through Cloudflare data centers: this approach allows to leverage the Cloudflare edge network to protect the system from DDoS attacks and other malicious traffic.
+
+This is a diagram that depicts the architecture of the system when with a split tunnel configuration.
+
+![Cloudflare Tunnel split tunnel architecture](./assets/images/split-tunneling.jpg)
+
+## 6. Software firewall
+
+By employing a software firewall is possible to get control over incoming and outgoing traffic, preventing unauthorized access connections to and from the system and its services. To address this requirement, the built-in tool [iptables](https://linux.die.net/man/8/iptables) has been employed.
+
+To adhere to the Zero Trust security model, the firewall have been configured to deny all inbound and outbound traffic by default and only allow traffic to pass through the secure tunnel created by Cloudflare Tunnel, which is accessible only to authorized users and devices.
+
+The script in charge of configuring the firewall can be found [here](./scripts/firewall/zero-trust-firewall.sh).
+
+## 7. System extensibility and additional services
 
 To showcase the extensibility of the implemented system, the following services have been added to the system:
 
@@ -236,19 +269,19 @@ To showcase the extensibility of the implemented system, the following services 
 - [Nextcloud](https://nextcloud.com/), a self-hosted cloud storage solution that allows to store and share files, manage calendars, contacts, and more.
 - [Personal website](https://lucadibello.ch/) to showcase how to host custom services on the server.
 
-## 5. System hardening
+## 8. System hardening measures
 
 This section outlines the measures implemented to enhance system security, effectively reducing the attack surface of the system.
 
 All the listed measures have been implemented in the system configuration script, thus requiring no user intervention.
 
-### 5.1. Disable core dumps
+### 8.1. Disable core dumps
 
 A core dump is a file containing a process’s address space when it terminates unexpectedly. This file can be used to debug the process and identify the cause of the crash. However, attackers leverage this file to extract sensitive information, such as passwords and encryption keys. For this reason, it is critical to disable core dumps to prevent attackers from extracting sensitive information from the system memory.
 
 Learn more about core dumps [here](https://en.wikipedia.org/wiki/Core_dump).
 
-### 5.2. Authentication and password policies
+### 8.2. Authentication and password policies
 
 To ensure the security of the system, it is critical to enforce strong password policies to prevent attackers from guessing user passwords. These are the password policies enforced on the system to guarantee its security:
 
@@ -259,7 +292,7 @@ To ensure the security of the system, it is critical to enforce strong password 
 
 Enforcing strong passwords reduces the risk of successful cyberattacks.
 
-### 5.3. Change default UMASK permissions
+### 8.3. Change default UMASK permissions
 
 The default *umask* permissions are 022 (0022 in octal notation), which means that newly created files and directories will have the following permissions:
 
@@ -273,7 +306,7 @@ The default *umask* value is too permissive and can lead to security issues. For
 
 By setting these permissions, it is possible to ensure that only the owner of the file or directory can read and write to it, while others in the same group can only list the directory contents.
 
-### 5.4. Disable unused kernel modules
+### 8.4. Disable unused kernel modules
 
 The system comes with a set of kernel modules that are not necessary for the system to function properly. As kernel modules can be exploited by attackers to gain access to the system, it is critical to removed unused ones to reduce the attack surface.
 
@@ -284,7 +317,7 @@ This are the modules that have been removed from the system:
 - `rds`
 - `tipc`
 
-### 5.5. SSH service hardening
+### 8.5. SSH service hardening
 
 The SSH server is the only service installed on the system that is not running in a Docker container. For this reason, it is critical to harden this service to prevent unauthorized access to the system. In the following section are presented the measures implemented to harden the SSH service.
 To further harden the SSH service, the following configuration changes have been made:
@@ -299,7 +332,7 @@ To further harden the SSH service, the following configuration changes have been
 - Disable SSH X11 forwarding (`X11Forwarding` from `yes` to `no`)
 - Disable SSH agent forwarding (`AllowAgentForwarding` from `yes` to `no`)
 
-### 5.6. Legal notice banner
+### 8.6. Legal notice banner
 
 Adding a legal notice banner to the system is a good practice as it informs users that the system is private and unauthorized access is prohibited. The banner is displayed when a user logs in to the system via SSH.
 
@@ -311,13 +344,13 @@ This system is private. Unauthorized access is prohibited.
 
 While this is not a security measure, it is a good practice to inform users that the system is private, and that unauthorized access is not allowed.
 
-### 5.7. System auditing
+### 8.7. System auditing
 
 System audits allow system administrators to discover security violations and find relevant security information. By configuring [auditd](https://linux.die.net/man/8/auditd) service on the system is possible to record triggered system events. The information included in the audit logs can be leveraged to learn what configuration caused the problem, enabling administrators to enhance the system cybersecurity posture. This service logs system events to the `/var/log/audit/audit.log` file based on a comprehensive set of rules (i.e., file system events, system calls, etc.).
 
 The set of rules provided by default is the following: [audit.rules](https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules).
 
-### 5.8. Kernel hardening
+### 8.8. Kernel hardening
 
 The Linux kernel comes with a set of parameters that can be configured to enhance the security of the system. In the following section are presented the measures implemented to harden the system kernel parameters.
 
@@ -333,7 +366,7 @@ echo "net.ipv4.conf.default.accept_redirects = 0" | sudo tee -a /etc/sysctl.d/80
 echo "net.ipv4.conf.default.log_martians = 1" | sudo tee -a /etc/sysctl.d/80-lynis.conf
 ```
 
-### 5.9. Restrict compilers to root users
+### 8.9. Restrict compilers to root users
 
 Compilers are tools that allow to transform source code into executable code. Attackers can use these tools to compile malicious code and run it on the system. For this reason, it is critical to restrict the usage of compilers to root users only.
 
@@ -344,16 +377,37 @@ The script will look for the following compilers (wildcards are used to match al
 - `cc*`
 - `c++*`
 
+## 9. Testing the system
 
-## 6. Testing the system
+### 9.1. Hardware
 
-### 6.1. Hardware
+The system has been tested successfully on the following low-end single-board computers both running [Armbian](https://www.armbian.com/):
 
-### 6.2. Security tests
+- [Orange Pi Win Plus](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-WinPlus.html): 2 GB DDR3L SDRAM, Quad-core ARM Cortex-A53 (64-bit) @ 1.2 GHz, MicroSD (max 32 GB) and eMMC module slot, Gigabit Ethernet, Wi-Fi with dedicated antenna (IEEE 802.11 b/g/n) and Bluetooth connectivity (BT4.2).
 
-## 7. Additional resources
+![Orange Pi Win Plus top view with annotated components](assets/images/hardware/orangepi-winplus.png)
 
-### 7.1. Docker containers network segmentation
+*[Image source](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-PC.html)*
+
+- [Banana Pi BPI-64](https://wiki.banana-pi.org/Banana_Pi_BPI-M64): 2 GB LPDDR3 SDRAM, Quad-Core ARM Cortex-A53 (64-bit) @ 1.2 GHz, MicroSD and eMMC module (8 GB), Gigabit Ethernet, Wi-Fi, and Bluetooth connectivity.
+
+![Banana Pi BPI-64 top view with annotated components](assets/images/hardware/bananapi-m64.png)
+
+*[Image source](https://wiki.banana-pi.org/Banana_Pi_BPI-M64)*
+
+### 9.2. Security tests
+
+To test the security of the system, the following tools have been used:
+
+- [Lynis](https://cisofy.com/lynis/): an open-source security auditing tool that performs a comprehensive security scan of the system, providing a detailed report of the security issues found and recommendations to fix them.
+- [OpenVAS](https://www.openvas.org/): an open-source vulnerability scanner that performs a comprehensive vulnerability scan of the system, providing a detailed report of the vulnerabilities found and recommendations to fix them.
+- [NMap](https://nmap.org/): an open-source network scanner that performs a comprehensive scan of the system, providing a detailed report of the open ports found and recommendations to fix them.
+
+The system hardening measures implemented in the system configuration script have been tested using the tools listed above. Globally, the system has been rated as secure by the tools, with a few minor issues that have been fixed later in the development process.
+
+## 10. Additional resources
+
+### 10.1. Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
