@@ -8,6 +8,7 @@
 
 - [1. Motivation](#1-motivation)
 - [2. Project description](#2-project-description)
+- [3. Regulations and standards](#3-regulations-and-standards)
 - [3. System capabilities](#3-system-capabilities)
   - [3.1. Continuous monitoring and alerting system](#31-continuous-monitoring-and-alerting-system)
     - [3.1.1. Alerting rules](#311-alerting-rules)
@@ -19,6 +20,7 @@
     - [3.3.3. Backup and restore operations via CLI](#333-backup-and-restore-operations-via-cli)
   - [3.4. Home automation system](#34-home-automation-system)
     - [3.4.1. Secure communication using TLS certificates](#341-secure-communication-using-tls-certificates)
+    - [ZigBee network security](#zigbee-network-security)
   - [3.5. Automatic updates](#35-automatic-updates)
     - [3.5.1. System updates](#351-system-updates)
     - [3.5.2. Docker image updates](#352-docker-image-updates)
@@ -60,6 +62,18 @@ The infrastructure's design prioritizes easy extensibility and customization, al
 
 ![Project Result](assets/images/project-result.jpg)
 
+## 3. Regulations and standards
+
+The following international, European, and Swiss regulations, standards and publications have been considered during the development of the system to provide a secure, reliable, and compliant infrastructure to the users, the services, and the IoT devices connected to the system.
+
+- NIST Cybersecurity Framework v1.1 - April 2018
+- IoTSF: Secure Design - Best Practice Guides - 2 November 2019
+- NISA: Baseline Security Recommendations for IoT in the context of Critical Information Infrastructures - 20 November 2017
+- Ordinance on Protection against Cyber Risks in the Federal Administration (Switzerland) - 1 April 2021
+- ICT minimum standard (Switzerland) - 27 August 2018
+
+In addition to the regulations and standards listed above, the paper titled *Recommended Practices Guide for Securing ZigBee Wireless Networks in Process Control System Environments*, published by the *U.S. Department of Energy* has been considered to ensure the security of the ZigBee network.
+
 ## 3. System capabilities
 
 The server comprises six key components, ensuring a secure and private environment for user data. Each component contributes to the robust architecture of the server.
@@ -78,13 +92,25 @@ The integration of [Prometheus](https://prometheus.io/) and [Grafana](https://gr
 
 ![Monitoring and Alerting System](./assets/images/continuous-monitoring-flow.png)
 
-*Grafana is pre-configured with two custom dashboards, ready out-of-the-box.*
+Grafana has been configured to provide two default dashboards, visualizing system and Docker container metrics collected by Prometheus. To learn more about the dashboards, refer to [Grafana Dashboards](./doc/grafana-dashboards.md).
 
 #### 3.1.1. Alerting rules
 
-Five alerting rules monitor system and container health. See [Prometheus Alerting Rules](./doc/prometheus-alerting-rules.md) for details.
+Alerting rules are conditions evaluated periodically by *Prometheus* that whenever are met, it will trigger an alert via *Prometheus Alertmanager*. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
 
-*Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.*
+The following list outlines the alerting rules configured to monitor the system health:
+
+1. *Instance down*: triggers an alert when one of the core services of the monitoring suite (*Prometheus*, *Node Exporter* or *cAdvisor*) is down for more than 1 minute
+
+2. *High disk usage*: triggers an alert when the disk usage of the host machine on ’/’ exceeds 80% for more than 10 minutes.
+
+3. *High CPU usage*: triggers an alert when the CPU usage of the host machine exceeds 80% for more than 5 minutes.
+
+4. *High network traffic*: triggers an alert when the inbound network traffic of the host machine exceeds 10Mb/s for the last minute.
+
+5. *High CPU temperature*: triggers an alert when the CPU temperature of the host machine exceeds 70 °C for more than 1 minute.
+
+*Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system might not have technical skills and might not be familiar with other platforms such as Slack or WeChat.*
 
 #### 3.1.2. Service health monitoring
 
@@ -184,6 +210,19 @@ The generation and distribution of the TLS certificates and keys to the three in
 With the developed configuration, Zigbee2MQTT and Mosquito have TLS authentication and encryption enabled by default, loading the required certificates and keys during startup.
 
 > **Important note**: [Home Assistant’s MQTT integration](https://www.home-assistant.io/integrations/mqtt/) requires manual configuration via GUI, as it does not allow TLS certificates to be configured through the config file.
+
+#### ZigBee network security
+
+As the IoT network developed in this project is deployed in a non-critical setting where the system administrators might have limited budget and technical knowledge to properly manage the
+system, the use of a dedicated *ZigBee Trust Center* (ZTC) has not been considered as it would have required additional hardware and efforts to configure and maintain.
+
+Depending on the firmware version of the ZigBee adapter, the following security measures have been implemented to ensure the security of the ZigBee network:
+
+- **IEEE 802.15.4 security services**: the ZigBee protocol is based on the IEEE 802.15.4 standard, which provides security services such as encryption, authentication, and integrity. The ZigBee protocol implements these security services to ensure the security of the ZigBee network.
+
+- **ZigBee link keys**: the link key is a 128-bit (16-byte) session key used to secure communications between two devices on the network. This key is unique and shared only between the two devices involved in the communication.
+
+In addition, to further 
 
 ### 3.5. Automatic updates
 
