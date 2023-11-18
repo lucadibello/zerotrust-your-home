@@ -1,0 +1,68 @@
+version: "3.9"
+
+networks:
+  traefik-network:
+    external: true
+  home-network:
+    external: true
+
+volumes:
+  mosquitto_data:
+    driver: local
+
+services:
+  homeassistant:
+    container_name: "homeassistant"
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - ./home-assistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+    privileged: true
+    networks:
+      - home-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.home.rule=Host(`home.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.home.entrypoints=websecure"
+      - "traefik.http.routers.home.tls.certresolver=letsencrypt"
+      - "traefik.http.services.home.loadbalancer.server.port=8123"
+      - "traefik.docker.network=traefik-network"
+    depends_on:
+      - zigbee2mqtt
+  zigbee2mqtt:
+    container_name: "zigbee2mqtt"
+    image: "koenkk/zigbee2mqtt:latest"
+    volumes:
+      - ./zigbee2mqtt:/app/data
+      - ./zigbee2mqtt/certs:/app/certs
+      - /run/udev:/run/udev:ro
+    restart: always
+    environment:
+      - TZ=Europe/Zurich
+    networks:
+      - home-network
+      - traefik-network
+    devices:
+      - ${ZIGBEE2MQTT_DEVICE}:/dev/ttyACM0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      - "traefik.http.routers.zigbee2mqtt.rule=Host(`zigbee2mqtt.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.zigbee2mqtt.entrypoints=websecure"
+      - "traefik.http.routers.zigbee2mqtt.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zigbee2mqtt.loadbalancer.server.port=8080"
+    depends_on:
+      - mosquitto
+  mosquitto:
+    container_name: "mosquitto"
+    image: "eclipse-mosquitto"
+    restart: always
+    networks:
+      - home-network
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+      - ./mosquitto/certs:/mosquitto/certs

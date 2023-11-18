@@ -1,0 +1,17 @@
+# Home assistant configuration (skip on-boarding)
+homeassistant:
+  name: ZeroTrust Your Home
+
+# Load default configuration
+default_config:
+
+# Include automation file
+automation: !include automations.yaml
+
+# Configure HTTP
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.18.0.0/24
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
