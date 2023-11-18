@@ -51,8 +51,11 @@
 - [10. Testing the system](#10-testing-the-system)
   - [10.1. Hardware](#101-hardware)
   - [10.2. Security tests](#102-security-tests)
-- [11. Additional resources](#11-additional-resources)
-  - [11.1. Docker containers network segmentation](#111-docker-containers-network-segmentation)
+- [11. Summary of the system architecture](#11-summary-of-the-system-architecture)
+  - [11.1. System services](#111-system-services)
+  - [11.2. Docker external networks](#112-docker-external-networks)
+  - [11.3. Docker containers network segmentation](#113-docker-containers-network-segmentation)
+  - [11.4. Container list](#114-container-list)
 
 ## 1. Motivation
 
@@ -509,10 +512,66 @@ To test the security of the system, the following tools have been used:
 
 The system hardening measures implemented in the system configuration script have been tested using the tools listed above. Globally, the system has been rated as secure by the tools, with a few minor issues that have been fixed later in the development process.
 
-## 11. Additional resources
+## 11. Summary of the system architecture
 
-### 11.1. Docker containers network segmentation
+This section provides a concise overview of the implemented home automation system. The provided summary tables highlight key aspects like software components, running services, Docker containers, and network configuration.
+
+The information is particularly valuable as it offers a comprehensive view of the implemented infrastructure. In fact, in just a few pages the reader can grasp how distinct parts of the system work together. The details related to created Docker networks also show how different services are connected to each other, providing a better understanding of the overall system
+architecture and the measures implemented to protect it. Refactoring of IT projects to increase security, safety and privacy
+
+### 11.1. System services
+
+The following table outlines the services used to build the current infrastructure. The table provides key information about each component, including the name, description, whether the component is virtualized using Docker, the DNS name used by the reverse proxy, and port used by the service to communicate with other components.
+
+| Component | Description | Dockerized | DNS Name | Port |
+| --------- | ----------- | ---------- | -------- | ---- |
+| **Network infrastructure** |
+| BIND9 | nternal DNS resolver for domain name resolution | Yes | - | 53 |
+| Traefik | Reverse proxy and load balancer | Yes | traefik.your.domain | 80, 443 |
+| Cloudflare Tunnel | Encrypted tunnel to expose internal service to the Internet using Cloudflare | No | - | 443 |
+| Cloudflare Zero Trust Network Access | Zero Trust network for controlling lights and appliances | No | - | - |
+| IPTables | Software firewall to filter inbound and outbound traffic | No | - | - |
+| **Continuous system monitoring and alerting** |
+| Prometheus | Metric collection and storage system | Yes | prometheus.your.domain | 9090 |
+| Node Exporter | Exports system metrics for Prometheus | Yes | - | 9100 |
+| cAdvisor | Exports Docker containers metrics for Prometheus | Yes | - | 8080 |
+| Grafana | Data visualization and alerting system | Yes | grafana.your.domain | 3000 |
+| Uptime Kuma | Dashboard and visualization platform to view the collected metrics and logs | Yes | status.your.domain | 3001 |
+| Prometheus Alertmanager | Prometheus alert manager to send alerts to system administrator(s) | Yes | alerts.your.domain | 9093 |
+| **Home automation system** |
+| Mosquitto | MQTT broker for controlling lights and appliances | Yes | - | 1883 |
+| Zigbee2MQTT | Bridge for connecting ZigBee devices to MQTT broker | Yes | zigbee2mqtt.your.domain | 8080 |
+| Home Assistant | Home automation platform for controlling lights and appliances | Yes | home.your.domain | 8123 |
+| **Backup and restore** |
+| Restic | Backup and restore software | Yes | - | - |
+| **Log management** |
+| Grafana Loki | Log aggregation system to collect and store logs | Yes | - | 3100 |
+| Grafana Promtail | Loki log collector (agent) | Yes | - | 9080 |
+| **Automatic updates** |
+| Watchtower | Automatic Docker images updates | Yes | - | - |
+| Unattended-upgrades | Automatic system updates and security patches  | No | - | - |
+
+### 11.2. Docker external networks
+
+The following table outlines the external Docker networks created to implement the system architecture. The table provides information about the network name, IP range and purpose.
+
+| Network name | IP range | Description |
+| ------------ | -------- | ----------- |
+| `bridge` | `172.17.0.0/16` | Default Docker network used for connecting individual containers to the host|
+| `traefik-network` | `172.18.0.0/16` | Docker network connected to all containers exposed via Traefik reverse proxy |
+| `loki-network` | `172.19.0.0/16` | Docker network shared with all containers part of the log management system |
+| `prometheus-network` | `172.20.0.0/16` | Docker network shared with all containers part of the system monitoring suite |
+| `home-network` | `172.21.0.0/16` | Docker network shared with all containers part of the home automation system |
+
+### 11.3. Docker containers network segmentation
 
 The following diagram shows the network segmentation of the Docker containers used by the server.
 
 ![Docker containers network segmentation](./assets/images/docker-containers-network-diagram.png)
+
+
+### 11.4. Container list
+
+The following table lists all information about the containers used by the server.
+
+
