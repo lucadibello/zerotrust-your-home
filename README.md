@@ -48,45 +48,43 @@
 
 ## 1. Motivation
 
-Information systems play an increasingly key role in our daily lives, in sectors as diverse as public services, healthcare, finance, industry and more. Ensuring the security and privacy of systems is of critical importance as it protects the data of users and the integrity of the systems themselves.
+In today's world, information systems are integral to diverse sectors like public services, healthcare, finance, and industry. The security and privacy of these systems are paramount, safeguarding user data and maintaining system integrity.
 
 ## 2. Project description
 
-This project showcases an autoconfigured home server environment that provides a powerful and secure infrastructure that leverages cutting-edge technologies to ensure security, privacy, and ease of use. It provides the user with a set of pre-configured services and applications that can be easily extended and customized to meet the user's needs.
+This project demonstrates an autoconfigured home server environment, delivering a robust, secure infrastructure. Utilizing cutting-edge technologies, it ensures top-notch security, privacy, and user-friendliness. Users enjoy a suite of pre-configured services and applications, with easy customization options to meet individual needs.
 
-Employing [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust/#zt-features), the server adheres with the Zero Trust security model, in fact, to be able to access the services the user needs to be authenticated, authorized and the device security must be verified through automated posture checks.
+Using [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust/#zt-features), the server adheres to the Zero Trust security model. Access to internal services and resources requires authentication, authorization, and automated device security verification.
 
-The developed infrastructure has been designed to be easily extensible and customizable. In fact, a user can easily extend the server with additional services and applications without any additional configuration.
+The infrastructure's design prioritizes easy extensibility and customization, allowing users to seamlessly integrate additional services and applications.
 
-![Project result](assets/images/project-result.jpg)
+![Project Result](assets/images/project-result.jpg)
 
 ## 3. System capabilities
 
-The server is based on six main components to provide a secure and private environment for the user data. In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
+The server comprises six key components, ensuring a secure and private environment for user data. Each component contributes to the robust architecture of the server.
 
-The entire system is based upon [Docker](https://www.docker.com/) containers to leverage application virtualization, aiming to provide a secure and isolated environment for each application.
+Docker containers form the backbone of the system, offering secure, isolated application environments.
 
-![System six pillars](./assets/images/system-components.png)
+![System Six Pillars](./assets/images/system-components.png)
 
-In the following sections, each component will be described in detail to provide a better understanding of the server architecture.
+Each component is detailed below, elucidating the server's architecture.
 
 ### 3.1. Continuous monitoring and alerting system
 
-With a continuous monitoring solution system administrators can be notified in real-time when an issue is detected, allowing to respond quickly and effectively. For this purpose, the open-source monitoring solution [Prometheus](https://prometheus.io/) has been used in pair with [Grafana](https://grafana.com/) to collect and visualize metrics of the operating system and the various *Docker* containers.
+The integration of [Prometheus](https://prometheus.io/) and [Grafana](https://grafana.com/) provides real-time system and Docker container monitoring. [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) trigger notifications upon exceeding predefined thresholds.
 
-To provide real-time notifications, [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) have been configured to trigger alerts when specific system metrics exceeds a predefined threshold.
+[Uptime Kuma](https://github.com/louislam/uptime-kuma) monitors application and service health, alerting via a configured Telegram bot during downtimes.
 
-While *Prometheus* is charge of monitoring the status of the system and the running containers, [Uptime Kuma](https://github.com/louislam/uptime-kuma) has been employed to monitor the health of the many applications and services running on the server.
+![Monitoring and Alerting System](./assets/images/continuous-monitoring-flow.png)
 
-![Monitoring and alerting system](./assets/images/continuous-monitoring-flow.png)
-
-*Note: Grafana has been configured to ship two custom dashboards via [provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/), out-of-the-box, without any additional configuration.*
+*Grafana is pre-configured with two custom dashboards, ready out-of-the-box.*
 
 #### 3.1.1. Alerting rules
 
-For the purpose of this project, five alerting rules have been configured to monitor the health of the system and the running containers. Refer to the [Prometheus Alerting Rules](./doc/prometheus-alerting-rules.md) document for more details.
+Five alerting rules monitor system and container health. See [Prometheus Alerting Rules](./doc/prometheus-alerting-rules.md) for details.
 
-*Note: For the particular use case thought for this project, Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.*
+*Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system are not expected to have technical skills and is not expected to have business accounts on other platforms such as Slack or WeChat.*
 
 #### 3.1.2. Service health monitoring
 
@@ -118,7 +116,7 @@ The following image illustrates the architecture of the backup and restore suite
 
 ![Backup and restore suite](./assets/images/backup-restore-flow.png)
 
-In the figure is possible to notice that are present three different instances of *Restic* running at the same time. Each instance has a different purpose and is configured to perform specific tasks at specific times:
+In the figure above is possible to notice that are present three different instances of Restic, all running at the same time. Each instance has a different purpose and is configured to perform specific tasks at specific times:
 
 1. **backup instance**: configured to perform daily backups of the Docker volumes (every day at midnight). To guarantee data confidentiality, backups are encrypted before being sent to the cloud storage.
 
@@ -128,11 +126,11 @@ In the figure is possible to notice that are present three different instances o
 
 #### 3.3.1. Backup retention policies
 
-Retention policies ensure the retention of a specific number of backups, while removing the oldest one as the limit is reached. These are the configured retention policies:
+Retention policies play a pivotal role in maintaining an optimal number of backups while ensuring older backups are systematically purged upon reaching set limits. The following retention policies have been configured:
 
-- Keep last seven daily backups
-- Keep last four weekly backups
-- Keep last twelve monthly backups
+- Retain the most recent seven daily backups
+- Preserve the last four weekly backups
+- Maintain the latest twelve monthly backups
 
 #### 3.3.2. Backup notifications
 
@@ -152,13 +150,11 @@ The following commands are available:
 
 - **make restore**: wizard to restore the system from a backup selected by the user from the list of available backups. After the backup is performed, it will check the integrity of the restored data to ensure the integrity of the restored data.
 
-*Note: it is important to note that the restore command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
+*Note: it is important to note that the **restore** command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
 
 ### 3.4. Home automation system
 
-$\textcolor{RED}{\text{WIP: Already implemented but not added to the project yet.}}$
-
-The developed home automation system is based on [Home Assistant](https://www.home-assistant.io/) thus supporting out-of-the-box the following IoT devices:
+The integrated home automation system seamlessly integrates with [Home Assistant](https://www.home-assistant.io/), offering native support for a wide array of IoT devices right out of the box, including:
 
 - ZigBee devices
 - Ethernet devices
