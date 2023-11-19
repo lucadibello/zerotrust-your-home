@@ -104,7 +104,12 @@ Each component is detailed below, elucidating the server's architecture.
 
 ### 5.1. Continuous monitoring and alerting system
 
-The integration of [Prometheus](https://prometheus.io/) and [Grafana](https://grafana.com/) provides real-time system and Docker container monitoring. [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) trigger notifications upon exceeding predefined thresholds.
+With a continuous monitoring solution system administrators can be notified in real-time when an issue is detected, allowing to respond quickly and effectively to potential incidents.
+
+To address these requirements, the open-source monitoring solution [Prometheus](https://prometheus.io/) has been used in pair with [Grafana](https://grafana.com/) to collect and visualize metrics of the operating system and Docker containers.
+
+To provide real-time notifications, [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) have been
+configured to trigger alerts when specific system metrics exceeds a predefined threshold. In the next sections will be described in detail the components of the monitoring solution and how they have been configured.
 
 [Uptime Kuma](https://github.com/louislam/uptime-kuma) monitors application and service health, alerting via a configured Telegram bot during downtimes.
 
