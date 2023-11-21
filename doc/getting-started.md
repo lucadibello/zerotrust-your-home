@@ -4,7 +4,6 @@ In this document, you can find instructions for deploying the home automation sy
 
 > Note: the following instructions are tested on a remote server running Armbian 21.08.1 Buster with Linux kernel 5.10.60-sunxi64. Different OS (e.g. Ubuntu) or Linux kernel versions may require slightly different configurations.
 
-
 ## Table of Contents<!-- omit in toc -->
 
 - [1.1.1. Define system parameters](#111-define-system-parameters)
@@ -34,7 +33,6 @@ In this document, you can find instructions for deploying the home automation sy
   - [1.3.7. Cloudflare Tunnel settings](#137-cloudflare-tunnel-settings)
   - [1.3.8. DNS settings](#138-dns-settings)
   - [1.3.9. Zigbee2MQTT settings](#139-zigbee2mqtt-settings)
-  - [Clustering settings](#clustering-settings)
 
 ## 1.1.1. Define system parameters
 
@@ -93,8 +91,8 @@ Now, the remote server is ready to be configured to run the home automation syst
 First, clone the repository locally to your machine and navigate to the project directory.
 
 ```bash
-git clone git@github.com:lucadibello/iot-security-guidelines.git
-cd iot-security-guidelines/project
+git clone git@github.com:lucadibello/zerotrust-your-home.git
+cd zerotrust-your-home
 ```
 
 ## 1.1.7. Create .env file
