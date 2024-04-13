@@ -32,7 +32,13 @@ schema_config:
       index:
         prefix: index_
         period: 24h
-
+    - from: 2024-04-13
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        period: 24h
+        prefix: loki_ops_index_
 ruler:
   alertmanager_url: http://alertmanager:9093
 
