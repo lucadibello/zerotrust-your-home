@@ -9,7 +9,7 @@ sudo apt update && sudo apt upgrade -y
 ## -- INSTALL REQUIREMENTS
 echo "[*] Installing requirements..."
 
-# Install: 
+# Install:
 # - make (to use project utility file)
 # - apparmor (Docker requirement)
 # - ntp server (system clock synchronization)
@@ -19,8 +19,8 @@ echo "[*] Installing requirements..."
 # - Install and configure pam_passwdqc module to enforce strong passwords
 # - Install sqlite3 (required to provision uptime-kuma database)
 sudo apt install make apparmor systemd-timesyncd \
-    unattended-upgrades iptables-persistent docker.io \
-    docker-compose libpam-passwdqc sqlite3 -y
+	unattended-upgrades iptables-persistent docker.io \
+	docker-compose libpam-passwdqc sqlite3 -y
 
 ## -- START REQUIRED SERVICES
 
@@ -39,3 +39,10 @@ sudo systemctl enable systemd-timesyncd.service
 # Enable ntp synchronization
 echo "[*] Setting up time synchronization..."
 sudo timedatectl set-ntp true
+
+## -- SETUP CORRECT UDP BUFFER SIZE
+# NOTE: This is required for cloudflare tunnel to work properly
+# Link: https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes
+sudo sysctl -w net.core.rmem_max=7500000
+sudo sysctl -w net.core.wmem_max=7500000
+
