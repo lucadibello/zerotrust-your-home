@@ -14,6 +14,6 @@ sudo docker-compose \
 	-f watchtower.docker-compose.yaml \
 	-f website.docker-compose.yaml \
 	--env-file ../.env \
-	logs -f --tail=1000
+	logs -f --tail=50
 
 cd ..
