@@ -4,3 +4,4 @@
 docker network create prometheus-network || true
 docker network create alertmanager-network || true
 docker network create grafana-network || true
+
