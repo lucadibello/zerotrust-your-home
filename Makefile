@@ -1,11 +1,19 @@
-start: # Start all docker containers
-	@bash scripts/util/start.sh
+COMPOSE = docker-compose
+ENVFILE = .env
 
-logs: # View all docker containers logs
-	@bash scripts/util/logs.sh
+# Use find to list compose files and grep to exclude files containing "home"
+COMPOSE_FILES := $(shell find composes -maxdepth 1 -name '*.docker-compose.yaml' | grep -v 'home')
+# Prepend "-f" to each file for docker-compose
+COMPOSE_ARGS := $(foreach file,$(COMPOSE_FILES),-f $(file))
 
-stop: # Stop all docker containers
-	@bash scripts/util/stop.sh
+start:  # Start all docker containers
+	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
+
+logs:  # View all docker containers logs
+	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) logs -f --tail=50
+
+stop:  # Stop all docker containers
+	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) stop
 
 view-backups: # View all backups
 	@bash scripts/backups/view-backups.sh
@@ -15,3 +23,7 @@ backup: # Create a system backup
 
 restore: # Restore from backup
 	@bash scripts/backups/restore.sh
+
+generate: # Regenerate configuration files for all services based on .env configuration
+	@sudo bash scripts/generate.sh --headless
+
