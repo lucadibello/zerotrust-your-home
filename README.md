@@ -638,7 +638,20 @@ The system provides several Make commands to apply security updates (hardening a
 
 ### 12.1. Hardware
 
-The system has been tested successfully on the following low-end single-board computers both running [Armbian](https://www.armbian.com/):
+The system is designed to be hardware-agnostic and can run on any x86_64 or ARM64 machine that supports Docker and a Linux-based operating system.
+
+#### 12.1.1. Primary Production System (Recommended)
+
+This specific configuration has been the daily driver for the entire system for over 2 years, demonstrating the stability and long-term reliability of the architecture. It hosts the full suite of services, including resource-intensive applications like Immich and the Minecraft server.
+
+- **CPU**: AMD Ryzen 3 2200G with Radeon Vega Graphics (4 cores)
+- **RAM**: 14 GB DDR4
+- **Storage**: SSD for OS/Containers + HDD array for backups/Nextcloud
+- **OS**: Ubuntu 20.04 LTS
+
+#### 12.1.2. Preview Hardware (Legacy)
+
+Early versions of this project were developed and verified on the following low-power single-board computers. While these devices are capable of running the core stack, they may struggle with heavier optional services (e.g., Immich, Minecraft).
 
 - [Orange Pi Win Plus](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-WinPlus.html): 2 GB DDR3L SDRAM, Quad-core ARM Cortex-A53 (64-bit) @ 1.2 GHz, MicroSD (max 32 GB) and eMMC module slot, Gigabit Ethernet, Wi-Fi with dedicated antenna (IEEE 802.11 b/g/n) and Bluetooth connectivity (BT4.2).
 
@@ -651,6 +664,14 @@ The system has been tested successfully on the following low-end single-board co
 ![Banana Pi BPI-64 top view with annotated components](assets/images/hardware/bananapi-m64.png)
 
 *[Image source](https://wiki.banana-pi.org/Banana_Pi_BPI-M64)*
+
+#### 12.1.3. Hardware Considerations
+
+- **Architecture**: The project supports both `amd64` (x86_64) and `arm64` (AArch64) architectures. All core Docker images are multi-arch.
+- **Memory**: 
+  - **Core Services**: Run comfortably on <2GB RAM.
+  - **With Immich/Minecraft**: Recommended 8GB+ RAM.
+- **OS Compatibility**: The helper scripts (Makefiles, shell scripts) are optimized for Debian/Ubuntu-based distributions (e.g., Debian 11/12, Ubuntu 20.04/22.04/24.04). However, the core Docker stack runs on any Linux distro with Docker and Docker Compose installed.
 
 ### 12.2. Security tests
 
