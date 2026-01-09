@@ -1,6 +1,6 @@
 # ZeroTrust Your Home<!-- omit in toc -->
 
-<p align="center"><img src="./assets/logo-transparent.png" width="400"></p>
+<p align="center"><img src="./assets/logo-transparent.png" width="200px"></p>
 
 <p align="center"><strong>🔐 Securing Your Digital Sanctuary, Trust None, Protect Everything.</strong></p>
 
