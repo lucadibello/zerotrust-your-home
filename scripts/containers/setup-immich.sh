@@ -13,11 +13,12 @@ fi
 
 # Validate required Immich environment variables
 required_vars=(
-  "UPLOAD_LOCATION"
-  "IMMICH_DB_DATA_LOCATION"
-  "IMMICH_DB_PASSWORD"
-  "IMMICH_DB_USERNAME"
-  "IMMICH_DB_DATABASE_NAME"
+    "IMMICH_UPLOAD_LOCATION"
+    "IMMICH_DB_DATA_LOCATION"
+    "IMMICH_VERSION"
+    "IMMICH_DB_PASSWORD"
+    "IMMICH_DB_USERNAME"
+    "IMMICH_DB_DATABASE_NAME"
 )
 
 for var in "${required_vars[@]}"; do

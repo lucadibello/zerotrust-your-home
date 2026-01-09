@@ -97,8 +97,9 @@ required_vars=(
 
 # Immich required variables (only if ENABLE_IMMICH=true)
 required_immich_vars=(
-  "UPLOAD_LOCATION"
+  "IMMICH_UPLOAD_LOCATION"
   "IMMICH_DB_DATA_LOCATION"
+  "IMMICH_VERSION"
   "IMMICH_DB_PASSWORD"
   "IMMICH_DB_USERNAME"
   "IMMICH_DB_DATABASE_NAME"
