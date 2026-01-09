@@ -20,6 +20,7 @@
   - [6.1. Continuous monitoring and alerting system](#61-continuous-monitoring-and-alerting-system)
     - [6.1.1. Alerting rules](#611-alerting-rules)
     - [6.1.2. Service health monitoring](#612-service-health-monitoring)
+    - [6.1.3. Security alerting rules](#613-security-alerting-rules)
   - [6.2. Log management suite](#62-log-management-suite)
   - [6.3. Backup and restore suite](#63-backup-and-restore-suite)
     - [6.3.1. Backup retention policies](#631-backup-retention-policies)
@@ -214,6 +215,30 @@ The following list outlines the alerting rules configured to monitor the system 
 
 To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md). On the other hand, an example of the notifications sent by *Uptime Kuma* can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
 
+#### 6.1.3. Security alerting rules
+
+In addition to system health monitoring, the platform includes security-focused alerting rules based on log analysis. These rules are evaluated by *Grafana Loki* using logs collected by *Promtail* from system audit logs (`/var/log/audit/audit.log`) and firewall logs (`/var/log/kern.log`).
+
+The following security alerting rules are configured:
+
+1. **SSH Authentication Failure**: triggers when more than 5 failed SSH login attempts are detected within 5 minutes. This may indicate a brute-force attack.
+
+2. **Root Login Detected**: triggers immediately when a root user login is detected on the system. Root logins should be rare and monitored closely.
+
+3. **Sudo Command Executed**: triggers when more than 10 sudo commands are executed within 1 minute. High sudo activity may indicate unauthorized privilege escalation.
+
+4. **Firewall Blocked Connections**: triggers when more than 50 connections are blocked by the firewall within 5 minutes. This may indicate a port scan or network attack.
+
+5. **Suspicious Binary Execution**: triggers immediately when auditd detects execution matching suspicious activity rules (e.g., MITRE ATT&CK techniques T1059, T1053).
+
+6. **Critical File Modification**: triggers immediately when critical system files are modified, including `/etc/passwd`, `/etc/shadow`, or `/etc/ssh/sshd_config`.
+
+7. **New User Created**: triggers when a new user account is created on the system. Unauthorized user creation may indicate a compromise.
+
+8. **Kernel Module Loaded**: triggers when a kernel module is loaded. While often legitimate, this can also indicate rootkit activity.
+
+These alerts are sent via *Alertmanager* to the configured Telegram bot, ensuring system administrators are notified in real-time of potential security incidents.
+
 ### 6.2. Log management suite
 
 A log management solution has been implemented to centralize the collection, storage, and visualization of logs of the system services and Docker containers. The centralization of logs enables system administrators to access, query and visualize logs of different components of the system from a single interface, simplifying the process of troubleshooting and debugging of the system.
@@ -269,6 +294,8 @@ The following commands are available:
 - **make backup**: creates a new incremental backup of the *Docker* volumes and sends it to the S3 bucket.
 
 - **make restore**: wizard to restore the system from a backup selected by the user from the list of available backups. After the backup is performed, it will check the integrity of the restored data to ensure the integrity of the restored data.
+
+- **make view-backups**: lists all available backups stored in the S3 bucket, showing their ID, date, and size.
 
 *Note: it is important to note that the **restore** command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
 
