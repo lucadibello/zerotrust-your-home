@@ -18,9 +18,6 @@ $SED_INPLACE "s/<CHAT_ID>/$TELEGRAM_CHAT_ID/g" ./.tmp/alertmanager/alertmanager.
 # Move configuration file to composes directory
 mv ./.tmp/alertmanager/alertmanager.yml ./composes/alertmanager/alertmanager.yml
 
-# Fix permissions for Alertmanager (runs as nobody: 65534)
-chown -R 65534:65534 ./composes/alertmanager
-
 # Remove temporary directory
 rm -rf ./.tmp/alertmanager
 

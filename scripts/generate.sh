@@ -188,6 +188,13 @@ done
 # Clean up temporary directory
 rm -rf ./.tmp
 
+# Fix permissions for the generated files (User owned, Container readable)
+if [ -n "$SUDO_USER" ]; then
+    echo "[*] Fixing permissions for user $SUDO_USER..."
+    chown -R "$SUDO_USER:$(id -gn "$SUDO_USER")" ./composes
+    chmod -R o+rX ./composes
+fi
+
 echo ""
 echo "----------------------------------------------"
 echo "---- Successfully generated configurations ----"
