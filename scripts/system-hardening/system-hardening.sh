@@ -145,8 +145,8 @@ done
 ## 5) SSH service hardening
 echo "[5/9] Hardening SSH service..."
 
-# SSH client config
-add_line_if_missing /etc/ssh/ssh_config "AllowTcpForwarding no" || true
+# SSH client config - disable forwarding on client side
+# Note: AllowTcpForwarding is a server-side option (sshd_config), not client-side
 
 # SSH server config - use set_config_value for idempotency
 sshd_settings=(
@@ -158,6 +158,7 @@ sshd_settings=(
   "TCPKeepAlive:no"
   "X11Forwarding:no"
   "AllowAgentForwarding:no"
+  "AllowTcpForwarding:no"
 )
 
 for setting in "${sshd_settings[@]}"; do
@@ -200,17 +201,54 @@ fi
 audit_rules_file="/etc/audit/rules.d/audit.rules"
 audit_rules_url="https://raw.githubusercontent.com/Neo23x0/auditd/master/audit.rules"
 
-if [ ! -f "$audit_rules_file" ] || [ "$1" = "--force-update" ]; then
-  echo "  [+] Downloading audit rules..."
-  sudo mkdir -p /etc/audit/rules.d
-  sudo wget -q "$audit_rules_url" -O "$audit_rules_file" 2>/dev/null || \
-    sudo curl -sL "$audit_rules_url" -o "$audit_rules_file" 2>/dev/null || \
-    echo "  [!] Warning: Could not download audit rules"
-else
-  echo "  [=] Audit rules already present (use --force-update to refresh)"
+sudo mkdir -p /etc/audit/rules.d
+
+# Download to temp file and compare with existing
+temp_rules=$(mktemp)
+download_success=false
+
+if wget -q "$audit_rules_url" -O "$temp_rules" 2>/dev/null; then
+  download_success=true
+elif curl -sL "$audit_rules_url" -o "$temp_rules" 2>/dev/null; then
+  download_success=true
 fi
 
-sudo service auditd restart 2>/dev/null || sudo systemctl restart auditd 2>/dev/null || true
+if [ "$download_success" = true ] && [ -s "$temp_rules" ]; then
+  # Check if rules have changed
+  if [ -f "$audit_rules_file" ] && [ -s "$audit_rules_file" ]; then
+    old_hash=$(md5sum "$audit_rules_file" 2>/dev/null | cut -d' ' -f1)
+    new_hash=$(md5sum "$temp_rules" 2>/dev/null | cut -d' ' -f1)
+
+    if [ "$old_hash" = "$new_hash" ]; then
+      echo "  [=] Audit rules are up to date"
+      rm -f "$temp_rules"
+    else
+      echo "  [+] Audit rules have changed, updating..."
+      sudo mv "$temp_rules" "$audit_rules_file"
+      sudo chmod 640 "$audit_rules_file"
+    fi
+  else
+    echo "  [+] Installing audit rules..."
+    sudo mv "$temp_rules" "$audit_rules_file"
+    sudo chmod 640 "$audit_rules_file"
+  fi
+else
+  echo "  [!] Warning: Could not download audit rules"
+  rm -f "$temp_rules"
+fi
+
+# Load and apply audit rules
+if [ -s "$audit_rules_file" ]; then
+  echo "  [*] Loading audit rules..."
+  sudo augenrules --load 2>/dev/null || sudo auditctl -R "$audit_rules_file" 2>/dev/null || true
+  sudo service auditd restart 2>/dev/null || sudo systemctl restart auditd 2>/dev/null || true
+
+  # Verify rules were loaded
+  rule_count=$(sudo auditctl -l 2>/dev/null | grep -c "^-" || echo "0")
+  echo "  [=] Loaded $rule_count audit rules"
+else
+  echo "  [!] Warning: Audit rules file is empty or missing"
+fi
 
 ## 8) Kernel hardening
 echo "[8/9] Applying kernel hardening..."
