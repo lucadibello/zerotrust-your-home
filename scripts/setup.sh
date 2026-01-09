@@ -73,7 +73,7 @@ run_script "./scripts/os/setup-os.sh" "Operating system setup"
 if [ "$SKIP_CONFIG" = false ]; then
   echo "[*] Proceeding with configuration tasks..."
   # Call the configuration task script (which can be re-run later independently)
-  sudo bash ./regenerate-config.sh "$@"
+  sudo bash ./scripts/generate.sh "$@"
 else
   echo "[*] Skipping configuration tasks as per user request."
 fi
@@ -84,7 +84,7 @@ echo "Network settings will be applied and may interrupt your SSH connection."
 echo "WARNING: Reboot is required to apply new network settings."
 echo "----------------------------------"
 confirm "[!] Apply network settings?"
-run_script "./scripts/armbian/setup-network.sh" "Applying network settings"
+run_script "./scripts/os/setup-network.sh" "Applying network settings"
 
 # === Firewall Configuration ===
 if [ "$SKIP_FIREWALL" = true ]; then
