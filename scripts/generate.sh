@@ -68,6 +68,8 @@ required_hotspot_vars=(
   "HOTSPOT_SSID"
   "HOTSPOT_PASSWORD"
 )
+
+# Core required variables (always needed)
 required_vars=(
   "IP_ADDRESS"
   "IP_GATEWAY"
@@ -93,7 +95,22 @@ required_vars=(
   "DNS_EMAIL"
 )
 
+# Immich required variables (only if ENABLE_IMMICH=true)
+required_immich_vars=(
+  "UPLOAD_LOCATION"
+  "IMMICH_DB_DATA_LOCATION"
+  "IMMICH_DB_PASSWORD"
+  "IMMICH_DB_USERNAME"
+  "IMMICH_DB_DATABASE_NAME"
+)
+
+# Minecraft required variables (only if ENABLE_MINECRAFT=true)
+required_minecraft_vars=(
+  "MC_TUNNEL_TOKEN"
+)
+
 # Verify required variables are set
+echo "[*] Validating required environment variables..."
 for var in "${required_vars[@]}"; do
   if [ -z "${!var}" ]; then
     echo "[!] $var is not set. Please update your .env file."
@@ -110,8 +127,49 @@ if [ "$ENABLE_HOTSPOT" = true ]; then
   done
 fi
 
+# Validate Immich variables if enabled
+if [ "$ENABLE_IMMICH" = "true" ]; then
+  echo "[*] Validating Immich environment variables..."
+  for var in "${required_immich_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+      echo "[!] $var is not set. Please update your .env file for Immich."
+      exit 1
+    fi
+  done
+fi
+
+# Validate Minecraft variables if enabled
+if [ "$ENABLE_MINECRAFT" = "true" ]; then
+  echo "[*] Validating Minecraft environment variables..."
+  for var in "${required_minecraft_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+      echo "[!] $var is not set. Please update your .env file for Minecraft."
+      exit 1
+    fi
+  done
+fi
+
 # Create a temporary directory (if needed)
 mkdir -p ./.tmp || true
+
+# === Print enabled services ===
+echo ""
+echo "[*] Enabled services:"
+[ "$ENABLE_MONITORING" = "true" ] && echo "    - Monitoring (Prometheus, Grafana, Alertmanager)"
+[ "$ENABLE_LOGGING" = "true" ] && echo "    - Logging (Loki, Promtail)"
+[ "$ENABLE_BACKUP" = "true" ] && echo "    - Backup (Restic)"
+[ "$ENABLE_DNS" = "true" ] && echo "    - DNS (BIND9)"
+[ "$ENABLE_REVERSE_PROXY" = "true" ] && echo "    - Reverse Proxy (Traefik)"
+[ "$ENABLE_HOME_AUTOMATION" = "true" ] && echo "    - Home Automation (Home Assistant, Zigbee2MQTT, Mosquitto)"
+[ "$ENABLE_VAULTWARDEN" = "true" ] && echo "    - Vaultwarden (Password Manager)"
+[ "$ENABLE_NEXTCLOUD" = "true" ] && echo "    - Nextcloud (Cloud Storage)"
+[ "$ENABLE_PORTAINER" = "true" ] && echo "    - Portainer (Docker UI)"
+[ "$ENABLE_UPTIME_KUMA" = "true" ] && echo "    - Uptime Kuma (Health Monitoring)"
+[ "$ENABLE_WATCHTOWER" = "true" ] && echo "    - Watchtower (Auto Updates)"
+[ "$ENABLE_IMMICH" = "true" ] && echo "    - Immich (Photo Library)"
+[ "$ENABLE_SEARXNG" = "true" ] && echo "    - SearXNG (Search Engine)"
+[ "$ENABLE_MINECRAFT" = "true" ] && echo "    - Minecraft Server"
+echo ""
 
 # === Docker Containers Configuration ===
 echo "[*] Executing Docker containers configuration scripts..."
@@ -124,12 +182,19 @@ for script in $containers_scripts; do
     echo "[!] Error occurred while configuring ${short_name}. Aborting..."
     exit 1
   fi
-  echo "[OK] ${short_name} configured successfully"
 done
 
 # Clean up temporary directory
 rm -rf ./.tmp
 
+echo ""
 echo "----------------------------------------------"
 echo "---- Successfully generated configurations ----"
 echo "----------------------------------------------"
+echo ""
+echo "Next steps:"
+echo "  1. Review your .env file and adjust feature toggles as needed"
+echo "  2. Run 'make start' to start all enabled services"
+echo "  3. Use 'make start-<service>' to start individual services"
+echo "     Example: make start-immich, make start-searxng"
+echo ""
