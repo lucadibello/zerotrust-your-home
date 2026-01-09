@@ -1,0 +1,29 @@
+version: "3.3"
+
+services:
+  searxng-app:
+    image: searxng/searxng:latest
+    container_name: searxng-app
+    restart: unless-stopped
+    networks:
+      - searxnet
+      - traefik-network
+    environment:
+      SEARXNG_BASE_URL: "https://search.${DNS_DOMAIN}/"
+      UWSGI_WORKERS: "2"
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.searxng.rule=Host(`search.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.searxng.entrypoints=websecure"
+      - "traefik.http.routers.searxng.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.searxng.middlewares=strip"
+      - "traefik.http.services.searxng.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-network"
+
+networks:
+  traefik-network:
+    external: true
+  searxnet:
+    driver: bridge
