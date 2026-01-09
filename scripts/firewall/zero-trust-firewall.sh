@@ -1,116 +1,243 @@
 #!/bin/bash
 
-# Load .env file
-set -a
-source .env
-set +a
+# Zero Trust Firewall Configuration Script (Idempotent)
+# This script can be safely re-run to update firewall rules.
 
-# Print configuration and ask for confirmation
-echo "[!] The next step will update the firewall settings. If you are connected via SSH, you may be disconnected (depending on your settings)."
-echo "----------------------------------"
-echo "Firewall onfiguration:"
+set -e
+
+# Load .env file
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+elif [ -f ../.env ]; then
+  set -a
+  source ../.env
+  set +a
+else
+  echo "[!] .env file not found. Please run from project root."
+  exit 1
+fi
+
+# Validate required variables
+if [ -z "$LOCAL_NETWORK" ] || [ -z "$IF" ]; then
+  echo "[!] Required variables LOCAL_NETWORK and IF must be set in .env"
+  exit 1
+fi
+
+# Print configuration and ask for confirmation
+echo "=============================================="
+echo "   Zero Trust Firewall Configuration          "
+echo "=============================================="
+echo ""
+echo "Configuration:"
 echo "  - Local network: $LOCAL_NETWORK"
 echo "  - Primary interface: $IF"
 echo "  - Enable SSH from local network: $ALLOW_LOCAL_SSH_ACCESS"
-echo "  - Enable service access from local network:  $ALLOW_LOCAL_SERVICES_ACCESS"
+echo "  - Enable service access from local network: $ALLOW_LOCAL_SERVICES_ACCESS"
 echo ""
 
-# Ask user for confirmation
-read -p "Do you wish to continue? [y/N] " -n 1 -r
-echo ""
-
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	echo "Aborting..."
-	exit 1
+# Check for --yes or headless mode
+if [ "$1" != "-y" ] && [ "$1" != "--yes" ] && [ "$HEADLESS_MODE" != "true" ]; then
+  echo "[!] This will update firewall settings."
+  echo "[!] If connected via SSH, you may be disconnected (depending on settings)."
+  read -p "Do you wish to continue? [y/N] " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Aborting..."
+    exit 1
+  fi
 fi
 
-echo "--- Starting firewall configuration ---"
+echo ""
+echo "[*] Starting firewall configuration..."
 
-# Logging chain creation
-echo "[!] Creating logging chains..."
+# Helper function: Check if iptables chain exists
+chain_exists() {
+  sudo iptables -n -L "$1" >/dev/null 2>&1
+}
 
+# Helper function: Check if rule exists in chain
+rule_exists() {
+  local chain="$1"
+  shift
+  sudo iptables -C "$chain" "$@" 2>/dev/null
+}
+
+# Helper function: Add rule if not exists
+add_rule_if_missing() {
+  local chain="$1"
+  shift
+  if ! rule_exists "$chain" "$@"; then
+    sudo iptables -A "$chain" "$@"
+    echo "  [+] Added rule to $chain"
+    return 0
+  else
+    echo "  [=] Rule already exists in $chain"
+    return 1
+  fi
+}
+
+# === Clean up existing custom chains ===
+echo "[1/7] Setting up logging chains..."
+
+# Remove existing LOGGING-LOCAL chain rules and recreate
+if chain_exists "LOGGING-LOCAL"; then
+  echo "  [~] Resetting LOGGING-LOCAL chain..."
+  # Remove references to the chain first
+  sudo iptables -D INPUT -j LOGGING-LOCAL 2>/dev/null || true
+  sudo iptables -D DOCKER-USER -j LOGGING-LOCAL 2>/dev/null || true
+  sudo iptables -F LOGGING-LOCAL 2>/dev/null || true
+  sudo iptables -X LOGGING-LOCAL 2>/dev/null || true
+fi
+
+# Remove existing LOGGING-DOCKER chain rules and recreate
+if chain_exists "LOGGING-DOCKER"; then
+  echo "  [~] Resetting LOGGING-DOCKER chain..."
+  sudo iptables -D DOCKER-USER -j LOGGING-DOCKER 2>/dev/null || true
+  sudo iptables -F LOGGING-DOCKER 2>/dev/null || true
+  sudo iptables -X LOGGING-DOCKER 2>/dev/null || true
+fi
+
+# Create fresh logging chains
+echo "  [+] Creating LOGGING-LOCAL chain..."
 sudo iptables -N LOGGING-LOCAL
 sudo iptables -A LOGGING-LOCAL -j LOG \
-	--log-prefix "FIREWALL-INPUT - RIP: " \
-	--log-level 4
+  --log-prefix "FIREWALL-INPUT - RIP: " \
+  --log-level 4
 sudo iptables -A LOGGING-LOCAL -j DROP
+
+echo "  [+] Creating LOGGING-DOCKER chain..."
 sudo iptables -N LOGGING-DOCKER
 sudo iptables -A LOGGING-DOCKER -j LOG \
-	--log-prefix "FIREWALL-DOCKER - RIP: " \
-	--log-level 4
+  --log-prefix "FIREWALL-DOCKER - RIP: " \
+  --log-level 4
 sudo iptables -A LOGGING-DOCKER -j DROP
 
-# Logging chain creation
-echo "[!] Enabling ping from local network ($LOCAL_NETWORK)..."
+# === Configure INPUT chain ===
+echo "[2/7] Configuring INPUT chain for local network ($LOCAL_NETWORK)..."
 
 # Enable PING from local network
-sudo iptables -A INPUT -i $IF -s $LOCAL_NETWORK \
-	-p icmp -m icmp --icmp-type 8 \
-	-j ACCEPT
+add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+  -p icmp -m icmp --icmp-type 8 \
+  -j ACCEPT || true
 
-# If enabled, allow SSH from local network
-if [ "$ALLOW_LOCAL_SSH_ACCESS" = true ]; then
-	echo "[!] Enabling SSH from local network ($LOCAL_NETWORK)..."
-	sudo iptables -A INPUT -i $IF -s $LOCAL_NETWORK \
-		-p tcp -m tcp --dport 22 \
-		-j ACCEPT
+# === SSH Access ===
+echo "[3/7] Configuring SSH access..."
+
+if [ "$ALLOW_LOCAL_SSH_ACCESS" = "true" ]; then
+  echo "  [*] Enabling SSH from local network ($LOCAL_NETWORK)..."
+
+  # Remove any existing SSH DROP rules first
+  while rule_exists INPUT -i $IF -m conntrack --ctstate RELATED,ESTABLISHED -p tcp -m tcp --dport 22 -j LOGGING-LOCAL 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -m conntrack --ctstate RELATED,ESTABLISHED -p tcp -m tcp --dport 22 -j LOGGING-LOCAL
+  done
+
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p tcp -m tcp --dport 22 \
+    -j ACCEPT || true
 else
-	echo "[!] Disabling SSH from local network ($LOCAL_NETWORK) and quitting established connections..."
-	# Drop established and related traffic to SSH
-	sudo iptables -A INPUT -i $IF \
-		-m conntrack --ctstate RELATED,ESTABLISHED \
-		-p tcp -m tcp --dport 22 \
-		-j LOGGING-LOCAL
+  echo "  [*] Disabling SSH from local network..."
+
+  # Remove any existing SSH ACCEPT rules
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 22 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 22 -j ACCEPT
+  done
+
+  # Drop established SSH connections
+  add_rule_if_missing INPUT -i $IF \
+    -m conntrack --ctstate RELATED,ESTABLISHED \
+    -p tcp -m tcp --dport 22 \
+    -j LOGGING-LOCAL || true
 fi
 
-# Allow established and related traffic to go back to local network
-echo "[!] Allowing established and related traffic to flow back to local machine..."
-sudo iptables -A INPUT \
-	-m conntrack --ctstate RELATED,ESTABLISHED \
-	-j ACCEPT
+# === Allow established connections ===
+echo "[4/7] Configuring connection tracking..."
 
-# Do not accept any other traffic from local network
-echo "[!] Blocking all other traffic from local network..."
-sudo iptables -A INPUT -i $IF \
-	-j LOGGING-LOCAL
+add_rule_if_missing INPUT \
+  -m conntrack --ctstate RELATED,ESTABLISHED \
+  -j ACCEPT || true
 
-# Allow established and related traffic to go back to their containers
-echo "[!] Allowing established and related traffic to flow back to docker containers"
-sudo iptables -A DOCKER-USER \
-	-m conntrack --ctstate RELATED,ESTABLISHED \
-	-j ACCEPT
+# Block all other INPUT traffic from interface
+# First remove any existing rules, then add fresh
+while rule_exists INPUT -i $IF -j LOGGING-LOCAL 2>/dev/null; do
+  sudo iptables -D INPUT -i $IF -j LOGGING-LOCAL
+done
+sudo iptables -A INPUT -i $IF -j LOGGING-LOCAL
+echo "  [+] Added default DROP rule for INPUT"
 
-# If enabled, allow access from local network to local machine services
-if [ "$ALLOW_LOCAL_SERVICES_ACCESS" = true ]; then
-	echo "[!] Enabling access from local network ($LOCAL_NETWORK) to docker services..."
-	# DNS (UDP + TCP)
-	sudo iptables -A DOCKER-USER -i $IF -s $LOCAL_NETWORK \
-		-p udp -m udp --dport 53 \
-		-j ACCEPT
-	sudo iptables -A DOCKER-USER -i $IF -s $LOCAL_NETWORK \
-		-p tcp -m tcp --dport 53 \
-		-j ACCEPT
-	# HTTP + HTTPS
-	sudo iptables -A DOCKER-USER -i $IF -s $LOCAL_NETWORK \
-		-p tcp -m tcp --dport 80 \
-		-j ACCEPT
-	sudo iptables -A DOCKER-USER -i $IF -s $LOCAL_NETWORK \
-		-p tcp -m tcp --dport 443 \
-		-j ACCEPT
+# === Configure DOCKER-USER chain ===
+echo "[5/7] Configuring DOCKER-USER chain..."
+
+# Check if DOCKER-USER chain exists (Docker must be installed)
+if ! chain_exists "DOCKER-USER"; then
+  echo "  [!] DOCKER-USER chain not found. Is Docker installed?"
+  echo "  [!] Skipping Docker firewall rules..."
+else
+  # Allow established and related traffic back to containers
+  add_rule_if_missing DOCKER-USER \
+    -m conntrack --ctstate RELATED,ESTABLISHED \
+    -j ACCEPT || true
+
+  # === Local services access ===
+  echo "[6/7] Configuring local service access..."
+
+  if [ "$ALLOW_LOCAL_SERVICES_ACCESS" = "true" ]; then
+    echo "  [*] Enabling access from local network to docker services..."
+
+    # DNS (UDP + TCP)
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p udp -m udp --dport 53 \
+      -j ACCEPT || true
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p tcp -m tcp --dport 53 \
+      -j ACCEPT || true
+
+    # HTTP + HTTPS
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p tcp -m tcp --dport 80 \
+      -j ACCEPT || true
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p tcp -m tcp --dport 443 \
+      -j ACCEPT || true
+  else
+    echo "  [*] Local service access disabled, removing any existing rules..."
+    # Remove existing local service rules if they exist
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT 2>/dev/null || true
+  fi
+
+  # Block all other traffic from docker-user chain
+  # Remove existing and re-add to ensure it's at the right position
+  while rule_exists DOCKER-USER -i $IF -j LOGGING-DOCKER 2>/dev/null; do
+    sudo iptables -D DOCKER-USER -i $IF -j LOGGING-DOCKER
+  done
+  sudo iptables -A DOCKER-USER -i $IF -j LOGGING-DOCKER
+  echo "  [+] Added default DROP rule for DOCKER-USER"
+
+  # Ensure RETURN rule is at the bottom
+  echo "[7/7] Ensuring RETURN rule is at bottom of DOCKER-USER..."
+  sudo iptables -D DOCKER-USER -j RETURN 2>/dev/null || true
+  sudo iptables -A DOCKER-USER -j RETURN
+  echo "  [+] RETURN rule repositioned"
 fi
 
-# Do not accept any other traffic from docker-user chain
-echo "[!] Blocking all other traffic from docker containers..."
-sudo iptables -A DOCKER-USER -i $IF \
-	-j LOGGING-DOCKER
+# === Save rules ===
+echo ""
+echo "[*] Saving firewall rules..."
 
-# Move RETURN rule to the bottom
-echo "[!] Moving NAT RETURN rule to the bottom..."
-sudo iptables -D DOCKER-USER \
-	-j RETURN
-sudo iptables -A DOCKER-USER \
-	-j RETURN
+# Create directory if it doesn't exist
+sudo mkdir -p /etc/iptables
 
-# Save rules to persist after reboot
-echo "[!] Saving rules..."
-sudo iptables-save >/etc/iptables/rules.v4
+# Save rules
+sudo iptables-save | sudo tee /etc/iptables/rules.v4 > /dev/null
+
+echo ""
+echo "=============================================="
+echo "   Firewall Configuration Complete!           "
+echo "=============================================="
+echo ""
+echo "Rules have been saved to /etc/iptables/rules.v4"
+echo "They will persist across reboots (if iptables-persistent is installed)."

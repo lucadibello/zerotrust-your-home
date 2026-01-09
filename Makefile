@@ -28,6 +28,18 @@ restore: # Restore from backup
 generate: # Regenerate configuration files for all services based on .env configuration
 	@sudo bash scripts/generate.sh --headless
 
+update-security: # Update security posture (hardening + firewall) on existing instances
+	@sudo bash scripts/update-security.sh
+
+update-security-headless: # Update security posture without prompts
+	@sudo bash scripts/update-security.sh -y
+
+update-firewall: # Update only firewall rules
+	@sudo bash scripts/update-security.sh -y --firewall-only
+
+update-hardening: # Update only system hardening settings
+	@sudo bash scripts/update-security.sh -y --hardening-only
+
 
 # Specific commands to control each part of the system
 start-%:
