@@ -9,6 +9,7 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
+# System logs
 - job_name: system
   static_configs:
   - targets:
@@ -16,10 +17,61 @@ scrape_configs:
     labels:
       job: varlogs
       __path__: /var/log/*log
-- job_name: "docker"
+
+# Audit logs - security events from auditd
+- job_name: audit
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: audit
+      __path__: /var/log/audit/audit.log
+  pipeline_stages:
+  - regex:
+      expression: 'type=(?P<audit_type>[A-Z_]+).*msg=audit\((?P<timestamp>[^:]+):[^)]+\)'
+  - labels:
+      audit_type:
+  - match:
+      selector: '{job="audit"} |~ "EXECVE|SYSCALL|PATH|USER_AUTH|USER_LOGIN|USER_CMD"'
+      stages:
+      - regex:
+          expression: 'exe="(?P<executable>[^"]*)"'
+      - regex:
+          expression: 'comm="(?P<command>[^"]*)"'
+      - regex:
+          expression: 'key="(?P<audit_key>[^"]*)"'
+      - labels:
+          executable:
+          command:
+          audit_key:
+
+# Firewall logs from kernel
+- job_name: firewall
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: firewall
+      __path__: /var/log/kern.log
+  pipeline_stages:
+  - match:
+      selector: '{job="firewall"} |~ "FIREWALL-"'
+      stages:
+      - regex:
+          expression: '(?P<firewall_action>FIREWALL-[A-Z]+)'
+      - regex:
+          expression: 'SRC=(?P<src_ip>[0-9.]+)'
+      - regex:
+          expression: 'DPT=(?P<dst_port>[0-9]+)'
+      - labels:
+          firewall_action:
+          src_ip:
+
+# Docker container logs
+- job_name: docker
   docker_sd_configs:
     - host: "unix:///var/run/docker.sock"
-      refresh_interval: "1s"
+      refresh_interval: "5s"
   relabel_configs:
     - source_labels: ['__meta_docker_container_name']
       target_label: "container_name"
