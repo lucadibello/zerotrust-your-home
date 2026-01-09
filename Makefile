@@ -1,17 +1,20 @@
 COMPOSE = docker-compose
 ENVFILE = .env
 
-# Use find to list compose files and grep to exclude optional/manual services
-# Excluded by default: tunnel (requires manual setup), mcserver (gaming), home (IoT specific)
-COMPOSE_FILES := $(shell find composes -maxdepth 1 -name '*.docker-compose.yaml' | grep -Ev 'tunnel|mcserver|home|immich|searxng')
-# Prepend "-f" to each file for docker-compose
-COMPOSE_ARGS := $(foreach file,$(COMPOSE_FILES),-f $(file))
+# Dynamically generate compose arguments based on enabled services and custom files
+COMPOSE_ARGS := $(shell bash scripts/get_docker_compose_files.sh)
 
 start:  # Start all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
 
+restart:  # Restart all docker containers
+	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) restart
+
 logs:  # View all docker containers logs
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) logs -f --tail=50
+
+status:  # View the status of the current ZeroTrust Your Home services
+	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
 
 stop:  # Stop all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) stop
