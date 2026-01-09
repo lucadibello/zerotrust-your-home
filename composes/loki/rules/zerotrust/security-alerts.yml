@@ -1,0 +1,101 @@
+groups:
+  - name: security-alerts
+    rules:
+      # Failed SSH login attempts
+      - alert: SSHAuthenticationFailure
+        expr: |
+          count_over_time({job="varlogs"} |~ "sshd.*Failed password|sshd.*Invalid user" [5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Multiple SSH authentication failures detected"
+          description: "More than 5 failed SSH login attempts in the last 5 minutes. Possible brute force attack."
+
+      # Successful root login
+      - alert: RootLoginDetected
+        expr: |
+          count_over_time({job="audit"} |~ "USER_LOGIN.*acct=\"root\"" [1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Root login detected"
+          description: "A root user login was detected on the system."
+
+      # Sudo command execution
+      - alert: SudoCommandExecuted
+        expr: |
+          count_over_time({job="audit"} |~ "USER_CMD.*cmd=" [1m]) > 10
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "High sudo activity detected"
+          description: "More than 10 sudo commands executed in the last minute."
+
+      # Firewall blocked connections (potential port scan)
+      - alert: FirewallBlockedConnections
+        expr: |
+          count_over_time({job="firewall"} |~ "FIREWALL-" [5m]) > 50
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of firewall blocked connections"
+          description: "More than 50 connections blocked by firewall in 5 minutes. Possible port scan or attack."
+
+      # Suspicious binary execution (audit key match)
+      - alert: SuspiciousBinaryExecution
+        expr: |
+          count_over_time({job="audit"} |~ "key=\"susp_activity\"|key=\"T1059\"|key=\"T1053\"" [5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Suspicious activity detected by auditd"
+          description: "Auditd detected execution matching suspicious activity rules (possible malware or intrusion)."
+
+      # File integrity changes in critical directories
+      - alert: CriticalFileModification
+        expr: |
+          count_over_time({job="audit"} |~ "key=\"etcpasswd\"|key=\"etc_shadow\"|key=\"sshd_config\"" [5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical system file modified"
+          description: "A critical system file (passwd, shadow, or sshd_config) was modified."
+
+      # New user creation
+      - alert: NewUserCreated
+        expr: |
+          count_over_time({job="audit"} |~ "ADD_USER|useradd" [5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "New user account created"
+          description: "A new user account was created on the system."
+
+      # Kernel module loaded
+      - alert: KernelModuleLoaded
+        expr: |
+          count_over_time({job="audit"} |~ "KERN_MODULE|init_module|finit_module" [5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kernel module loaded"
+          description: "A kernel module was loaded. This could be legitimate or indicate rootkit activity."
+
+      # Docker container started
+      - alert: DockerContainerStarted
+        expr: |
+          count_over_time({job="docker", container_name!~".*"} |~ "Starting|Started" [5m]) > 5
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Multiple Docker containers started"
+          description: "More than 5 Docker containers started in the last 5 minutes."
