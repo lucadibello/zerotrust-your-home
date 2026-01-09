@@ -81,34 +81,48 @@ add_rule_if_missing() {
 # === Clean up existing custom chains ===
 echo "[1/7] Setting up logging chains..."
 
-# Remove existing LOGGING-LOCAL chain rules and recreate
-if chain_exists "LOGGING-LOCAL"; then
-  echo "  [~] Resetting LOGGING-LOCAL chain..."
-  # Remove references to the chain first
-  sudo iptables -D INPUT -j LOGGING-LOCAL 2>/dev/null || true
-  sudo iptables -D DOCKER-USER -j LOGGING-LOCAL 2>/dev/null || true
-  sudo iptables -F LOGGING-LOCAL 2>/dev/null || true
-  sudo iptables -X LOGGING-LOCAL 2>/dev/null || true
-fi
+# Helper function: Remove all references to a chain and delete it
+cleanup_chain() {
+  local chain="$1"
+  if chain_exists "$chain"; then
+    echo "  [~] Resetting $chain chain..."
+    # Remove ALL references from INPUT chain
+    while sudo iptables -D INPUT -j "$chain" 2>/dev/null; do :; done
+    # Remove ALL references from DOCKER-USER chain
+    while sudo iptables -D DOCKER-USER -j "$chain" 2>/dev/null; do :; done
+    # Remove ALL references from other potential chains
+    while sudo iptables -D FORWARD -j "$chain" 2>/dev/null; do :; done
+    # Flush the chain
+    sudo iptables -F "$chain" 2>/dev/null || true
+    # Delete the chain
+    sudo iptables -X "$chain" 2>/dev/null || true
+  fi
+}
 
-# Remove existing LOGGING-DOCKER chain rules and recreate
-if chain_exists "LOGGING-DOCKER"; then
-  echo "  [~] Resetting LOGGING-DOCKER chain..."
-  sudo iptables -D DOCKER-USER -j LOGGING-DOCKER 2>/dev/null || true
-  sudo iptables -F LOGGING-DOCKER 2>/dev/null || true
-  sudo iptables -X LOGGING-DOCKER 2>/dev/null || true
-fi
+# Remove existing logging chains
+cleanup_chain "LOGGING-LOCAL"
+cleanup_chain "LOGGING-DOCKER"
 
 # Create fresh logging chains
 echo "  [+] Creating LOGGING-LOCAL chain..."
-sudo iptables -N LOGGING-LOCAL
+if ! chain_exists "LOGGING-LOCAL"; then
+  sudo iptables -N LOGGING-LOCAL
+else
+  echo "  [!] Warning: LOGGING-LOCAL still exists, flushing instead..."
+  sudo iptables -F LOGGING-LOCAL
+fi
 sudo iptables -A LOGGING-LOCAL -j LOG \
   --log-prefix "FIREWALL-INPUT - RIP: " \
   --log-level 4
 sudo iptables -A LOGGING-LOCAL -j DROP
 
 echo "  [+] Creating LOGGING-DOCKER chain..."
-sudo iptables -N LOGGING-DOCKER
+if ! chain_exists "LOGGING-DOCKER"; then
+  sudo iptables -N LOGGING-DOCKER
+else
+  echo "  [!] Warning: LOGGING-DOCKER still exists, flushing instead..."
+  sudo iptables -F LOGGING-DOCKER
+fi
 sudo iptables -A LOGGING-DOCKER -j LOG \
   --log-prefix "FIREWALL-DOCKER - RIP: " \
   --log-level 4
