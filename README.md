@@ -15,6 +15,7 @@
   - [5.2. Optional services](#52-optional-services)
   - [5.3. Additional services](#53-additional-services)
   - [5.4. Using feature toggles](#54-using-feature-toggles)
+  - [5.5. Global system management](#55-global-system-management)
 - [6. System capabilities](#6-system-capabilities)
   - [6.1. Continuous monitoring and alerting system](#61-continuous-monitoring-and-alerting-system)
     - [6.1.1. Alerting rules](#611-alerting-rules)
@@ -57,6 +58,7 @@
   - [11.7. System auditing](#117-system-auditing)
   - [11.8. Kernel hardening](#118-kernel-hardening)
   - [11.9. Restrict compilers to root users](#119-restrict-compilers-to-root-users)
+  - [11.10. Applying hardening and firewall updates](#1110-applying-hardening-and-firewall-updates)
 - [12. Testing the system](#12-testing-the-system)
   - [12.1. Hardware](#121-hardware)
   - [12.2. Security tests](#122-security-tests)
@@ -148,6 +150,18 @@ These services require extra configuration in the `.env` file:
 5. Run `make start` to start all enabled services
 
 You can also start individual services using `make start-<service>` (e.g., `make start-immich`).
+
+### 5.5. Global system management
+
+The following commands allow you to manage the entire system (all enabled services) at once:
+
+| Command | Description |
+|---------|-------------|
+| `make start` | Start all enabled services (containers) in detached mode. |
+| `make stop` | Stop all running services. |
+| `make restart` | Restart all running services. |
+| `make status` | Display the status of all services (container name, status, ports, image). |
+| `make logs` | Follow the logs of all running services. |
 
 ## 6. System capabilities
 
@@ -471,6 +485,38 @@ make restart-<service>  # Restart a specific service
 
 This allows fine-grained control over each component of the system.
 
+### 10.4. Custom services
+
+The system is designed to be easily extensible with your own services. You can add any number of additional Docker Compose files without modifying the project's core files.
+
+1. Create a new file in the `composes/` directory with the suffix `.custom.docker-compose.yaml` (e.g., `composes/my-website.custom.docker-compose.yaml`).
+2. These files are automatically ignored by Git, so your custom configurations remain private and won't interfere with project updates.
+3. The system automatically detects these files and includes them in all global commands like `make start`, `make stop`, `make status`, etc.
+
+Example of a custom service (e.g., `composes/my-app.custom.docker-compose.yaml`):
+```yaml
+version: '3.3'
+
+networks:
+  traefik-network:
+    external: true
+
+services:
+  my-app:
+    image: my-custom-app:latest
+    container_name: my-custom-app
+    restart: always
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.my-app.rule=Host(`my-app.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.my-app.entrypoints=websecure"
+      - "traefik.http.routers.my-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.my-app.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-network"
+```
+
 ## 11. System hardening measures
 
 This section outlines the measures implemented to enhance system security, effectively reducing the attack surface of the system.
@@ -578,6 +624,15 @@ The script will look for the following compilers (wildcards are used to match al
 - `g++*`
 - `cc*`
 - `c++*`
+
+### 11.10. Applying hardening and firewall updates
+
+The system provides several Make commands to apply security updates (hardening and firewall rules) easily:
+
+- `make update-security`: Interactive script that updates both system hardening settings and firewall rules.
+- `make update-security-headless`: Non-interactive version (assumes "yes" to prompts), useful for automated setups.
+- `make update-firewall`: Updates only the firewall rules (non-interactive).
+- `make update-hardening`: Updates only the system hardening settings (non-interactive).
 
 ## 12. Testing the system
 
