@@ -1,8 +1,9 @@
 COMPOSE = docker-compose
 ENVFILE = .env
 
-# Use find to list compose files and grep to exclude files containing "home"
-COMPOSE_FILES := $(shell find composes -maxdepth 1 -name '*.docker-compose.yaml' | grep -v 'home')
+# Use find to list compose files and grep to exclude optional/manual services
+# Excluded by default: tunnel (requires manual setup), mcserver (gaming), home (IoT specific)
+COMPOSE_FILES := $(shell find composes -maxdepth 1 -name '*.docker-compose.yaml' | grep -Ev 'tunnel|mcserver|home|immich|searxng')
 # Prepend "-f" to each file for docker-compose
 COMPOSE_ARGS := $(foreach file,$(COMPOSE_FILES),-f $(file))
 
@@ -27,3 +28,24 @@ restore: # Restore from backup
 generate: # Regenerate configuration files for all services based on .env configuration
 	@sudo bash scripts/generate.sh --headless
 
+
+# Specific commands to control each part of the system
+start-%:
+	@echo "Starting $* service..."
+	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) up -d
+
+down-%:
+	@echo "Downing $* service..."
+	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) down
+
+stop-%:
+	@echo "Stopping $* service..."
+	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) stop
+
+logs-%:
+	@echo "Logs $* service..."
+	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) logs
+
+restart-%:
+	@echo "Restarting $* service..."
+	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) restart
