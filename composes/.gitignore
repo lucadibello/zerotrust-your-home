@@ -11,4 +11,4 @@ alertmanager/*
 uptime-kuma/*
 
 # Certs settings generated on demand
-certs/*
+certs/**.custom.docker-compose.yaml

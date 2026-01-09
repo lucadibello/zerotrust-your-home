@@ -1,3 +1,9 @@
 .DS_Store
 .env
 .vscode
+
+# custom docker-compose files
+composes/*.custom.docker-compose.yaml
+
+# additional resources (needed by custom docker-compose files)
+composes/lucadibello
