@@ -7,3 +7,6 @@ composes/*.custom.docker-compose.yaml
 
 # additional resources (needed by custom docker-compose files)
 composes/lucadibello
+
+# Ignored Databases
+composes/uptime-kuma/kuma.db
