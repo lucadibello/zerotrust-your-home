@@ -1,0 +1,113 @@
+groups:
+  - name: security-alerts
+    interval: 1m
+    rules:
+      # Failed SSH login attempts - potential brute force
+      - alert: SSHAuthenticationFailure
+        expr: |
+          sum(count_over_time({job="varlogs"} |~ "sshd.*(Failed password|Invalid user)" [5m])) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Multiple SSH authentication failures detected
+          description: More than 5 failed SSH login attempts in the last 5 minutes. Possible brute force attack.
+
+      # Successful root login - should be rare
+      - alert: RootLoginDetected
+        expr: |
+          sum(count_over_time({job="varlogs"} |~ "sshd.*session opened.*root|login.*ROOT LOGIN" [1m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Root login detected
+          description: A root user login was detected on the system.
+
+      # High sudo activity - potential privilege escalation
+      - alert: HighSudoActivity
+        expr: |
+          sum(count_over_time({job="varlogs"} |~ "sudo:.*COMMAND=" [1m])) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: High sudo activity detected
+          description: More than 10 sudo commands executed in the last minute.
+
+      # Firewall blocked connections - potential port scan
+      - alert: FirewallBlockedConnections
+        expr: |
+          sum(count_over_time({job="firewall"} |~ "FIREWALL-(INPUT|DOCKER)" [5m])) > 50
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: High number of firewall blocked connections
+          description: More than 50 connections blocked by firewall in 5 minutes. Possible port scan or attack.
+
+      # Critical file modification via audit logs
+      - alert: CriticalFileModification
+        expr: |
+          sum(count_over_time({job="audit"} |~ "name=.*(passwd|shadow|sshd_config|sudoers)" [5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Critical system file modified
+          description: A critical system file (passwd, shadow, sshd_config, or sudoers) was modified.
+
+      # New user creation
+      - alert: NewUserCreated
+        expr: |
+          sum(count_over_time({job="audit"} |~ "type=ADD_USER|useradd|adduser" [5m])) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: New user account created
+          description: A new user account was created on the system.
+
+      # Kernel module loaded - potential rootkit
+      - alert: KernelModuleLoaded
+        expr: |
+          sum(count_over_time({job="audit"} |~ "type=KERN_MODULE|init_module|finit_module" [5m])) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Kernel module loaded
+          description: A kernel module was loaded. This could be legitimate or indicate rootkit activity.
+
+      # Suspicious process execution from audit
+      - alert: SuspiciousProcessExecution
+        expr: |
+          sum(count_over_time({job="audit"} |~ "type=EXECVE.*(/tmp/|/var/tmp/|/dev/shm/)" [5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Suspicious process execution detected
+          description: A process was executed from a suspicious location (tmp, dev/shm). Possible malware activity.
+
+      # Authentication failure from audit
+      - alert: AuditAuthenticationFailure
+        expr: |
+          sum(count_over_time({job="audit"} |~ "type=USER_AUTH.*res=failed" [5m])) > 3
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Multiple authentication failures in audit log
+          description: More than 3 authentication failures recorded in audit logs within 5 minutes.
+
+      # Service stopped unexpectedly
+      - alert: SystemdServiceFailed
+        expr: |
+          sum(count_over_time({job="varlogs"} |~ "systemd.*: (Failed|failed|Stopped)" [5m])) > 3
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Multiple systemd service failures
+          description: Multiple systemd services have failed or stopped unexpectedly.
