@@ -223,19 +223,23 @@ The following security alerting rules are configured:
 
 1. **SSH Authentication Failure**: triggers when more than 5 failed SSH login attempts are detected within 5 minutes. This may indicate a brute-force attack.
 
-2. **Root Login Detected**: triggers immediately when a root user login is detected on the system. Root logins should be rare and monitored closely.
+2. **Root Login Detected**: triggers when a root user login session is detected on the system. Root logins should be rare and monitored closely.
 
-3. **Sudo Command Executed**: triggers when more than 10 sudo commands are executed within 1 minute. High sudo activity may indicate unauthorized privilege escalation.
+3. **High Sudo Activity**: triggers when more than 10 sudo commands are executed within 1 minute. High sudo activity may indicate unauthorized privilege escalation.
 
 4. **Firewall Blocked Connections**: triggers when more than 50 connections are blocked by the firewall within 5 minutes. This may indicate a port scan or network attack.
 
-5. **Suspicious Binary Execution**: triggers immediately when auditd detects execution matching suspicious activity rules (e.g., MITRE ATT&CK techniques T1059, T1053).
+5. **Critical File Modification**: triggers when critical system files are modified, including `/etc/passwd`, `/etc/shadow`, `/etc/ssh/sshd_config`, or `/etc/sudoers`.
 
-6. **Critical File Modification**: triggers immediately when critical system files are modified, including `/etc/passwd`, `/etc/shadow`, or `/etc/ssh/sshd_config`.
+6. **New User Created**: triggers when a new user account is created on the system. Unauthorized user creation may indicate a compromise.
 
-7. **New User Created**: triggers when a new user account is created on the system. Unauthorized user creation may indicate a compromise.
+7. **Kernel Module Loaded**: triggers when a kernel module is loaded. While often legitimate, this can also indicate rootkit activity.
 
-8. **Kernel Module Loaded**: triggers when a kernel module is loaded. While often legitimate, this can also indicate rootkit activity.
+8. **Suspicious Process Execution**: triggers when a process is executed from suspicious locations (`/tmp`, `/var/tmp`, `/dev/shm`). This is a common indicator of malware activity.
+
+9. **Audit Authentication Failure**: triggers when more than 3 authentication failures are recorded in audit logs within 5 minutes.
+
+10. **Systemd Service Failed**: triggers when multiple systemd services fail or stop unexpectedly within 5 minutes.
 
 These alerts are sent via *Alertmanager* to the configured Telegram bot, ensuring system administrators are notified in real-time of potential security incidents.
 
