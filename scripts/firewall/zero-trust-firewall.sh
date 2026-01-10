@@ -112,9 +112,15 @@ else
   echo "  [!] Warning: LOGGING-LOCAL still exists, flushing instead..."
   sudo iptables -F LOGGING-LOCAL
 fi
-sudo iptables -A LOGGING-LOCAL -j LOG \
-  --log-prefix "FIREWALL-INPUT - RIP: " \
-  --log-level 4
+
+if [ "$ENABLE_FIREWALL_LOGGING" = "true" ]; then
+    echo "  [+] Enabling logging for LOGGING-LOCAL..."
+    sudo iptables -A LOGGING-LOCAL -j LOG \
+      --log-prefix "FIREWALL-INPUT - RIP: " \
+      --log-level 4
+else
+    echo "  [-] Logging disabled for LOGGING-LOCAL (ENABLE_FIREWALL_LOGGING!=true)"
+fi
 sudo iptables -A LOGGING-LOCAL -j DROP
 
 echo "  [+] Creating LOGGING-DOCKER chain..."
@@ -124,9 +130,15 @@ else
   echo "  [!] Warning: LOGGING-DOCKER still exists, flushing instead..."
   sudo iptables -F LOGGING-DOCKER
 fi
-sudo iptables -A LOGGING-DOCKER -j LOG \
-  --log-prefix "FIREWALL-DOCKER - RIP: " \
-  --log-level 4
+
+if [ "$ENABLE_FIREWALL_LOGGING" = "true" ]; then
+    echo "  [+] Enabling logging for LOGGING-DOCKER..."
+    sudo iptables -A LOGGING-DOCKER -j LOG \
+      --log-prefix "FIREWALL-DOCKER - RIP: " \
+      --log-level 4
+else
+    echo "  [-] Logging disabled for LOGGING-DOCKER (ENABLE_FIREWALL_LOGGING!=true)"
+fi
 sudo iptables -A LOGGING-DOCKER -j DROP
 
 # === Configure INPUT chain ===
