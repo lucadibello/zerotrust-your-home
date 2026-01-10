@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 # Load common features
 source ./scripts/common.sh

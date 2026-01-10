@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 # update-security.sh: Update security posture on existing instances
 # This script applies the latest hardening and firewall settings without

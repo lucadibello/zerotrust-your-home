@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 # Zero Trust Firewall Configuration Script (Idempotent)
 # This script can be safely re-run to update firewall rules.

@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 # generate.sh: Regenerate configuration files and execute configuration scripts.
 #
@@ -193,6 +194,12 @@ if [ -n "$SUDO_USER" ]; then
     echo "[*] Fixing permissions for user $SUDO_USER..."
     chown -R "$SUDO_USER:$(id -gn "$SUDO_USER")" ./composes
     chmod -R o+rX ./composes
+    
+    # Restore strict permissions for acme.json (Traefik requirement)
+    if [ -f ./composes/letsencrypt/acme.json ]; then
+        echo "[*] Restoring strict permissions for acme.json..."
+        chmod 600 ./composes/letsencrypt/acme.json
+    fi
 fi
 
 echo ""

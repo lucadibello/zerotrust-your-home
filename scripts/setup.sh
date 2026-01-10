@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 # setup.sh: Full system setup including OS configuration.
 #
 # Usage: ./setup.sh [options]

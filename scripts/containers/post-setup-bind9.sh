@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 # This script generates configuration files for Bind9
 # It is now cross‑platform: Linux and macOS.
 

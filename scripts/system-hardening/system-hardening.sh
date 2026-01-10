@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 # System Hardening Script (Idempotent)
 # This script can be safely re-run on existing instances to update security settings.

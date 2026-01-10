@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 # Load .env file
 set -a

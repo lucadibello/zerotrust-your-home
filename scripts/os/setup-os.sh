@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "exit" INT
 
 ## -- DOWNLOAD AND INSTALL UPDATES
 echo "[*] Updating and upgrading the system..."
@@ -50,6 +51,16 @@ echo "[*] Docker version:"
 docker --version
 echo "[*] Docker Compose version:"
 docker compose version
+
+## -- INSTALL IMMICH-GO
+echo "[*] Installing immich-go..."
+IMMICH_GO_VERSION="v0.31.0"
+curl -L -o immich-go.tar.gz "https://github.com/simulot/immich-go/releases/download/${IMMICH_GO_VERSION}/immich-go_Linux_x86_64.tar.gz"
+tar -xzf immich-go.tar.gz
+sudo mv immich-go /usr/local/bin/immich-go
+sudo chmod +x /usr/local/bin/immich-go
+rm immich-go.tar.gz
+echo "[*] immich-go installed successfully"
 
 ## -- START REQUIRED SERVICES
 
