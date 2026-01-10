@@ -10,3 +10,6 @@ composes/lucadibello
 
 # Ignored Databases
 composes/uptime-kuma/kuma.db
+
+# Secrets / Certificates
+composes/letsencrypt/acme.json
