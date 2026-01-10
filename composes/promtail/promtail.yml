@@ -3,10 +3,14 @@ server:
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /var/promtail/positions.yaml
+  sync_period: 10s
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
 
 scrape_configs:
 # System logs
