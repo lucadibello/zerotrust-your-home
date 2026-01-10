@@ -1,5 +1,7 @@
 #!/bin/bash
 
+trap "exit" INT
+
 # Load .env file
 set -a
 source .env
@@ -26,6 +28,16 @@ COMPOSE_FILES=""
 [ "$ENABLE_IMMICH" = "true" ] && [ -f immich.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f immich.docker-compose.yaml"
 [ "$ENABLE_SEARXNG" = "true" ] && [ -f searxng.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f searxng.docker-compose.yaml"
 [ "$ENABLE_MINECRAFT" = "true" ] && [ -f mcserver.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f mcserver.docker-compose.yaml"
+
+# Run Immich backup if enabled (requires Immich to be running)
+if [ "$ENABLE_IMMICH" = "true" ]; then
+    echo "[*] Running Immich export..."
+    bash ../scripts/backups/backup-immich.sh
+fi
+
+# Dump databases (requires containers to be running)
+echo "[*] Dumping databases..."
+bash ../scripts/backups/dump-databases.sh
 
 echo "[*] Stopping containers for backup..."
 sudo docker compose $COMPOSE_FILES --env-file ../.env stop
