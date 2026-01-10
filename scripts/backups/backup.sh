@@ -28,16 +28,16 @@ COMPOSE_FILES=""
 [ "$ENABLE_MINECRAFT" = "true" ] && [ -f mcserver.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f mcserver.docker-compose.yaml"
 
 echo "[*] Stopping containers for backup..."
-sudo docker-compose $COMPOSE_FILES --env-file ../.env stop
+sudo docker compose $COMPOSE_FILES --env-file ../.env stop
 
 # Execute backup
 echo "[*] Running backup..."
-sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic backup /mnt/backup --host docker --tag backup
 
 # Restart all containers
 echo "[*] Restarting containers..."
-sudo docker-compose $COMPOSE_FILES --env-file ../.env start
+sudo docker compose $COMPOSE_FILES --env-file ../.env start
 
 # Exit
 cd ..

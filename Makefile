@@ -1,4 +1,4 @@
-COMPOSE = docker-compose
+COMPOSE = docker compose
 ENVFILE = .env
 
 # Dynamically generate compose arguments based on enabled services and custom files

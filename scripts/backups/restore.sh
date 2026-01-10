@@ -8,7 +8,7 @@ read ID
 
 # Stop all containers apart restic
 cd composes
-sudo docker-compose -f bind9.docker-compose.yaml -f traefik.docker-compose.yaml \
+sudo docker compose -f bind9.docker-compose.yaml -f traefik.docker-compose.yaml \
   -f prometheus.docker-compose.yaml \
   -f home.docker-compose.yaml \
   -f loki.docker-compose.yaml \
@@ -16,11 +16,11 @@ sudo docker-compose -f bind9.docker-compose.yaml -f traefik.docker-compose.yaml 
   -f watchtower.docker-compose.yaml --env-file ../.env stop
 
 # Restore backup
-sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic restore $ID -H docker --exclude backingFsBlockDev --target /
 
 # Restart all containers
-sudo docker-compose -f bind9.docker-compose.yaml -f traefik.docker-compose.yaml \
+sudo docker compose -f bind9.docker-compose.yaml -f traefik.docker-compose.yaml \
   -f prometheus.docker-compose.yaml \
   -f home.docker-compose.yaml \
   -f loki.docker-compose.yaml \
