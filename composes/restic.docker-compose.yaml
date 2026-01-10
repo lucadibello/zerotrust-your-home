@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   # Service in charge on backing up data + store it on S3
   backup:

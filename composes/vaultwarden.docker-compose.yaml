@@ -1,5 +1,3 @@
-version: "3.9"
-
 volumes:
   vaultwarden_data:
     external: true

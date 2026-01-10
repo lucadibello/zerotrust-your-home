@@ -1,5 +1,3 @@
-version: "3.3"
-
 services:
   searxng-app:
     image: searxng/searxng:latest

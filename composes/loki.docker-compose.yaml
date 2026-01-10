@@ -1,4 +1,6 @@
-version: "3.9"
+volumes:
+  promtail_positions:
+    driver: local
 
 networks:
   grafana-network:
@@ -30,6 +32,7 @@ services:
       - /var/log/audit:/var/log/audit:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./promtail:/etc/promtail
+      - promtail_positions:/var/promtail
     restart: always
     command: -config.file=/etc/promtail/promtail.yml
     networks:
