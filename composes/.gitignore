@@ -1,14 +1,17 @@
 # Traefik temp directory for cert generation
-letsencrypt
+letsencrypt/
 
 # BIND9 generated files
-bind9/*
+bind9/
 
 # Alertmanager generated files
-alertmanager/*
+alertmanager/
 
 # Uptime-Kuma generated files
-uptime-kuma/*
+uptime-kuma/
 
 # Certs settings generated on demand
 certs/**.custom.docker-compose.yaml
+
+# backups directory
+backups/
