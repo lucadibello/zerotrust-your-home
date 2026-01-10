@@ -257,51 +257,55 @@ The following image illustrates the architecture of the log management suite.
 
 ### 6.3. Backup and restore suite
 
-To ensure data integrity in case of disasters such as hardware failures or physical damage, a robust backup solution has been implemented to periodically backup critical data stored in the system. The backup solution is based on [Restic](https://restic.net/), an open-source backup software that is fast, efficient and secure.
+To ensure data integrity, a robust, multi-layered backup solution has been implemented. The strategy adheres to the 3-2-1 backup rule where possible and is divided into specific handlers for different types of data.
 
-The use of a cloud storage solution like Amazon S3 (the one configured by default) is recommended as it provides a cheap and reliable solution to archive backups without incurring in disk capacity issues. It is important to highlight that the user can easily configure the backup solution to use a different cloud storage provider (i.e., Google Cloud Storage, Azure Blob Storage, etc.) or a local storage solution (i.e., NAS, external hard drive, etc.) (read official documentation [here](https://restic.readthedocs.io/en/latest/030_preparing_a_new_repo.html)).
+#### 6.3.1. System Backup (Restic)
 
-The following image illustrates the architecture of the backup and restore suite.
+The core system backup relies on [Restic](https://restic.net/), targeting an S3-compatible backend (e.g., AWS S3).
 
-![Backup and restore suite](./assets/images/backup-restore-flow.png)
+*   **Scope:** Docker volumes (`/var/lib/docker/volumes`), project configuration files, and database dumps.
+*   **Encryption:** All backups are encrypted client-side before upload.
+*   **Schedule:** Daily at midnight.
+*   **Components:**
+    1.  **Backup Instance:** Performs the daily backup.
+    2.  **Prune Instance:** Enforces retention policies (keep last 7 days, 4 weeks, 12 months).
+    3.  **Check Instance:** Verifies repository integrity daily.
 
-In the figure above is possible to notice that are present three different instances of Restic, all running at the same time. Each instance has a different purpose and is configured to perform specific tasks at specific times:
+#### 6.3.2. Immich Photo Backup
 
-1. **backup instance**: configured to perform daily backups of the Docker volumes (every day at midnight). To guarantee data confidentiality, backups are encrypted before being sent to the cloud storage.
+Immich photos and videos are backed up using [immich-go](https://github.com/simulot/immich-go) to a local path (default: `/mnt/nextcloud-backups/immich`), which can then be synced off-site (e.g., via Nextcloud or another tool).
 
-2. **restore instance**: in charge of cleaning up the S3 bucket by removing old backups based on the configured retention policies (refer to the next section for more details).
+*   **Strategy:**
+    *   **Full Backup:** performed on the 1st of every month.
+    *   **Incremental Backup:** performed daily (capturing changes from the last 24 hours).
+*   **Format:** Exported as ZIP files compatible with Google Photos takeout structure.
 
-3. **check instance**: is responsible for verifying the integrity of the backup repository stored in the S3 bucket. This operation is executed on a daily basis (every day at 5:15 AM, 1h15m after the prune operation). The check process consists in analyzing 10% of the total data stored in the cloud storage, ensuring the reliability and integrity of the backups.
+#### 6.3.3. Nextcloud Backup
 
-#### 6.3.1. Backup retention policies
+Nextcloud data (files stored in `/mnt/nas-data`) is **not** included in the Restic system backup to avoid duplication and locking issues.
 
-Retention policies play a pivotal role in maintaining an optimal number of backups while ensuring older backups are systematically purged upon reaching set limits. The following retention policies have been configured:
+*   **Recommendation:** Use Nextcloud AIO's built-in backup solution (based on BorgBackup) via the AIO interface, or manually backup the data directory using `rsync` to an external drive.
 
-- Retain the most recent seven daily backups
-- Preserve the last four weekly backups
-- Maintain the latest twelve monthly backups
+#### 6.3.4. Backup and restore operations via CLI
 
-#### 6.3.2. Backup notifications
+A unified CLI is provided to manage all backup and restore operations.
 
-Leveraging Telegram APIs, Restic *backup instance* is able to notify administrators when a backup operation is completed, when it fails (i.e., S3 bucket unavailable) and when it has been interrupted (i.e., one or more files are unreadable).
+*   **`make backup`**: Triggers a manual system backup. This includes:
+    *   Running Immich export (if enabled).
+    *   Dumping databases (Postgres, etc.) to SQL files.
+    *   Running Restic backup for Docker volumes and config.
+*   **`make view-backups`**: Lists available Restic snapshots.
+*   **`make restore`**: Launches an interactive **Restore Menu** with the following options:
+    1.  **System Restore:** Restores Docker volumes and config from S3 (Restic). *Stops all services.*
+    2.  **Immich Restore:** Interactively restores photos/albums from local `immich-go` backups.
+    3.  **Database Restore:** Helper to restore specific SQL dumps to running containers.
+    4.  **Nextcloud Info:** Displays instructions for restoring Nextcloud files.
 
-The following image shows all the possible notifications sent by the backup instance.
+#### 6.3.5. Backup notifications
+
+Leveraging Telegram APIs, the system notifies administrators when backup operations complete, fail, or encounter errors.
 
 <img src="./assets/images/restic-backup-notification.jpeg" width="400">
-
-#### 6.3.3. Backup and restore operations via CLI
-
-To simplify the backup and restore operations, a Makefile script has been developed to automate the backup and restore procedures as much as possible.
-
-The following commands are available:
-
-- **make backup**: creates a new incremental backup of the *Docker* volumes and sends it to the S3 bucket.
-
-- **make restore**: wizard to restore the system from a backup selected by the user from the list of available backups. After the backup is performed, it will check the integrity of the restored data to ensure the integrity of the restored data.
-
-- **make view-backups**: lists all available backups stored in the S3 bucket, showing their ID, date, and size.
-
-*Note: it is important to note that the **restore** command first shuts down all running Docker containers, then restores the selected backup, and finally restarts all containers to ensure the integrity of the data.*
 
 ### 6.4. Home automation system
 
