@@ -13,6 +13,9 @@ uptime-kuma/
 # Nextcloud generated files
 nextcloud/
 
+# searxng
+searxng/
+
 # Certs settings generated on demand
 certs/**.custom.docker-compose.yaml
 
