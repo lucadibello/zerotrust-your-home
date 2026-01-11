@@ -22,11 +22,23 @@ stop:  # Stop all docker containers
 view-backups: # View all backups
 	@bash scripts/backups/view-backups.sh
 
-backup: # Create a system backup
+backup: # Full backup - export data, stop services, run restic, restart services
 	@bash scripts/backups/backup.sh
+
+backup-export: # Export data only (Immich photos, DB dumps). Used by cronjob before restic's automatic run.
+	@bash scripts/backups/backup-export.sh
 
 restore: # Restore from backup
 	@bash scripts/backups/restore.sh
+
+backup-cron-enable: # Enable automatic daily backup export at 23:30
+	@bash scripts/backups/setup-backup-cron.sh enable
+
+backup-cron-disable: # Disable automatic daily backup export
+	@bash scripts/backups/setup-backup-cron.sh disable
+
+backup-cron-status: # Show backup cronjob status
+	@bash scripts/backups/setup-backup-cron.sh status
 
 generate: # Regenerate configuration files for all services based on .env configuration
 	@sudo bash scripts/generate.sh --headless

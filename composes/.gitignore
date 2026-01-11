@@ -10,6 +10,9 @@ alertmanager/
 # Uptime-Kuma generated files
 uptime-kuma/
 
+# Nextcloud generated files
+nextcloud/
+
 # Certs settings generated on demand
 certs/**.custom.docker-compose.yaml
 
