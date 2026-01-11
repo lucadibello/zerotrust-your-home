@@ -22,3 +22,4 @@ mv ./.tmp/alertmanager/alertmanager.yml ./composes/alertmanager/alertmanager.yml
 # Remove temporary directory
 rm -rf ./.tmp/alertmanager
 
+echo "[OK] AlertManager setup completed"

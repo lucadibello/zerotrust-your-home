@@ -7,3 +7,4 @@ docker network create alertmanager-network || true
 docker network create grafana-network || true
 
 
+echo "[OK] Prometheus setup completed"

@@ -20,3 +20,5 @@ sudo docker network create nextcloud-aio || true
 
 # Create configuration file for traefik using the template
 sed "s/<DOMAIN>/$DNS_DOMAIN/g" ./scripts/containers/templates/nextcloud.yml.template | tee ./composes/traefik/nextcloud.yml >/dev/null
+
+echo "[OK] Nextcloud setup completed"

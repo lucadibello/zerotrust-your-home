@@ -85,5 +85,4 @@ mv ./.tmp/bind9/named.conf ./composes/bind9/config/named.conf
 # Remove the temporary directory
 rm -rf ./.tmp/bind9
 
-echo "[OK] setup configured successfully"
-
+echo "[OK] BIND9 DNS setup completed"

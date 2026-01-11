@@ -15,10 +15,7 @@ fi
 # Ensure the searxng settings directory exists
 mkdir -p ./composes/searxng
 
-# Check if settings.yml exists, if not create from example
-if [ ! -f ./composes/searxng/settings.yml ]; then
-  echo "[!] SearXNG settings.yml not found. Please configure ./composes/searxng/settings.yml"
-  exit 1
-fi
+# Create configuration file for SearXNG by replacing placeholders in the template
+sed "s/<SEARCHXNG_SECRET_KEY>/$SEARCHXNG_SECRET_KEY/g" ./scripts/containers/templates/settings.yml.template | tee ./composes/searxng/settings.yml >/dev/null
 
 echo "[OK] SearXNG setup completed"
