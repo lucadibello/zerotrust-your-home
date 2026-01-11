@@ -680,9 +680,9 @@ The system is designed to be hardware-agnostic and can run on any x86_64 or ARM6
 This specific configuration has been the daily driver for the entire system for over 2 years, demonstrating the stability and long-term reliability of the architecture. It hosts the full suite of services, including resource-intensive applications like Immich and the Minecraft server.
 
 - **CPU**: AMD Ryzen 3 2200G with Radeon Vega Graphics (4 cores)
-- **RAM**: 14 GB DDR4
+- **RAM**: 16 GB DDR4
 - **Storage**: SSD for OS/Containers + HDD array for backups/Nextcloud
-- **OS**: Ubuntu 20.04 LTS
+- **OS**: Ubuntu 2.04 LTS
 
 #### 12.1.2. Preview Hardware (Legacy)
 
