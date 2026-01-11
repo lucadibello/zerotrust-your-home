@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Setup or remove cronjob for automatic Immich photo export
+# Runs at 23:30 daily to export photos to /mnt/nextcloud-backups/immich
+# Note: Database dumps are handled automatically by restic's PRE_COMMANDS
+
+trap "exit" INT
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CRON_COMMENT="# zerotrust-backup-export"
+CRON_TIME="30 23 * * *"
+CRON_CMD="cd $PROJECT_DIR && make backup-export >> /var/log/zerotrust-backup-export.log 2>&1"
+
+show_status() {
+    if crontab -l 2>/dev/null | grep -q "$CRON_COMMENT"; then
+        echo "[*] Backup export cronjob is ENABLED"
+        echo "    Schedule: Daily at 23:30"
+        echo "    Log file: /var/log/zerotrust-backup-export.log"
+        crontab -l 2>/dev/null | grep -A1 "$CRON_COMMENT"
+    else
+        echo "[*] Backup export cronjob is DISABLED"
+    fi
+}
+
+enable_cron() {
+    if crontab -l 2>/dev/null | grep -q "$CRON_COMMENT"; then
+        echo "[*] Cronjob already exists. No changes made."
+        return 0
+    fi
+
+    # Create log file (will be owned by whoever runs the cron - typically root for system tasks)
+    touch /var/log/zerotrust-backup-export.log 2>/dev/null || sudo touch /var/log/zerotrust-backup-export.log
+
+    # Add cronjob (goes to root's crontab when run via sudo, which is correct for system backups)
+    (crontab -l 2>/dev/null; echo "$CRON_COMMENT"; echo "$CRON_TIME $CRON_CMD") | crontab -
+
+    if [ $? -eq 0 ]; then
+        echo "[OK] Backup export cronjob enabled."
+        echo "     Schedule: Daily at 23:30 (before restic's midnight backup)"
+        echo "     Log file: /var/log/zerotrust-backup-export.log"
+    else
+        echo "[ERROR] Failed to add cronjob."
+        exit 1
+    fi
+}
+
+disable_cron() {
+    if ! crontab -l 2>/dev/null | grep -q "$CRON_COMMENT"; then
+        echo "[*] No cronjob found. Nothing to disable."
+        return 0
+    fi
+
+    # Remove cronjob (both comment and command lines)
+    crontab -l 2>/dev/null | grep -v "$CRON_COMMENT" | grep -v "$CRON_CMD" | crontab -
+
+    if [ $? -eq 0 ]; then
+        echo "[OK] Backup export cronjob disabled."
+    else
+        echo "[ERROR] Failed to remove cronjob."
+        exit 1
+    fi
+}
+
+case "${1:-}" in
+    enable)
+        enable_cron
+        ;;
+    disable)
+        disable_cron
+        ;;
+    status)
+        show_status
+        ;;
+    *)
+        echo "Usage: $0 {enable|disable|status}"
+        echo ""
+        echo "Commands:"
+        echo "  enable   - Add cronjob to run backup export daily at 23:30"
+        echo "  disable  - Remove the backup export cronjob"
+        echo "  status   - Show current cronjob status"
+        exit 1
+        ;;
+esac
