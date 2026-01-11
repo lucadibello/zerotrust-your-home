@@ -24,9 +24,22 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
 
-      # Clean up dangling volumes
+      # Database dump settings (for pre-backup export)
+      ENABLE_IMMICH: ${ENABLE_IMMICH:-false}
+      IMMICH_DB_USERNAME: ${IMMICH_DB_USERNAME:-postgres}
+      IMMICH_DB_DATABASE_NAME: ${IMMICH_DB_DATABASE_NAME:-immich}
+
+      # Pre-backup commands: clean volumes + dump databases
       PRE_COMMANDS: |-
         docker volume prune -f
+        echo "[*] Dumping databases before backup..."
+        mkdir -p /mnt/backup/project/backups/db-dumps
+        if [ "$ENABLE_IMMICH" = "true" ] && docker ps -q -f name=immich_postgres | grep -q .; then
+          echo "[*] Dumping Immich database..."
+          docker exec -t immich_postgres pg_dump -c -U "$IMMICH_DB_USERNAME" "$IMMICH_DB_DATABASE_NAME" | gzip > /mnt/backup/project/backups/db-dumps/immich_db_dump.sql.gz
+          echo "[OK] Immich database dumped."
+        fi
+        echo "[OK] Pre-backup tasks completed."
 
       # Notification scripts
       POST_COMMANDS_SUCCESS: |-
