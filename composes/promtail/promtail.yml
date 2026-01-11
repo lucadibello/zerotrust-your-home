@@ -71,6 +71,34 @@ scrape_configs:
           firewall_action:
           src_ip:
 
+# Backup export logs
+- job_name: backup
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: backup
+      __path__: /var/log/zerotrust-backup-export.log
+  pipeline_stages:
+  - regex:
+      expression: '\[(?P<status>OK|ERROR|\*)\]'
+  - labels:
+      status:
+
+# Immich-go backup logs
+- job_name: immich-go
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: immich-go
+      __path__: /var/log/immich-go/*.log
+  pipeline_stages:
+  - regex:
+      expression: '(?P<level>INF|WRN|ERR|DBG)'
+  - labels:
+      level:
+
 # Docker container logs
 - job_name: docker
   docker_sd_configs:

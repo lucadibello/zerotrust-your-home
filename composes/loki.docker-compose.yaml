@@ -30,6 +30,7 @@ services:
     volumes:
       - /var/log:/var/log:ro
       - /var/log/audit:/var/log/audit:ro
+      - /var/log/immich-go:/var/log/immich-go:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./promtail:/etc/promtail
       - promtail_positions:/var/promtail
