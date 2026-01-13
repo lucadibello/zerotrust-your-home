@@ -37,7 +37,7 @@ cleanup() {
   # Disable Maintenance Mode for Nextcloud
   if [ "$ENABLE_NEXTCLOUD" = "true" ] && docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
     echo "[*] Disabling Nextcloud Maintenance Mode (Emergency)..."
-    docker exec --user www-data nextcloud-aio-nextcloud php occ maintenance:mode --off 2>/dev/null || true
+    docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off 2>/dev/null || true
   fi
 }
 
@@ -67,9 +67,9 @@ if [ "$ENABLE_IMMICH" = "true" ]; then
 fi
 
 # Enable Maintenance Mode for Nextcloud
-if [ "$ENABLE_NEXTCLOUD" = "true" ] && [ "$(docker ps -q -f name=nextcloud-aio-nextcloud)" ]; then
+if [ "$ENABLE_NEXTCLOUD" = "true" ] && docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
   echo "[*] Enabling Nextcloud Maintenance Mode..."
-  docker exec --user www-data nextcloud-aio-mastercontainer php occ maintenance:mode --on
+  docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --on
 fi
 
 # Dump databases (requires containers to be running)
@@ -168,7 +168,7 @@ if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
     echo "[*] Disabling Nextcloud Maintenance Mode..."
     # Sleep a bit more to ensure PHP process is ready
     sleep 5
-    docker exec --user www-data nextcloud-aio-nextcloud php occ maintenance:mode --off
+    docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off
   fi
 fi
 
