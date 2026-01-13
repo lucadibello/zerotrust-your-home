@@ -22,7 +22,10 @@ stop:  # Stop all docker containers
 view-backups: # View all backups
 	@bash scripts/backups/view-backups.sh
 
-backup: # Full backup - export data, stop services, run restic, restart services
+configure-backup: # Configure Rclone for Google Drive
+	@bash scripts/backups/configure-rclone.sh
+
+backup: # Create a system backup
 	@bash scripts/backups/backup.sh
 
 backup-export: # Export data only (Immich photos, DB dumps). Used by cronjob before restic's automatic run.

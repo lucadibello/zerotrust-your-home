@@ -7,7 +7,7 @@ set -a
 source .env
 set +a
 
-cd composes
+cd composes || exit 1
 
 # Build list of compose files to stop (excluding restic)
 COMPOSE_FILES=""
@@ -20,7 +20,7 @@ COMPOSE_FILES=""
 [ -f uptimekuma.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f uptimekuma.docker-compose.yaml"
 [ -f watchtower.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f watchtower.docker-compose.yaml"
 
-# Optional services (only include if enabled)
+# Optional services
 [ "$ENABLE_HOME_AUTOMATION" = "true" ] && [ -f home.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f home.docker-compose.yaml"
 [ "$ENABLE_VAULTWARDEN" = "true" ] && [ -f vaultwarden.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f vaultwarden.docker-compose.yaml"
 [ "$ENABLE_NEXTCLOUD" = "true" ] && [ -f nextcloud.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f nextcloud.docker-compose.yaml"
@@ -40,17 +40,43 @@ echo "[*] Dumping databases..."
 bash ../scripts/backups/dump-databases.sh
 
 echo "[*] Stopping containers for backup..."
-sudo docker compose $COMPOSE_FILES --env-file ../.env stop
+sudo docker-compose "$COMPOSE_FILES" --env-file ../.env stop
 
-# Execute backup
+# Helper function for Telegram notifications
+send_telegram() {
+  local message="$1"
+  if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+    curl -s -X POST -H 'Content-Type: application/json' \
+      -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"${message}\"}" \
+      "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" >/dev/null
+  fi
+}
+
+echo "[*] Initializing repository if needed..."
+if ! sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env exec backup restic snapshots >/dev/null 2>&1; then
+  echo "[*] Repository not found. Initializing..."
+  sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+    exec backup restic init
+fi
+
 echo "[*] Running backup..."
-sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
-  exec backup restic backup /mnt/backup --host docker --tag backup
+sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+  exec backup restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
+
+BACKUP_EXIT_CODE=$?
+
+if [ $BACKUP_EXIT_CODE -eq 0 ]; then
+  echo "[OK] Backup completed successfully"
+  send_telegram "✅ Docker volumes backup to Google Drive completed successfully!"
+else
+  echo "[ERROR] Backup failed with exit code $BACKUP_EXIT_CODE"
+  send_telegram "❌ An error occurred during Docker volumes backup to Google Drive! Check Restic logs for more details."
+fi
 
 # Restart all containers
 echo "[*] Restarting containers..."
-sudo docker compose $COMPOSE_FILES --env-file ../.env start
+sudo docker-compose "$COMPOSE_FILES" --env-file ../.env start
 
-# Exit
 cd ..
-echo "[OK] Backup completed"
+
+exit $BACKUP_EXIT_CODE
