@@ -31,6 +31,12 @@ backup: # Create a system backup
 backup-export: # Export data only (Immich photos, DB dumps). Used by cronjob before restic's automatic run.
 	@bash scripts/backups/backup-export.sh
 
+prune: # Prune old backups to free up space
+	@bash scripts/backups/prune.sh
+
+check: # Verify backup integrity
+	@bash scripts/backups/check.sh
+
 restore: # Restore from backup
 	@bash scripts/backups/restore.sh
 

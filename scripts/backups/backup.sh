@@ -41,6 +41,38 @@ cleanup() {
   fi
 }
 
+# Function to restart containers and disable maintenance mode normally
+start_services() {
+  # Restart all containers
+  echo "[*] Restarting containers..."
+  sudo docker-compose $COMPOSE_FILES --env-file ../.env start
+
+  # Start Nextcloud AIO sibling containers explicitly (they don't auto-start after manual stop)
+  if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
+    echo "[*] Starting Nextcloud AIO containers..."
+    sudo docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
+    
+    echo "[*] Waiting for Nextcloud container to start..."
+    # Wait loop until container is up
+    ATTEMPTS=0
+    while ! docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; do
+      if [ $ATTEMPTS -ge 30 ]; then
+        echo "[WARNING] Nextcloud container failed to start within timeout. Cannot disable maintenance mode."
+        break
+      fi
+      sleep 2
+      ATTEMPTS=$((ATTEMPTS + 1))
+    done
+
+    if docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
+      echo "[*] Disabling Nextcloud Maintenance Mode..."
+      # Sleep a bit more to ensure PHP process is ready
+      sleep 5
+      docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off
+    fi
+  fi
+}
+
 # Register cleanup trap
 trap cleanup EXIT INT TERM
 
@@ -76,7 +108,7 @@ fi
 echo "[*] Dumping databases..."
 bash ../scripts/backups/dump-databases.sh
 
-echo "[*] Stopping containers for backup..."
+echo "[*] Stopping containers for consistent state..."
 sudo docker-compose $COMPOSE_FILES --env-file ../.env stop
 
 # Explicitly stop Nextcloud AIO sibling containers if they are running
@@ -85,6 +117,15 @@ if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
   echo "[*] Ensuring Nextcloud AIO containers are stopped..."
   sudo docker stop nextcloud-aio-database nextcloud-aio-nextcloud nextcloud-aio-redis nextcloud-aio-apache 2>/dev/null || true
 fi
+
+# ------------------------------------------------------------------------------
+# OPTIMIZATION: Restart services NOW.
+# We have our consistent DB dumps. We will backup the live volumes, but
+# we rely on the DB dumps for actual database recovery.
+# This minimizes downtime to just the "dump" and "stop/start" duration.
+# ------------------------------------------------------------------------------
+echo "[*] Database dumps secured. Restarting services to minimize downtime..."
+start_services
 
 # Helper function for Telegram notifications
 send_telegram() {
@@ -111,19 +152,23 @@ if ! sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env exec b
     exec backup restic init
 fi
 
-echo "[*] Running backup..."
+echo "[*] Running backup (Services are ONLINE)..."
 BACKUP_EXIT_CODE=0
 
 # 1. Local Backup
-echo "[*] >> Starting Local Backup (Fast)..."
+echo "[*] >> Starting Local Backup (Live System)..."
+echo "[!] NOTE: Raw database files in /var/lib/docker/volumes may be inconsistent."
+echo "[!]       You MUST use the SQL dumps in backups/db-dumps/ for database recovery."
 sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic -r /repos/local/restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
 LOCAL_EXIT=$?
 
-# 2. Cloud Backup
-echo "[*] >> Starting Cloud Backup (Google Drive)..."
+# 2. Cloud Backup (Copy from Local Repo)
+# We use 'copy' to upload the snapshot we just took locally.
+# This prevents re-scanning the live filesystem (saving time/IO) and ensures consistency with the local backup.
+echo "[*] >> Starting Cloud Backup (Copying from Local Repo)..."
 sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
-  exec backup restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
+  exec -e RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}" backup restic copy --from-repo /repos/local/restic
 CLOUD_EXIT=$?
 
 if [ $LOCAL_EXIT -eq 0 ] && [ $CLOUD_EXIT -eq 0 ]; then
@@ -134,42 +179,20 @@ elif [ $LOCAL_EXIT -ne 0 ] && [ $CLOUD_EXIT -ne 0 ]; then
   BACKUP_EXIT_CODE=1
   send_telegram "❌ CRITICAL: Both Local and Cloud backups failed! Check logs immediately."
 elif [ $LOCAL_EXIT -ne 0 ]; then
-  echo "[WARNING] Local backup failed, but Cloud backup succeeded."
+  echo "[WARNING] Local backup failed, but Cloud backup succeeded (somehow?)."
   BACKUP_EXIT_CODE=1
-  send_telegram "⚠️ Local backup failed (Cloud OK). Check logs."
+  send_telegram "⚠️ Local backup failed. Check logs."
 else
-  echo "[WARNING] Cloud backup failed, but Local backup succeeded."
+  echo "[WARNING] Cloud backup/copy failed, but Local backup succeeded."
   BACKUP_EXIT_CODE=1
-  send_telegram "⚠️ Cloud backup failed (Local OK). Check logs."
+  send_telegram "⚠️ Cloud backup upload failed (Local copy is SAFE). Check logs."
 fi
 
-# Restart all containers
-echo "[*] Restarting containers..."
-sudo docker-compose $COMPOSE_FILES --env-file ../.env start
-
-# Start Nextcloud AIO sibling containers explicitly (they don't auto-start after manual stop)
-if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
-  echo "[*] Starting Nextcloud AIO containers..."
-  sudo docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
-  
-  echo "[*] Waiting for Nextcloud container to start..."
-  # Wait loop until container is up
-  ATTEMPTS=0
-  while ! docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; do
-    if [ $ATTEMPTS -ge 30 ]; then
-      echo "[WARNING] Nextcloud container failed to start within timeout. Cannot disable maintenance mode."
-      break
-    fi
-    sleep 2
-    ATTEMPTS=$((ATTEMPTS + 1))
-  done
-
-  if docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
-    echo "[*] Disabling Nextcloud Maintenance Mode..."
-    # Sleep a bit more to ensure PHP process is ready
-    sleep 5
-    docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off
-  fi
+# 3. Prune Old Backups (Free up space)
+# We run this AFTER the backup to ensure we don't delete history if the new backup failed.
+if [ $BACKUP_EXIT_CODE -eq 0 ]; then
+  echo "[*] >> Pruning old snapshots to free up space..."
+  bash ../scripts/backups/prune.sh
 fi
 
 # Unset trap before exiting successfully to prevent cleanup from running twice
