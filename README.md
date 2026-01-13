@@ -81,7 +81,7 @@ This project represents an autoconfigured home automation system that delivers a
 
 Leveraging cutting-edge technologies, it ensures top-notch security, privacy, and user-friendliness while maintaining a low cost of ownership. The server is designed to be deployed on a low-end single-board computer, such as [Raspberry Pi](https://www.raspberrypi.org/) or alternatives like [Orange Pi](http://www.orangepi.org/) and [Banana Pi](https://www.banana-pi.org/).
 
-Featuring [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust/#zt-features), the infrastructure adheres to the *Zero Trust security model*: users and devices must be authenticated, authorized, and their security posture verified before accessing internal services and resources. This approach ensures the security of the system, preventing unauthorized access to the infrastructure.
+Featuring [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust/#zt-features), the infrastructure adheres to the _Zero Trust security model_: users and devices must be authenticated, authorized, and their security posture verified before accessing internal services and resources. This approach ensures the security of the system, preventing unauthorized access to the infrastructure.
 
 In conclusion, the infrastructure's design prioritizes easy extensibility and customization, allowing users to seamlessly integrate additional services and applications with minimal effort.
 
@@ -97,7 +97,7 @@ The following international, European, and Swiss regulations, standards and publ
 - Ordinance on Protection against Cyber Risks in the Federal Administration (Switzerland) - 1 April 2021
 - ICT minimum standard (Switzerland) - 27 August 2018
 
-In addition to the regulations and standards listed above, the paper titled *Recommended Practices Guide for Securing ZigBee Wireless Networks in Process Control System Environments*, published by the *U.S. Department of Energy* has been considered to ensure the security of the ZigBee network.
+In addition to the regulations and standards listed above, the paper titled _Recommended Practices Guide for Securing ZigBee Wireless Networks in Process Control System Environments_, published by the _U.S. Department of Energy_ has been considered to ensure the security of the ZigBee network.
 
 ## 4. Getting started
 
@@ -111,36 +111,36 @@ The system provides a flexible configuration system that allows users to enable 
 
 These services form the backbone of the infrastructure and are recommended to keep enabled:
 
-| Toggle | Service | Description |
-|--------|---------|-------------|
-| `ENABLE_MONITORING` | Prometheus, Grafana, Alertmanager | System metrics and alerting |
-| `ENABLE_LOGGING` | Loki, Promtail | Centralized log management |
-| `ENABLE_BACKUP` | Restic | Automated backups to S3 |
-| `ENABLE_DNS` | BIND9 | Internal DNS resolution |
-| `ENABLE_REVERSE_PROXY` | Traefik | Reverse proxy with SSL |
+| Toggle                 | Service                           | Description                 |
+| ---------------------- | --------------------------------- | --------------------------- |
+| `ENABLE_MONITORING`    | Prometheus, Grafana, Alertmanager | System metrics and alerting |
+| `ENABLE_LOGGING`       | Loki, Promtail                    | Centralized log management  |
+| `ENABLE_BACKUP`        | Restic                            | Automated backups to S3     |
+| `ENABLE_DNS`           | BIND9                             | Internal DNS resolution     |
+| `ENABLE_REVERSE_PROXY` | Traefik                           | Reverse proxy with SSL      |
 
 ### 5.2. Optional services
 
 These services can be enabled based on user requirements:
 
-| Toggle | Service | Description |
-|--------|---------|-------------|
-| `ENABLE_HOME_AUTOMATION` | Home Assistant, Zigbee2MQTT, Mosquitto | IoT and home automation |
-| `ENABLE_VAULTWARDEN` | Vaultwarden | Self-hosted password manager |
-| `ENABLE_NEXTCLOUD` | Nextcloud | Self-hosted cloud storage |
-| `ENABLE_PORTAINER` | Portainer | Docker management UI |
-| `ENABLE_UPTIME_KUMA` | Uptime Kuma | Service health monitoring |
-| `ENABLE_WATCHTOWER` | Watchtower | Automatic container updates |
+| Toggle                   | Service                                | Description                  |
+| ------------------------ | -------------------------------------- | ---------------------------- |
+| `ENABLE_HOME_AUTOMATION` | Home Assistant, Zigbee2MQTT, Mosquitto | IoT and home automation      |
+| `ENABLE_VAULTWARDEN`     | Vaultwarden                            | Self-hosted password manager |
+| `ENABLE_NEXTCLOUD`       | Nextcloud                              | Self-hosted cloud storage    |
+| `ENABLE_PORTAINER`       | Portainer                              | Docker management UI         |
+| `ENABLE_UPTIME_KUMA`     | Uptime Kuma                            | Service health monitoring    |
+| `ENABLE_WATCHTOWER`      | Watchtower                             | Automatic container updates  |
 
 ### 5.3. Additional services
 
 These services require extra configuration in the `.env` file:
 
-| Toggle | Service | Description | Required Variables |
-|--------|---------|-------------|-------------------|
-| `ENABLE_IMMICH` | Immich | Self-hosted photo library with ML | `IMMICH_*` variables |
-| `ENABLE_SEARXNG` | SearXNG | Privacy-focused search engine | None |
-| `ENABLE_MINECRAFT` | Minecraft Server | Game server with TCP tunnel | `MC_TUNNEL_TOKEN` |
+| Toggle             | Service          | Description                       | Required Variables   |
+| ------------------ | ---------------- | --------------------------------- | -------------------- |
+| `ENABLE_IMMICH`    | Immich           | Self-hosted photo library with ML | `IMMICH_*` variables |
+| `ENABLE_SEARXNG`   | SearXNG          | Privacy-focused search engine     | None                 |
+| `ENABLE_MINECRAFT` | Minecraft Server | Game server with TCP tunnel       | `MC_TUNNEL_TOKEN`    |
 
 ### 5.4. Using feature toggles
 
@@ -156,13 +156,13 @@ You can also start individual services using `make start-<service>` (e.g., `make
 
 The following commands allow you to manage the entire system (all enabled services) at once:
 
-| Command | Description |
-|---------|-------------|
-| `make start` | Start all enabled services (containers) in detached mode. |
-| `make stop` | Stop all running services. |
-| `make restart` | Restart all running services. |
-| `make status` | Display the status of all services (container name, status, ports, image). |
-| `make logs` | Follow the logs of all running services. |
+| Command        | Description                                                                |
+| -------------- | -------------------------------------------------------------------------- |
+| `make start`   | Start all enabled services (containers) in detached mode.                  |
+| `make stop`    | Stop all running services.                                                 |
+| `make restart` | Restart all running services.                                              |
+| `make status`  | Display the status of all services (container name, status, ports, image). |
+| `make logs`    | Follow the logs of all running services.                                   |
 
 ## 6. System capabilities
 
@@ -191,21 +191,21 @@ Grafana has been configured to provide two default dashboards, visualizing syste
 
 #### 6.1.1. Alerting rules
 
-Alerting rules are conditions evaluated periodically by *Prometheus* that whenever are met, it will trigger an alert via *Prometheus Alertmanager*. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
+Alerting rules are conditions evaluated periodically by _Prometheus_ that whenever are met, it will trigger an alert via _Prometheus Alertmanager_. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
 
 The following list outlines the alerting rules configured to monitor the system health:
 
-1. *Instance down*: triggers an alert when one of the core services of the monitoring suite (*Prometheus*, *Node Exporter* or *cAdvisor*) is down for more than 1 minute
+1. _Instance down_: triggers an alert when one of the core services of the monitoring suite (_Prometheus_, _Node Exporter_ or _cAdvisor_) is down for more than 1 minute
 
-2. *High disk usage*: triggers an alert when the disk usage of the host machine on ’/’ exceeds 80% for more than 10 minutes.
+2. _High disk usage_: triggers an alert when the disk usage of the host machine on ’/’ exceeds 80% for more than 10 minutes.
 
-3. *High CPU usage*: triggers an alert when the CPU usage of the host machine exceeds 80% for more than 5 minutes.
+3. _High CPU usage_: triggers an alert when the CPU usage of the host machine exceeds 80% for more than 5 minutes.
 
-4. *High network traffic*: triggers an alert when the inbound network traffic of the host machine exceeds 10Mb/s for the last minute.
+4. _High network traffic_: triggers an alert when the inbound network traffic of the host machine exceeds 10Mb/s for the last minute.
 
-5. *High CPU temperature*: triggers an alert when the CPU temperature of the host machine exceeds 70 °C for more than 1 minute.
+5. _High CPU temperature_: triggers an alert when the CPU temperature of the host machine exceeds 70 °C for more than 1 minute.
 
-*Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system might not have technical skills and might not be familiar with other platforms such as Slack or WeChat.*
+_Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system might not have technical skills and might not be familiar with other platforms such as Slack or WeChat._
 
 #### 6.1.2. Service health monitoring
 
@@ -213,7 +213,7 @@ The following list outlines the alerting rules configured to monitor the system 
 
 ![Uptime Kuma](./assets/images/uptimekuma-dashboard.png)
 
-To learn more about how *Uptime Kuma* has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md). On the other hand, an example of the notifications sent by *Uptime Kuma* can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
+To learn more about how _Uptime Kuma_ has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md). On the other hand, an example of the notifications sent by _Uptime Kuma_ can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
 
 #### 6.1.3. Security alerting rules
 
@@ -251,7 +251,7 @@ The following image illustrates the architecture of the log management suite.
 
 ![Log management suite](./assets/images/log-management-flow.png)
 
-[Grafana Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) is configured to collect logs from the system and the running *Docker* containers and to send them to [Grafana Loki](https://grafana.com/oss/loki/) for storage and indexing. Stored logs can be queried via the *Explore* section of the Grafana web interface (yes, all out-of-the-box!). This is a sample screenshot of the result of a query:
+[Grafana Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) is configured to collect logs from the system and the running _Docker_ containers and to send them to [Grafana Loki](https://grafana.com/oss/loki/) for storage and indexing. Stored logs can be queried via the _Explore_ section of the Grafana web interface (yes, all out-of-the-box!). This is a sample screenshot of the result of a query:
 
 ![Grafana Explore](./assets/images/loki-grafana.png)
 
@@ -293,10 +293,11 @@ A unified CLI is provided to manage all backup and restore operations.
 *   **`make backup`**: Triggers a manual system backup. This includes:
     *   Running Immich export (if enabled).
     *   Dumping databases (Postgres, etc.) to SQL files.
-    *   Running Restic backup for Docker volumes and config.
+    *   Running Restic backup for Docker volumes and config to Google Drive.
 *   **`make view-backups`**: Lists available Restic snapshots.
+*   **`make configure-backup`**: Runs the wizard to configure Google Drive access.
 *   **`make restore`**: Launches an interactive **Restore Menu** with the following options:
-    1.  **System Restore:** Restores Docker volumes and config from S3 (Restic). *Stops all services.*
+    1.  **System Restore:** Restores Docker volumes and config from Google Drive (Restic). *Stops all services.*
     2.  **Immich Restore:** Interactively restores photos/albums from local `immich-go` backups.
     3.  **Database Restore:** Helper to restore specific SQL dumps to running containers.
     4.  **Nextcloud Info:** Displays instructions for restoring Nextcloud files.
@@ -304,6 +305,7 @@ A unified CLI is provided to manage all backup and restore operations.
 #### 6.3.5. Backup notifications
 
 Leveraging Telegram APIs, the system notifies administrators when backup operations complete, fail, or encounter errors.
+
 
 <img src="./assets/images/restic-backup-notification.jpeg" width="400">
 
@@ -326,7 +328,7 @@ To support ZigBee devices, additional two software components have been added to
 
 - [Eclipse Mosquitto](https://mosquitto.org/): is an open-source message broker that implements the MQTT protocol. It is responsible for receiving messages from Zigbee2MQTT and forwarding them to Home Assistant via MQTT.
 
-*Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)*
+_Note: to be able to use the ZigBee devices, the user needs to have a ZigBee USB dongle. The recommended one is the [Sonoff ZigBee 3.0 USB Dongle Plus](https://sonoff.tech/product/gateway-and-sensors/sonoff-zigbee-3-0-usb-dongle-plus-p/)_
 
 Since connecting ZigBee devices to Home Assistant requires some additional configuration, a dedicated document has been created to guide the user through the process. Refer to the [ZigBee devices pairing tutorial](./doc/zigbee-pairing-tutorial.md) for more details.
 
@@ -343,17 +345,16 @@ With the developed configuration, Zigbee2MQTT and Mosquito have TLS authenticati
 #### 6.4.2. ZigBee network security
 
 As the IoT network developed in this project is deployed in a non-critical setting where the system administrators might have limited budget and technical knowledge to properly manage the
-system, the use of a dedicated *ZigBee Trust Center* (ZTC) has not been considered as it would have required additional hardware and efforts to configure and maintain.
+system, the use of a dedicated _ZigBee Trust Center_ (ZTC) has not been considered as it would have required additional hardware and efforts to configure and maintain.
 
 > Depending on the firmware of the ZigBee adapter, different security measures could be implemented. For example, the firmware shipped with the Sonoff ZigBee 3.0 USB Dongle Plus supports the following security measures:
 >
 > - **IEEE 802.15.4 security services**: the ZigBee protocol is based on the IEEE 802.15.4 standard, which provides security services such as encryption, authentication, and integrity. The ZigBee protocol implements these security services to ensure the security of the ZigBee network.
->
 > - **ZigBee link keys**: the link key is a 128-bit (16-byte) session key used to secure communications between two devices on the network. This key is unique and shared only between the two devices involved in the communication.
 
-To have a baseline level of security, the *Zigbee2MQTT* instance has been configured to enable the following security measures:
+To have a baseline level of security, the _Zigbee2MQTT_ instance has been configured to enable the following security measures:
 
-- **Network data encryption**: all data exchanged between the *ZigBee End Devices* (ZEDs) and the ZigBee Coordinator is encrypted using a random network key generated by Zigbee2MQTT at startup
+- **Network data encryption**: all data exchanged between the _ZigBee End Devices_ (ZEDs) and the ZigBee Coordinator is encrypted using a random network key generated by Zigbee2MQTT at startup
 
 - **Access Control List (ACL)**: From the web interface is possible to open a joining window (i.e., 60 seconds) during which new devices can join the network and be added to the ACL. After the window expires, the joining of new devices is disabled, allowing only the devices in the ACL to connect the network. The GUI provide options to manage the Access Control List. For example, is possible to add or remove specific nodes from the ZigBee network.
 
@@ -375,7 +376,7 @@ To automate this process, the tool [Watchtower](https://github.com/containrrr/wa
 
 Notably, this tool automatically restarts updated containers using the new image, ensuring the latest version of the image is always running. This is a critical feature as it allows to maintain the previous container configuration to prevent breaking changes.
 
-The *Watchtower* container has been configured to check for new versions of the images every 24 hours. After every cycle, a full report is generated and sent to the system administrator via Telegram. This is a screenshot of the update report sent by *Watchtower*:
+The _Watchtower_ container has been configured to check for new versions of the images every 24 hours. After every cycle, a full report is generated and sent to the system administrator via Telegram. This is a screenshot of the update report sent by _Watchtower_:
 
 <img src="./assets/images/watchtower-notification.jpg" width="400">
 
@@ -393,7 +394,7 @@ To enhance security, the DNS server has been configured to only accept queries f
 
 To provide an additional layer of security to the system and to simplify the exposure of internal services to the LAN (i.e., Home Assistant dashboard), the reverse proxy [Traefik](https://traefik.io/traefik/) has been implemented.
 
-Traefik is a modern HTTP reverse proxy and load balancer written in Go, designed specifically for *dockerized* environments. It is a lightweight and easy to use solution that provides advanced features such as automatic SSL certificate generation and renewal, HTTP/2 sup- port, load balancing and circuit breakers.
+Traefik is a modern HTTP reverse proxy and load balancer written in Go, designed specifically for _dockerized_ environments. It is a lightweight and easy to use solution that provides advanced features such as automatic SSL certificate generation and renewal, HTTP/2 sup- port, load balancing and circuit breakers.
 
 The choice of Traefik is motivated by its key feature: its ability to automatically discover containers and dynamically update its configuration, allowing to easily expose securely new system services without ever touching configuration files. This enhances the extensibility of the system, allowing to easily add new services without breaking the existing ones.
 
@@ -415,16 +416,15 @@ This solution allows to expose internal services to the internet without opening
 
 The same platform used to expose services to the internet securely can be used to provide secure remote access to the system. Via [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/), [Cloudflare Access](https://www.cloudflare.com/zero-trust/products/access/) and [Cloudflare WARP](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/download-warp/), it is possible to implement a secure remote access solution that allows to access the system from anywhere in the world without ever exposing the system to the internet, while keeping the system security posture high.
 
-By configuring a *split tunnel* in the Zero Trust network, it is possible to route all the traffic destined to the internal network through the secure tunnel created by Cloudflare Tunnel, while all the other traffic will be routed through Cloudflare data centers: this approach allows to leverage the Cloudflare edge network to protect the system from DDoS attacks and other malicious traffic.
+By configuring a _split tunnel_ in the Zero Trust network, it is possible to route all the traffic destined to the internal network through the secure tunnel created by Cloudflare Tunnel, while all the other traffic will be routed through Cloudflare data centers: this approach allows to leverage the Cloudflare edge network to protect the system from DDoS attacks and other malicious traffic.
 
 This is a diagram that depicts the architecture of the system when with a split tunnel configuration.
 
 ![Cloudflare Tunnel split tunnel architecture](./assets/images/split-tunneling.jpg)
 
-
 ### 8.1. Security features
 
-To ensure the security and privacy of both the remote connection to the private infrastructure and the internal services exposed to the Internet, the following security features should be enabled in the *Zero Trust* organization:
+To ensure the security and privacy of both the remote connection to the private infrastructure and the internal services exposed to the Internet, the following security features should be enabled in the _Zero Trust_ organization:
 
 #### 8.1.1. Tunnel monitoring and alerting
 
@@ -432,24 +432,24 @@ Cloudflare Notifications enable system administrators to receive real-time E-Mai
 should be enabled:
 
 1. **Cloudflare Tunnel health status changes**: the system administrator(s) are notified when the tunnel health status changes (i.e., tunnel is down, tunnel is up). This feature
-allows for a quick response to any potential issue and ensures the availability of the tunnel.
+   allows for a quick response to any potential issue and ensures the availability of the tunnel.
 
-1. **HTTP DDoS attack detection**: an alert is triggered when an *HTTP Distributed Denial of Service* (DDoS) attack is detected. Even if Cloudflare provides already automatic DDoS attack mitigation, this notification can be useful to alert system administrator(s) of an attack and allow them to take further actions if necessary.
+1. **HTTP DDoS attack detection**: an alert is triggered when an _HTTP Distributed Denial of Service_ (DDoS) attack is detected. Even if Cloudflare provides already automatic DDoS attack mitigation, this notification can be useful to alert system administrator(s) of an attack and allow them to take further actions if necessary.
 
-3. **Route Leak Detection alert**: an alert is triggered when a *Route Leak* attack (learn more [here](https://blog.cloudflare.com/route-leak-detection/)) is detected. This alert allows the system administrator(s) to detect potential misconfigurations in the tunnel routing and enables them to quickly respond to the incident.
+1. **Route Leak Detection alert**: an alert is triggered when a _Route Leak_ attack (learn more [here](https://blog.cloudflare.com/route-leak-detection/)) is detected. This alert allows the system administrator(s) to detect potential misconfigurations in the tunnel routing and enables them to quickly respond to the incident.
 
 #### 8.1.2. Logging and monitoring of tunnel usage and user activity
 
-Via *Cloudflare Zero Trust* settings, is possible to enable logging and monitoring for tunnel usage and user activity. To allow system administrators a global view of the Zero Trust network, the following logs should be enabled:
+Via _Cloudflare Zero Trust_ settings, is possible to enable logging and monitoring for tunnel usage and user activity. To allow system administrators a global view of the Zero Trust network, the following logs should be enabled:
 
-- *Admin activity logs*: these logs track the creation, deletion, and configuration changes within the Zero Trust organization, including details about the user responsible for each action.
+- _Admin activity logs_: these logs track the creation, deletion, and configuration changes within the Zero Trust organization, including details about the user responsible for each action.
 
-- *Access authentication logs*: these logs keep a record of the authentication attempts and activities such as login attempts and device enrollments of users and services within the Zero Trust organization.
+- _Access authentication logs_: these logs keep a record of the authentication attempts and activities such as login attempts and device enrollments of users and services within the Zero Trust organization.
 
-- *Device posture logs*: these logs keep track of the device posture status of devices connected to the Zero Trust organization. To learn more about the advised device posture checks, refer to the next section.
+- _Device posture logs_: these logs keep track of the device posture status of devices connected to the Zero Trust organization. To learn more about the advised device posture checks, refer to the next section.
 
-- *Gateway activity logs*: these logs record the network packets, HTTP and DNS requests inspected by the Zero Trust Gateway. Encrypted SSH command logs for sessions proxied by the Zero Trust Gateway are also available for download and can be
-decrypted using the private key generated during the SSH command logging configuration.
+- _Gateway activity logs_: these logs record the network packets, HTTP and DNS requests inspected by the Zero Trust Gateway. Encrypted SSH command logs for sessions proxied by the Zero Trust Gateway are also available for download and can be
+  decrypted using the private key generated during the SSH command logging configuration.
 
 #### 8.1.3. Device posture checks
 
@@ -457,13 +457,12 @@ Device posture checks allows system administrators to assess the well-being of d
 
 - **Firewall**: ensures the device’s firewall is enabled and properly configured.
 
-- *OS Version*: validates that the device is running the latest major version of the operating system. This check is useful to ensure that the device is not running outdated software that could contain known vulnerabilities, highly increasing the risk of a successful cyberattack. These are the configured operating systems along with the minimum required version:
-
-  - *Windows*: Windows 11 or later
-  - *macOS*: macOS Ventura or later
-  - *Linux*: Ubuntu 22.04 (*as example*), kernel 5.15.0 or later
-  - *iOS and ipadOS*: iOS/ipadOS 16 or later
-  - *Android*: Android 13 or later
+- _OS Version_: validates that the device is running the latest major version of the operating system. This check is useful to ensure that the device is not running outdated software that could contain known vulnerabilities, highly increasing the risk of a successful cyberattack. These are the configured operating systems along with the minimum required version:
+  - _Windows_: Windows 11 or later
+  - _macOS_: macOS Ventura or later
+  - _Linux_: Ubuntu 22.04 (_as example_), kernel 5.15.0 or later
+  - _iOS and ipadOS_: iOS/ipadOS 16 or later
+  - _Android_: Android 13 or later
 
 With this configuration is possible to limit access to the network to only up-to-date and healthy devices, reducing the risk of a successful cyberattack.
 
@@ -529,8 +528,9 @@ The system is designed to be easily extensible with your own services. You can a
 3. The system automatically detects these files and includes them in all global commands like `make start`, `make stop`, `make status`, etc.
 
 Example of a custom service (e.g., `composes/my-app.custom.docker-compose.yaml`):
+
 ```yaml
-version: '3.3'
+version: "3.3"
 
 networks:
   traefik-network:
@@ -577,12 +577,12 @@ Enforcing strong passwords reduces the risk of successful cyberattacks.
 
 ### 11.3. Change default UMASK permissions
 
-The default *umask* permissions are 022 (0022 in octal notation), which means that newly created files and directories will have the following permissions:
+The default _umask_ permissions are 022 (0022 in octal notation), which means that newly created files and directories will have the following permissions:
 
 - Files: 644 (-rw-r--r--)
 - Directories: 755 (drwxr-xr-x)
 
-The default *umask* value is too permissive and can lead to security issues. For this reason, it is critical to change the default *umask* permissions to 027 (0027 in octal notation), which means that newly created files and directories will have the following permissions:
+The default _umask_ value is too permissive and can lead to security issues. For this reason, it is critical to change the default _umask_ permissions to 027 (0027 in octal notation), which means that newly created files and directories will have the following permissions:
 
 - Files: 640 (-rw-r-----)
 - Directories: 750 (drwxr-x---)
@@ -692,18 +692,18 @@ Early versions of this project were developed and verified on the following low-
 
 ![Orange Pi Win Plus top view with annotated components](assets/images/hardware/orangepi-winplus.png)
 
-*[Image source](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-PC.html)*
+_[Image source](http://www.orangepi.org/html/hardWare/computerAndMicrocontrollers/details/Orange-Pi-PC.html)_
 
 - [Banana Pi BPI-64](https://wiki.banana-pi.org/Banana_Pi_BPI-M64): 2 GB LPDDR3 SDRAM, Quad-Core ARM Cortex-A53 (64-bit) @ 1.2 GHz, MicroSD and eMMC module (8 GB), Gigabit Ethernet, Wi-Fi, and Bluetooth connectivity.
 
 ![Banana Pi BPI-64 top view with annotated components](assets/images/hardware/bananapi-m64.png)
 
-*[Image source](https://wiki.banana-pi.org/Banana_Pi_BPI-M64)*
+_[Image source](https://wiki.banana-pi.org/Banana_Pi_BPI-M64)_
 
 #### 12.1.3. Hardware Considerations
 
 - **Architecture**: The project supports both `amd64` (x86_64) and `arm64` (AArch64) architectures. All core Docker images are multi-arch.
-- **Memory**: 
+- **Memory**:
   - **Core Services**: Run comfortably on <2GB RAM.
   - **With Immich/Minecraft**: Recommended 8GB+ RAM.
 - **OS Compatibility**: The helper scripts (Makefiles, shell scripts) are optimized for Debian/Ubuntu-based distributions (e.g., Debian 11/12, Ubuntu 20.04/22.04/24.04). However, the core Docker stack runs on any Linux distro with Docker and Docker Compose installed.
@@ -729,88 +729,88 @@ architecture and the measures implemented to protect it. Refactoring of IT proje
 
 The following table outlines the services used to build the current infrastructure. The table provides key information about each component, including the name, description, whether the component is virtualized using Docker, the DNS name used by the reverse proxy, and port used by the service to communicate with other components.
 
-| Component | Description | Dockerized | DNS Name | Port |
-| --------- | ----------- | ---------- | -------- | ---- |
-| **Network infrastructure** |
-| BIND9 | nternal DNS resolver for domain name resolution | Yes | - | 53 |
-| Traefik | Reverse proxy and load balancer | Yes | traefik.your.domain | 80, 443 |
-| Cloudflare Tunnel | Encrypted tunnel to expose internal service to the Internet using Cloudflare | No | - | 443 |
-| Cloudflare Zero Trust Network Access | Zero Trust network for controlling lights and appliances | No | - | - |
-| IPTables | Software firewall to filter inbound and outbound traffic | No | - | - |
+| Component                                     | Description                                                                  | Dockerized | DNS Name                | Port    |
+| --------------------------------------------- | ---------------------------------------------------------------------------- | ---------- | ----------------------- | ------- |
+| **Network infrastructure**                    |
+| BIND9                                         | nternal DNS resolver for domain name resolution                              | Yes        | -                       | 53      |
+| Traefik                                       | Reverse proxy and load balancer                                              | Yes        | traefik.your.domain     | 80, 443 |
+| Cloudflare Tunnel                             | Encrypted tunnel to expose internal service to the Internet using Cloudflare | No         | -                       | 443     |
+| Cloudflare Zero Trust Network Access          | Zero Trust network for controlling lights and appliances                     | No         | -                       | -       |
+| IPTables                                      | Software firewall to filter inbound and outbound traffic                     | No         | -                       | -       |
 | **Continuous system monitoring and alerting** |
-| Prometheus | Metric collection and storage system | Yes | prometheus.your.domain | 9090 |
-| Node Exporter | Exports system metrics for Prometheus | Yes | - | 9100 |
-| cAdvisor | Exports Docker containers metrics for Prometheus | Yes | - | 8080 |
-| Grafana | Data visualization and alerting system | Yes | grafana.your.domain | 3000 |
-| Uptime Kuma | Dashboard and visualization platform to view the collected metrics and logs | Yes | status.your.domain | 3001 |
-| Prometheus Alertmanager | Prometheus alert manager to send alerts to system administrator(s) | Yes | alerts.your.domain | 9093 |
-| **Home automation system** |
-| Mosquitto | MQTT broker for controlling lights and appliances | Yes | - | 1883 |
-| Zigbee2MQTT | Bridge for connecting ZigBee devices to MQTT broker | Yes | zigbee2mqtt.your.domain | 8080 |
-| Home Assistant | Home automation platform for controlling lights and appliances | Yes | home.your.domain | 8123 |
-| **Backup and restore** |
-| Restic | Backup and restore software | Yes | - | - |
-| **Log management** |
-| Grafana Loki | Log aggregation system to collect and store logs | Yes | - | 3100 |
-| Grafana Promtail | Loki log collector (agent) | Yes | - | 9080 |
-| **Automatic updates** |
-| Watchtower | Automatic Docker images updates | Yes | - | - |
-| Unattended-upgrades | Automatic system updates and security patches  | No | - | - |
-| **Additional services (optional)** |
-| Vaultwarden | Self-hosted password manager (Bitwarden compatible) | Yes | vault.your.domain | 80 |
-| Nextcloud | Self-hosted cloud storage and collaboration | Yes | cloud.your.domain | 8080 |
-| Portainer | Docker container management UI | Yes | portainer.your.domain | 9000 |
-| Immich | Self-hosted photo/video library with ML | Yes | photos.your.domain | 2283 |
-| SearXNG | Privacy-focused metasearch engine | Yes | search.your.domain | 8080 |
-| Minecraft Server | Game server with TCP tunnel | Yes | - | 25565 |
+| Prometheus                                    | Metric collection and storage system                                         | Yes        | prometheus.your.domain  | 9090    |
+| Node Exporter                                 | Exports system metrics for Prometheus                                        | Yes        | -                       | 9100    |
+| cAdvisor                                      | Exports Docker containers metrics for Prometheus                             | Yes        | -                       | 8080    |
+| Grafana                                       | Data visualization and alerting system                                       | Yes        | grafana.your.domain     | 3000    |
+| Uptime Kuma                                   | Dashboard and visualization platform to view the collected metrics and logs  | Yes        | status.your.domain      | 3001    |
+| Prometheus Alertmanager                       | Prometheus alert manager to send alerts to system administrator(s)           | Yes        | alerts.your.domain      | 9093    |
+| **Home automation system**                    |
+| Mosquitto                                     | MQTT broker for controlling lights and appliances                            | Yes        | -                       | 1883    |
+| Zigbee2MQTT                                   | Bridge for connecting ZigBee devices to MQTT broker                          | Yes        | zigbee2mqtt.your.domain | 8080    |
+| Home Assistant                                | Home automation platform for controlling lights and appliances               | Yes        | home.your.domain        | 8123    |
+| **Backup and restore**                        |
+| Restic                                        | Backup and restore software                                                  | Yes        | -                       | -       |
+| **Log management**                            |
+| Grafana Loki                                  | Log aggregation system to collect and store logs                             | Yes        | -                       | 3100    |
+| Grafana Promtail                              | Loki log collector (agent)                                                   | Yes        | -                       | 9080    |
+| **Automatic updates**                         |
+| Watchtower                                    | Automatic Docker images updates                                              | Yes        | -                       | -       |
+| Unattended-upgrades                           | Automatic system updates and security patches                                | No         | -                       | -       |
+| **Additional services (optional)**            |
+| Vaultwarden                                   | Self-hosted password manager (Bitwarden compatible)                          | Yes        | vault.your.domain       | 80      |
+| Nextcloud                                     | Self-hosted cloud storage and collaboration                                  | Yes        | cloud.your.domain       | 8080    |
+| Portainer                                     | Docker container management UI                                               | Yes        | portainer.your.domain   | 9000    |
+| Immich                                        | Self-hosted photo/video library with ML                                      | Yes        | photos.your.domain      | 2283    |
+| SearXNG                                       | Privacy-focused metasearch engine                                            | Yes        | search.your.domain      | 8080    |
+| Minecraft Server                              | Game server with TCP tunnel                                                  | Yes        | -                       | 25565   |
 
 ### 13.2. Docker external networks
 
 The following table outlines the external Docker networks created to implement the system architecture. The table provides information about the network name, IP range and purpose.
 
-| Network name | IP range | Description |
-| ------------ | -------- | ----------- |
-| `bridge` | `172.17.0.0/16` | Default Docker network used for connecting individual containers to the host|
-| `traefik-network` | `172.18.0.0/16` | Docker network connected to all containers exposed via Traefik reverse proxy |
-| `loki-network` | `172.19.0.0/16` | Docker network shared with all containers part of the log management system |
+| Network name         | IP range        | Description                                                                   |
+| -------------------- | --------------- | ----------------------------------------------------------------------------- |
+| `bridge`             | `172.17.0.0/16` | Default Docker network used for connecting individual containers to the host  |
+| `traefik-network`    | `172.18.0.0/16` | Docker network connected to all containers exposed via Traefik reverse proxy  |
+| `loki-network`       | `172.19.0.0/16` | Docker network shared with all containers part of the log management system   |
 | `prometheus-network` | `172.20.0.0/16` | Docker network shared with all containers part of the system monitoring suite |
-| `home-network` | `172.21.0.0/16` | Docker network shared with all containers part of the home automation system |
-| `immich-network` | Dynamic | Docker network for Immich photo library services |
-| `searxnet` | Dynamic | Docker network for SearXNG search engine |
-| `mc-network` | Dynamic | Docker network for Minecraft server and tunnel |
+| `home-network`       | `172.21.0.0/16` | Docker network shared with all containers part of the home automation system  |
+| `immich-network`     | Dynamic         | Docker network for Immich photo library services                              |
+| `searxnet`           | Dynamic         | Docker network for SearXNG search engine                                      |
+| `mc-network`         | Dynamic         | Docker network for Minecraft server and tunnel                                |
 
 ### 13.3. Docker container list
 
 The following table lists all information about the containers used by the server.
 
-| Container name | Image | Network | Restart policy |
-| -------------- | ----- | ------- | -------------- |
-| `bind9` | `ubuntu/bind9:latest` | `traefik-network` | `always` |
-| `traefik` | `traefik:latest` | `traefik-network` | `always` |
-| `cloudflare-tunnel` | `cloudflare/cloudflared:latest` | `traefik-network` | `always` |
-| `prometheus` | `prom/prometheus:latest` | `traefik-network`, `prometheus-network` | `always` |
-| `node-exporter` | `quay.io/prometheus/node-exporter:latest` | `traefik-network`, `prometheus-network` | `always` |
-| `cadvisor` | `gcr.io/cadvisor/cadvisor:latest` | `prometheus-network` | `always` |
-| `grafana` | `grafana/grafana-oss:latest` | `traefik-network`, `prometheus-network` | `always` |
-| `uptimekuma` | `louislam/uptime-kuma:latest` | `traefik-network`, `prometheus-network`, `home-network`, `loki-network` | `always` |
-| `alertmanager` | `prom/alertmanager:latest` | `traefik-network`, `prometheus-network` | `always` |
-| `mosquitto` | `eclipse-mosquitto:latest` | `home-network` | `always` |
-| `zigbee2mqtt` | `koenkk/zigbee2mqtt:latest` | `traefik-network`, `home-network` | `always` |
-| `homeassistant` | `ghcr.io/home-assistant/home-assistant:stable` | `traefik-network`, `home-network` | `always` |
-| `restic` | `mazzolino/restic:latest` | `bridge` | `always` |
-| `loki` | `grafana/loki:latest` | `traefik-network`, `loki-network` | `always` |
-| `promtail` | `grafana/promtail:latest` | `loki-network` | `always` |
-| `watchtower` | `containrrr/watchtower:latest` | `bridge` | `always` |
-| `vaultwarden` | `vaultwarden/server:latest` | `traefik-network` | `always` |
-| `nextcloud-aio-mastercontainer` | `nextcloud/all-in-one:latest` | `traefik-network` | `always` |
-| `portainer` | `portainer/portainer-ce:latest` | `traefik-network` | `always` |
-| `immich_server` | `ghcr.io/immich-app/immich-server:release` | `traefik-network`, `immich-network` | `always` |
-| `immich_machine_learning` | `ghcr.io/immich-app/immich-machine-learning:release` | `immich-network` | `always` |
-| `immich_redis` | `valkey/valkey:8-bookworm` | `immich-network` | `always` |
-| `immich_postgres` | `tensorchord/pgvecto-rs:pg14-v0.2.0` | `immich-network` | `always` |
-| `searxng-app` | `searxng/searxng:latest` | `traefik-network`, `searxnet` | `unless-stopped` |
-| `mc` | `itzg/minecraft-server` | `mc-network` | `always` |
-| `mc-tcp-tunnel` | `cloudflare/cloudflared:latest` | `mc-network` | `unless-stopped` |
+| Container name                  | Image                                                | Network                                                                 | Restart policy   |
+| ------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------- | ---------------- |
+| `bind9`                         | `ubuntu/bind9:latest`                                | `traefik-network`                                                       | `always`         |
+| `traefik`                       | `traefik:latest`                                     | `traefik-network`                                                       | `always`         |
+| `cloudflare-tunnel`             | `cloudflare/cloudflared:latest`                      | `traefik-network`                                                       | `always`         |
+| `prometheus`                    | `prom/prometheus:latest`                             | `traefik-network`, `prometheus-network`                                 | `always`         |
+| `node-exporter`                 | `quay.io/prometheus/node-exporter:latest`            | `traefik-network`, `prometheus-network`                                 | `always`         |
+| `cadvisor`                      | `gcr.io/cadvisor/cadvisor:latest`                    | `prometheus-network`                                                    | `always`         |
+| `grafana`                       | `grafana/grafana-oss:latest`                         | `traefik-network`, `prometheus-network`                                 | `always`         |
+| `uptimekuma`                    | `louislam/uptime-kuma:latest`                        | `traefik-network`, `prometheus-network`, `home-network`, `loki-network` | `always`         |
+| `alertmanager`                  | `prom/alertmanager:latest`                           | `traefik-network`, `prometheus-network`                                 | `always`         |
+| `mosquitto`                     | `eclipse-mosquitto:latest`                           | `home-network`                                                          | `always`         |
+| `zigbee2mqtt`                   | `koenkk/zigbee2mqtt:latest`                          | `traefik-network`, `home-network`                                       | `always`         |
+| `homeassistant`                 | `ghcr.io/home-assistant/home-assistant:stable`       | `traefik-network`, `home-network`                                       | `always`         |
+| `restic`                        | `mazzolino/restic:latest`                            | `bridge`                                                                | `always`         |
+| `loki`                          | `grafana/loki:latest`                                | `traefik-network`, `loki-network`                                       | `always`         |
+| `promtail`                      | `grafana/promtail:latest`                            | `loki-network`                                                          | `always`         |
+| `watchtower`                    | `containrrr/watchtower:latest`                       | `bridge`                                                                | `always`         |
+| `vaultwarden`                   | `vaultwarden/server:latest`                          | `traefik-network`                                                       | `always`         |
+| `nextcloud-aio-mastercontainer` | `nextcloud/all-in-one:latest`                        | `traefik-network`                                                       | `always`         |
+| `portainer`                     | `portainer/portainer-ce:latest`                      | `traefik-network`                                                       | `always`         |
+| `immich_server`                 | `ghcr.io/immich-app/immich-server:release`           | `traefik-network`, `immich-network`                                     | `always`         |
+| `immich_machine_learning`       | `ghcr.io/immich-app/immich-machine-learning:release` | `immich-network`                                                        | `always`         |
+| `immich_redis`                  | `valkey/valkey:8-bookworm`                           | `immich-network`                                                        | `always`         |
+| `immich_postgres`               | `tensorchord/pgvecto-rs:pg14-v0.2.0`                 | `immich-network`                                                        | `always`         |
+| `searxng-app`                   | `searxng/searxng:latest`                             | `traefik-network`, `searxnet`                                           | `unless-stopped` |
+| `mc`                            | `itzg/minecraft-server`                              | `mc-network`                                                            | `always`         |
+| `mc-tcp-tunnel`                 | `cloudflare/cloudflared:latest`                      | `mc-network`                                                            | `unless-stopped` |
 
 ### 13.4. Docker containers network segmentation
 
