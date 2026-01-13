@@ -59,6 +59,8 @@ services:
       # Users should ensure variables are set correctly in .env
       - ${NEXTCLOUD_DATADIR}:/mnt/backup/nextcloud:ro
       - ${IMMICH_UPLOAD_LOCATION}:/mnt/backup/immich:ro
+      - ${IMMICH_BACKUP_LOCATION}:/mnt/backup/immich-go:ro
+      - ${LOCAL_BACKUP_DIR}:/repos/local
       
       # Docker socket (legacy, might not be needed for instrumentisto/restic but keeping for compatibility if we add scripts)
       - /var/run/docker.sock:/var/run/docker.sock

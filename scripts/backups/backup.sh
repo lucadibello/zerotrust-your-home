@@ -53,24 +53,50 @@ send_telegram() {
 }
 
 echo "[*] Initializing repository if needed..."
+# 1. Local Repository Initialization
+if ! sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env exec backup restic -r /repos/local/restic snapshots >/dev/null 2>&1; then
+  echo "[*] Local Repository not found. Initializing..."
+  sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+    exec backup restic -r /repos/local/restic init
+fi
+
+# 2. Cloud Repository Initialization
 if ! sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env exec backup restic snapshots >/dev/null 2>&1; then
-  echo "[*] Repository not found. Initializing..."
+  echo "[*] Cloud Repository not found. Initializing..."
   sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
     exec backup restic init
 fi
 
 echo "[*] Running backup..."
+BACKUP_EXIT_CODE=0
+
+# 1. Local Backup
+echo "[*] >> Starting Local Backup (Fast)..."
+sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+  exec backup restic -r /repos/local/restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
+LOCAL_EXIT=$?
+
+# 2. Cloud Backup
+echo "[*] >> Starting Cloud Backup (Google Drive)..."
 sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
+CLOUD_EXIT=$?
 
-BACKUP_EXIT_CODE=$?
-
-if [ $BACKUP_EXIT_CODE -eq 0 ]; then
-  echo "[OK] Backup completed successfully"
-  send_telegram "✅ Docker volumes backup to Google Drive completed successfully!"
+if [ $LOCAL_EXIT -eq 0 ] && [ $CLOUD_EXIT -eq 0 ]; then
+  echo "[OK] All backups completed successfully"
+  send_telegram "✅ Docker volumes backup to Local Disk AND Google Drive completed successfully!"
+elif [ $LOCAL_EXIT -ne 0 ] && [ $CLOUD_EXIT -ne 0 ]; then
+  echo "[ERROR] BOTH backups failed!"
+  BACKUP_EXIT_CODE=1
+  send_telegram "❌ CRITICAL: Both Local and Cloud backups failed! Check logs immediately."
+elif [ $LOCAL_EXIT -ne 0 ]; then
+  echo "[WARNING] Local backup failed, but Cloud backup succeeded."
+  BACKUP_EXIT_CODE=1
+  send_telegram "⚠️ Local backup failed (Cloud OK). Check logs."
 else
-  echo "[ERROR] Backup failed with exit code $BACKUP_EXIT_CODE"
-  send_telegram "❌ An error occurred during Docker volumes backup to Google Drive! Check Restic logs for more details."
+  echo "[WARNING] Cloud backup failed, but Local backup succeeded."
+  BACKUP_EXIT_CODE=1
+  send_telegram "⚠️ Cloud backup failed (Local OK). Check logs."
 fi
 
 # Restart all containers

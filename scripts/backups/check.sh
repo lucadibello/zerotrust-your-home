@@ -7,7 +7,11 @@ set +a
 
 cd composes
 
-echo "[*] Running integrity check (10% of data)..."
+echo "[*] Running integrity check (Local - 10% of data)..."
+sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+  exec backup restic -r /repos/local/restic check --read-data-subset=10%
+
+echo "[*] Running integrity check (Cloud - 10% of data)..."
 sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic check --read-data-subset=10%
 

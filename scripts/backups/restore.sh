@@ -29,7 +29,28 @@ read OPTION
 case $OPTION in
     1)
         echo "[*] System Restore selected."
-        bash ./scripts/backups/view-backups.sh
+        
+        # Source Selection
+        echo "-------------------------------------------"
+        echo "Select Restore Source:"
+        echo "1) Local Disk (Recommended - Fast)"
+        echo "2) Google Drive (Cloud - Slow)"
+        echo "-------------------------------------------"
+        echo -n "Select option [1]: "
+        read SOURCE_OPT
+        
+        REPO_ARGS="" # Default to Cloud (Env vars)
+        if [ "$SOURCE_OPT" = "1" ] || [ -z "$SOURCE_OPT" ]; then
+            echo "[*] Using Local Repository (/repos/local/restic)"
+            REPO_ARGS="-r /repos/local/restic"
+        else
+            echo "[*] Using Cloud Repository (Google Drive)"
+        fi
+
+        # View Backups
+        echo "[*] Fetching snapshots..."
+        sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
+            exec backup restic $REPO_ARGS snapshots -H docker
         
         echo -n "Enter backup ID to restore: "
         read ID
@@ -50,8 +71,6 @@ case $OPTION in
         # Stop containers
         echo "[*] Stopping containers..."
         cd composes
-        # Stop everything we can find defined in the backup script or just all running?
-        # The original script stopped specific lists. We should probably be safe and stop everything defined in .env
         
         # Helper to stop common services
         SERVICES="-f dns.docker-compose.yaml -f traefik.docker-compose.yaml -f prometheus.docker-compose.yaml -f loki.docker-compose.yaml -f uptimekuma.docker-compose.yaml -f watchtower.docker-compose.yaml"
@@ -65,7 +84,7 @@ case $OPTION in
         # Restore
         echo "[*] Restoring Snapshot $ID..."
         sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
-            exec backup restic restore $ID -H docker --exclude backingFsBlockDev --target / 
+            exec backup restic $REPO_ARGS restore $ID -H docker --exclude backingFsBlockDev --target / 
             
         # Restart
         echo "[*] Restarting containers..."
@@ -75,7 +94,24 @@ case $OPTION in
         ;;
     
     2)
-        bash ./scripts/backups/restore-immich.sh
+        echo "-------------------------------------------"
+        echo "Immich Restore Options"
+        echo "-------------------------------------------"
+        echo "1) Portable Restore (from immich-go backups)"
+        echo "   - Uses zip files exported by immich-go"
+        echo "   - Re-uploads images (slower, but cleaner)"
+        echo "2) Full System Restore"
+        echo "   - Use '1) System Restore' in main menu"
+        echo "   - Restores raw files + DB dump (exact state recovery)"
+        echo "   - Much faster for full recovery"
+        echo "-------------------------------------------"
+        echo -n "Select an option: "
+        read IMMICH_OPT
+        if [ "$IMMICH_OPT" = "1" ]; then
+             bash ./scripts/backups/restore-immich.sh
+        else
+             echo "Please use Option 1 in the main menu for Full System Restore."
+        fi
         ;;
     
     3)
@@ -86,17 +122,15 @@ case $OPTION in
         echo "-------------------------------------------"
         echo "Nextcloud Data Restore Info"
         echo "-------------------------------------------"
-        echo "Your Nextcloud data (files) is stored in a host directory (default: /mnt/nas-data)."
-        echo "This data is NOT included in the Restic System Backup (which covers Docker volumes)."
+        echo "Nextcloud data (files) are backed up by Restic from ${NEXTCLOUD_DATADIR}."
+        echo "You can restore them using the System Restore (Option 1)."
         echo ""
-        echo "To restore your files:"
-        echo "1. If you used Nextcloud AIO's built-in backup (Borg), use the AIO Interface to restore."
-        echo "2. If you manually backed up /mnt/nas-data (e.g. via rsync to external drive):"
-        echo "   Run: rsync -av /path/to/backup/ /mnt/nas-data/"
-        echo "   Ensure permissions are correct (usually www-data:www-data or root:root depending on setup)."
+        echo "If you need to manually restore ONLY the Nextcloud data directory:"
+        echo "1. Ensure Nextcloud container is stopped."
+        echo "2. Run: sudo docker compose -f restic.docker-compose.yaml exec backup restic restore <snapshot-id> --include /mnt/backup/nextcloud --target /"
+        echo "   (This will restore to the original location on the host via bind mount)"
         echo ""
-        echo "Current configuration:"
-        echo "NEXTCLOUD_DATADIR=${NEXTCLOUD_DATADIR:-\/mnt\/nas-data}" 
+        echo "After restoring data and config, run '3) Database Restore' to restore the Nextcloud DB."
         ;;
         
     q|Q)
