@@ -1,7 +1,5 @@
 #!/bin/bash
 
-trap "exit" INT
-
 # Load .env file
 set -a
 source .env
@@ -19,6 +17,31 @@ COMPOSE_FILES=""
 [ -f loki.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f loki.docker-compose.yaml"
 [ -f uptimekuma.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f uptimekuma.docker-compose.yaml"
 [ -f watchtower.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f watchtower.docker-compose.yaml"
+
+# Cleanup function to ensure containers restart and maintenance mode is off
+cleanup() {
+    echo "[!] Script interrupted or failed. Running cleanup..."
+    
+    # Restart containers if they were stopped
+    echo "[*] Restarting containers (Emergency)..."
+    sudo docker-compose $COMPOSE_FILES --env-file ../.env start 2>/dev/null || true
+    
+    # Disable Maintenance Mode for Nextcloud
+    if [ "$ENABLE_NEXTCLOUD" = "true" ] && [ "$(docker ps -q -f name=nextcloud-aio-nextcloud)" ]; then
+        echo "[*] Disabling Nextcloud Maintenance Mode (Emergency)..."
+        docker exec --user www-data nextcloud-aio-nextcloud php occ maintenance:mode --off 2>/dev/null || true
+    fi
+}
+
+# Register cleanup trap
+trap cleanup EXIT INT TERM
+
+# Check for required environment variables
+if [ -z "$NEXTCLOUD_DATADIR" ] || [ -z "$LOCAL_BACKUP_DIR" ]; then
+    echo "[ERROR] Required environment variables NEXTCLOUD_DATADIR or LOCAL_BACKUP_DIR are not set."
+    echo "        Please check your .env file."
+    exit 1
+fi
 
 # Optional services
 [ "$ENABLE_HOME_AUTOMATION" = "true" ] && [ -f home.docker-compose.yaml ] && COMPOSE_FILES="$COMPOSE_FILES -f home.docker-compose.yaml"
@@ -46,7 +69,7 @@ echo "[*] Dumping databases..."
 bash ../scripts/backups/dump-databases.sh
 
 echo "[*] Stopping containers for backup..."
-sudo docker-compose "$COMPOSE_FILES" --env-file ../.env stop
+sudo docker-compose $COMPOSE_FILES --env-file ../.env stop
 
 # Explicitly stop Nextcloud AIO sibling containers if they are running
 # (Master container stop might not be instant or might restart them if not careful)
@@ -114,14 +137,14 @@ fi
 
 # Restart all containers
 echo "[*] Restarting containers..."
-sudo docker-compose "$COMPOSE_FILES" --env-file ../.env start
+sudo docker-compose $COMPOSE_FILES --env-file ../.env start
 
 # Disable Maintenance Mode for Nextcloud
 if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
     echo "[*] Waiting for Nextcloud container to start..."
     # Wait loop until container is up
     ATTEMPTS=0
-    while ! docker ps -q -f name=nextcloud-aio-nextcloud >/dev/null; do
+    while ! docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; do
         if [ $ATTEMPTS -ge 30 ]; then
             echo "[WARNING] Nextcloud container failed to start within timeout. Cannot disable maintenance mode."
             break
@@ -130,13 +153,16 @@ if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
         ATTEMPTS=$((ATTEMPTS+1))
     done
     
-    if [ "$(docker ps -q -f name=nextcloud-aio-nextcloud)" ]; then
+    if docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
         echo "[*] Disabling Nextcloud Maintenance Mode..."
         # Sleep a bit more to ensure PHP process is ready
         sleep 5
         docker exec --user www-data nextcloud-aio-nextcloud php occ maintenance:mode --off
     fi
 fi
+
+# Unset trap before exiting successfully to prevent cleanup from running twice
+trap - EXIT INT TERM
 
 cd ..
 
