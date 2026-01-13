@@ -35,12 +35,25 @@ if [ "$ENABLE_IMMICH" = "true" ]; then
     bash ../scripts/backups/backup-immich.sh
 fi
 
+# Enable Maintenance Mode for Nextcloud
+if [ "$ENABLE_NEXTCLOUD" = "true" ] && [ "$(docker ps -q -f name=nextcloud-aio-nextcloud)" ]; then
+    echo "[*] Enabling Nextcloud Maintenance Mode..."
+    docker exec --user www-data nextcloud-aio-nextcloud php occ maintenance:mode --on
+fi
+
 # Dump databases (requires containers to be running)
 echo "[*] Dumping databases..."
 bash ../scripts/backups/dump-databases.sh
 
 echo "[*] Stopping containers for backup..."
 sudo docker-compose "$COMPOSE_FILES" --env-file ../.env stop
+
+# Explicitly stop Nextcloud AIO sibling containers if they are running
+# (Master container stop might not be instant or might restart them if not careful)
+if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
+    echo "[*] Ensuring Nextcloud AIO containers are stopped..."
+    sudo docker stop nextcloud-aio-database nextcloud-aio-nextcloud nextcloud-aio-redis nextcloud-aio-apache 2>/dev/null || true
+fi
 
 # Helper function for Telegram notifications
 send_telegram() {
@@ -102,6 +115,28 @@ fi
 # Restart all containers
 echo "[*] Restarting containers..."
 sudo docker-compose "$COMPOSE_FILES" --env-file ../.env start
+
+# Disable Maintenance Mode for Nextcloud
+if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
+    echo "[*] Waiting for Nextcloud container to start..."
+    # Wait loop until container is up
+    ATTEMPTS=0
+    while ! docker ps -q -f name=nextcloud-aio-nextcloud >/dev/null; do
+        if [ $ATTEMPTS -ge 30 ]; then
+            echo "[WARNING] Nextcloud container failed to start within timeout. Cannot disable maintenance mode."
+            break
+        fi
+        sleep 2
+        ATTEMPTS=$((ATTEMPTS+1))
+    done
+    
+    if [ "$(docker ps -q -f name=nextcloud-aio-nextcloud)" ]; then
+        echo "[*] Disabling Nextcloud Maintenance Mode..."
+        # Sleep a bit more to ensure PHP process is ready
+        sleep 5
+        docker exec --user www-data nextcloud-aio-nextcloud php occ maintenance:mode --off
+    fi
+fi
 
 cd ..
 
