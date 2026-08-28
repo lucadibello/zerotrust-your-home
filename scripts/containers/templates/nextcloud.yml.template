@@ -10,11 +10,29 @@ http:
       tls:
         certresolver: "letsencrypt"
 
+    nextcloud-aio:
+      rule: "Host(`iao-cloud.<DOMAIN>`)"
+      entrypoints:
+        - "websecure"
+      service: nextcloud-aio
+      tls:
+        certresolver: "letsencrypt"
+
   services:
     nextcloud:
       loadBalancer:
         servers:
           - url: "http://nextcloud-aio-apache:11000"
+
+    nextcloud-aio:
+      loadBalancer:
+        serversTransport: nextcloud-aio-transport
+        servers:
+          - url: "https://nextcloud-aio-mastercontainer:8080"
+
+  serversTransports:
+    nextcloud-aio-transport:
+      insecureSkipVerify: true
 
   middlewares:
     nextcloud-secure-headers:
