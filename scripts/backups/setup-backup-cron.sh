@@ -11,7 +11,22 @@ CRON_COMMENT="# zerotrust-backup-export"
 CRON_TIME="30 23 * * *"
 CRON_CMD="cd $PROJECT_DIR && make backup-export >> /var/log/zerotrust-backup-export.log 2>&1"
 
+ensure_cron_installed() {
+    if ! command -v crontab >/dev/null 2>&1; then
+        echo "[*] crontab not found. Installing cron package..."
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cron
+            sudo systemctl enable cron 2>/dev/null || true
+            sudo systemctl start cron 2>/dev/null || true
+        else
+            echo "[ERROR] crontab command not found. Please install cron."
+            exit 1
+        fi
+    fi
+}
+
 show_status() {
+    ensure_cron_installed
     if crontab -l 2>/dev/null | grep -q "$CRON_COMMENT"; then
         echo "[*] Backup export cronjob is ENABLED"
         echo "    Schedule: Daily at 23:30"
@@ -23,10 +38,12 @@ show_status() {
 }
 
 enable_cron() {
+    ensure_cron_installed
     if crontab -l 2>/dev/null | grep -q "$CRON_COMMENT"; then
         echo "[*] Cronjob already exists. No changes made."
         return 0
     fi
+
 
     # Create log file (will be owned by whoever runs the cron - typically root for system tasks)
     touch /var/log/zerotrust-backup-export.log 2>/dev/null || sudo touch /var/log/zerotrust-backup-export.log
