@@ -29,10 +29,12 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
-# Create immich volume for pgdata
+# Create immich volume for pgdata / db_data
+sudo docker volume create "${IMMICH_DB_DATA_LOCATION:-immich_db_data}" || true
 sudo docker volume create immich_pgdata || true
 
 # Create immich network
 sudo docker network create immich-network || true
+
 
 echo "[OK] Immich setup completed"
