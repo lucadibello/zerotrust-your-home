@@ -68,8 +68,7 @@ services:
             POSTGRES_DB: ${IMMICH_DB_DATABASE_NAME}
             POSTGRES_INITDB_ARGS: "--data-checksums"
         volumes:
-            # Do not edit the next line. If you want to change the database storage location on your system, edit the value of DB_DATA_LOCATION in the .env file
-            - ${IMMICH_DB_DATA_LOCATION}:/var/lib/postgresql/data
+            - ${IMMICH_DB_DATA_LOCATION:-immich_db_data}:/var/lib/postgresql/data
         healthcheck:
             test: >-
                 pg_isready --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" || exit 1; Chksum="$$(psql --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
@@ -88,6 +87,8 @@ networks:
     immich-network:
 
 volumes:
+    immich_db_data:
+        name: ${IMMICH_DB_DATA_LOCATION:-immich_db_data}
     immich_pgdata:
-        external: true
     immich-model-cache:
+

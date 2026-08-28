@@ -21,7 +21,7 @@ services:
       
       # Additional environment variables for specific backends (e.g. Rclone)
       # Pass them through from host .env
-      RCLONE_CONFIG_PASS: ${RCLONE_CONFIG_PASS}
+      RCLONE_CONFIG_PASS: ${RCLONE_CONFIG_PASS:-}
 
       # Database dump settings (for pre-backup export)
       ENABLE_IMMICH: ${ENABLE_IMMICH:-false}
@@ -47,6 +47,7 @@ services:
         curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"❌ An error occurred during Docker volumes backup! Check Restic logs for more details.\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
       POST_COMMANDS_INCOMPLETE: |-
         curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"⚠️ The docker volumes backup was not completed successfully! Check Restic logs for more details.\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+
     volumes:
       # Rclone configuration (Read-Write to allow token refreshes)
       - ../config/rclone:/root/.config/rclone
@@ -57,8 +58,9 @@ services:
       # Optional data directories (mapped even if empty/unused, but must exist on host or be handled)
       # We map them directly. If they don't exist on host, Docker might create them as root owned dirs.
       # Users should ensure variables are set correctly in .env
-      - ${NEXTCLOUD_DATADIR}:/mnt/backup/nextcloud:ro
-      - ${IMMICH_UPLOAD_LOCATION}:/mnt/backup/immich:ro
+      - ${NEXTCLOUD_DATADIR:-/mnt/nas-data}:/mnt/backup/nextcloud:ro
+      - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/library}:/mnt/backup/immich:ro
       
       # Docker socket (legacy, might not be needed for instrumentisto/restic but keeping for compatibility if we add scripts)
       - /var/run/docker.sock:/var/run/docker.sock
+
