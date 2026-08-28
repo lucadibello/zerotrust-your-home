@@ -45,6 +45,10 @@ required_pkgs=(
   network-manager
   iproute2
   pciutils
+  cron
+  openssl
+  zip
+  unzip
 )
 
 missing_pkgs=()
@@ -60,6 +64,7 @@ if [ ${#missing_pkgs[@]} -gt 0 ]; then
 else
   echo "[*] Base requirements are already installed."
 fi
+
 
 ## -- PROXMOX / VIRTUAL MACHINE DETECTIONS & GUEST AGENT
 VIRT_TYPE="none"
@@ -210,6 +215,16 @@ if command -v docker >/dev/null 2>&1; then
     sudo systemctl start docker 2>/dev/null || true
   fi
 fi
+
+# Enable and start Cron service
+if command -v crontab >/dev/null 2>&1 || dpkg -s cron >/dev/null 2>&1; then
+  echo "[*] Ensuring Cron service is running..."
+  sudo systemctl enable cron 2>/dev/null || true
+  if ! systemctl is-active --quiet cron 2>/dev/null; then
+    sudo systemctl start cron 2>/dev/null || true
+  fi
+fi
+
 
 ## -- ADDITIONAL SERVICE SETUPS
 
