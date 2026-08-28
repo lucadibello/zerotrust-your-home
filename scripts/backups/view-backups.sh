@@ -14,8 +14,18 @@ fi
 cd "$PROJECT_DIR/composes" || exit 1
 
 echo "=== Local Repository ==="
+# Check both /repos/local/restic and /repos/local
+LOCAL_REPO="/repos/local/restic"
+if sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
+  exec -T backup test -f /repos/local/config 2>/dev/null; then
+    LOCAL_REPO="/repos/local"
+fi
+
 sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
-  exec -T backup restic -r /repos/local/restic snapshots -H docker 2>/dev/null || echo "  (No local repository found or not initialized)"
+  exec -T backup restic -r "$LOCAL_REPO" snapshots -H docker || {
+    echo "  [!] Could not read local repository at $LOCAL_REPO"
+    echo "      Check that LOCAL_BACKUP_DIR in .env matches your host path and RESTIC_PASSWORD is correct."
+}
 
 echo ""
 echo "=== Cloud Repository ==="
@@ -29,7 +39,9 @@ if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" 
     echo "  (Cloud repository skipped: Rclone is not configured. Run 'make configure-backup' to set up.)"
 else
     sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
-      exec -T backup restic snapshots -H docker 2>/dev/null || echo "  (No cloud repository found or not initialized)"
+      exec -T backup restic snapshots -H docker || {
+        echo "  [!] Could not read cloud repository."
+    }
 fi
 
 cd "$PROJECT_DIR"
