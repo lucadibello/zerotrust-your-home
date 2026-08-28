@@ -96,8 +96,21 @@ fi
 # For postgres, -U is usually required.
 
 DB_USER=""
+DB_NAME=""
+DB_PASS_ENV=""
 if [[ "$CONTAINER_NAME" == "immich_postgres" ]]; then
     DB_USER="$IMMICH_DB_USERNAME"
+    DB_NAME="${IMMICH_DB_DATABASE_NAME:-immich}"
+elif [[ "$CONTAINER_NAME" == "nextcloud-aio-database" ]]; then
+    # Auto-detect Nextcloud credentials from the running container
+    if docker ps -q -f name=nextcloud-aio-database 2>/dev/null | grep -q .; then
+        DB_USER=$(docker exec nextcloud-aio-database printenv POSTGRES_USER 2>/dev/null)
+        DB_NAME=$(docker exec nextcloud-aio-database printenv POSTGRES_DB 2>/dev/null)
+        DB_PASS=$(docker exec nextcloud-aio-database printenv POSTGRES_PASSWORD 2>/dev/null)
+        if [ -n "$DB_PASS" ]; then
+            DB_PASS_ENV="-e PGPASSWORD=$DB_PASS"
+        fi
+    fi
 fi
 
 echo -n "Enter DB User for psql (optional"
@@ -111,17 +124,30 @@ if [ -n "$INPUT_USER" ]; then
     DB_USER="$INPUT_USER"
 fi
 
-CMD="docker exec -i $CONTAINER_NAME psql"
+echo -n "Enter DB Name for psql (optional"
+if [ -n "$DB_NAME" ]; then
+    echo -n ", default: $DB_NAME"
+fi
+echo -n "): "
+read INPUT_DBNAME
+
+if [ -n "$INPUT_DBNAME" ]; then
+    DB_NAME="$INPUT_DBNAME"
+fi
+
+CMD="docker exec -i $DB_PASS_ENV $CONTAINER_NAME psql"
 if [ -n "$DB_USER" ]; then
     CMD="$CMD -U $DB_USER"
 fi
-# Note: we don't specify dbname because pg_dump -c usually creates/connects, 
-# BUT pg_dump output often assumes it's being piped into a connection to 'postgres' or the target DB.
-# If the dump relies on \c command it might fail if not connected initially.
-# Safest is usually connecting to 'template1' or 'postgres'.
+if [ -n "$DB_NAME" ]; then
+    CMD="$CMD -d $DB_NAME"
+fi
+# Note: pg_dump -c output includes DROP/CREATE commands that assume
+# the connection targets the correct database. We specify -d $DB_NAME
+# when available to ensure psql connects to the right database.
 
 echo "[*] Restoring $FILENAME to container $CONTAINER_NAME..."
-echo "[*] Command: zcat $SELECTED_FILE | $CMD"
+echo "[*] Command: gzip -dc $SELECTED_FILE | $CMD"
 
 confirm() {
     read -p "$1 [y/N]: " response
@@ -133,7 +159,7 @@ confirm() {
 }
 
 if confirm "Are you sure? This may overwrite existing data."; then
-    zcat "$SELECTED_FILE" | $CMD
+    gzip -dc "$SELECTED_FILE" | $CMD
     if [ $? -eq 0 ]; then
         echo "[OK] Database restore completed."
     else

@@ -24,7 +24,7 @@ cleanup() {
 
   # Restart containers if they were stopped
   echo "[*] Restarting containers (Emergency)..."
-  sudo docker-compose $COMPOSE_FILES --env-file ../.env start 2>/dev/null || true
+  sudo docker compose $COMPOSE_FILES --env-file ../.env start 2>/dev/null || true
 
   # Start Nextcloud AIO sibling containers explicitly (they don't auto-start after manual stop)
   if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
@@ -45,7 +45,7 @@ cleanup() {
 start_services() {
   # Restart all containers
   echo "[*] Restarting containers..."
-  sudo docker-compose $COMPOSE_FILES --env-file ../.env start
+  sudo docker compose $COMPOSE_FILES --env-file ../.env start
 
   # Start Nextcloud AIO sibling containers explicitly (they don't auto-start after manual stop)
   if [ "$ENABLE_NEXTCLOUD" = "true" ]; then

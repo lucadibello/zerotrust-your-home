@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o pipefail
+
 trap "exit" INT
 
 # Load .env file
@@ -33,7 +35,7 @@ if [ "$ENABLE_IMMICH" = "true" ]; then
     
     # Check if container is running
     if [ "$(docker ps -q -f name=immich_postgres)" ]; then
-        docker exec -t immich_postgres pg_dump -c -U "${IMMICH_DB_USERNAME}" "${IMMICH_DB_DATABASE_NAME}" | gzip > "$DUMP_DIR/immich_db_dump.sql.gz"
+        docker exec -i immich_postgres pg_dump -c -U "${IMMICH_DB_USERNAME}" "${IMMICH_DB_DATABASE_NAME}" | gzip > "$DUMP_DIR/immich_db_dump.sql.gz"
         
         if [ $? -eq 0 ]; then
             echo "[OK] Immich database dumped successfully."
@@ -58,7 +60,7 @@ if [ "$ENABLE_NEXTCLOUD" = "true" ]; then
         
         if [ -n "$NC_USER" ] && [ -n "$NC_DB" ] && [ -n "$NC_PASS" ]; then
              # Execute dump with PGPASSWORD env var injected into the exec session
-             docker exec -e PGPASSWORD="$NC_PASS" -t nextcloud-aio-database pg_dump -c -U "$NC_USER" "$NC_DB" | gzip > "$DUMP_DIR/nextcloud_db_dump.sql.gz"
+             docker exec -i -e PGPASSWORD="$NC_PASS" nextcloud-aio-database pg_dump -c -U "$NC_USER" "$NC_DB" | gzip > "$DUMP_DIR/nextcloud_db_dump.sql.gz"
              
              if [ $? -eq 0 ]; then
                 echo "[OK] Nextcloud database dumped successfully."

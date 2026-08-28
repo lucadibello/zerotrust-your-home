@@ -63,7 +63,7 @@ sudo mkdir -p "$IMMICH_LOG_DIR"
 # We mount the statically linked binary from the host
 # Logs are exported to /var/log/immich-go/ for Loki collection
 sudo docker run --rm \
-    --network traefik-network \
+    --network immich-network \
     -v /usr/local/bin/immich-go:/usr/local/bin/immich-go:ro \
     -v "$BACKUP_DIR":/backup \
     -v "$IMMICH_LOG_DIR":/root/.cache/immich-go \

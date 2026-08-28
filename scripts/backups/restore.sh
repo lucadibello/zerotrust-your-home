@@ -1,5 +1,17 @@
 #!/bin/bash
-trap "exit" INT
+# Cleanup trap: if system restore is interrupted after stopping containers,
+# attempt to restart them so the server doesn't stay down.
+RESTORE_SERVICES_STOPPED=false
+cleanup() {
+    if [ "$RESTORE_SERVICES_STOPPED" = "true" ]; then
+        echo ""
+        echo "[!] Interrupted during restore. Attempting to restart services..."
+        cd "$PROJECT_DIR/composes" 2>/dev/null || true
+        sudo docker compose $SERVICES --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
+        echo "[*] Services restart attempted. Please verify with 'make status'."
+    fi
+}
+trap cleanup EXIT INT TERM
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -88,6 +100,7 @@ case $OPTION in
         [ "$ENABLE_MINECRAFT" = "true" ] && [ -f mcserver.docker-compose.yaml ] && SERVICES="$SERVICES -f mcserver.docker-compose.yaml"
         [ "$ENABLE_PORTAINER" = "true" ] && [ -f portainer.docker-compose.yaml ] && SERVICES="$SERVICES -f portainer.docker-compose.yaml"
         
+        RESTORE_SERVICES_STOPPED=true
         sudo docker compose $SERVICES --env-file "$PROJECT_DIR/.env" stop
         
         # Restore
@@ -98,6 +111,7 @@ case $OPTION in
         # Restart
         echo "[*] Restarting containers..."
         sudo docker compose $SERVICES --env-file "$PROJECT_DIR/.env" start
+        RESTORE_SERVICES_STOPPED=false
         cd "$PROJECT_DIR"
         echo "[OK] System Restore completed."
         ;;
@@ -229,3 +243,6 @@ case $OPTION in
         exit 1
         ;;
 esac
+
+# Unset cleanup trap on normal exit
+trap - EXIT INT TERM
