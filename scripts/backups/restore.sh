@@ -1,10 +1,13 @@
 #!/bin/bash
 trap "exit" INT
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # Load .env
-if [ -f .env ]; then
+if [ -f "$PROJECT_DIR/.env" ]; then
     set -a
-    source .env
+    source "$PROJECT_DIR/.env"
     set +a
 fi
 
@@ -29,7 +32,7 @@ read OPTION
 case $OPTION in
     1)
         echo "[*] System Restore selected."
-        bash ./scripts/backups/view-backups.sh
+        bash "$SCRIPT_DIR/view-backups.sh"
         
         echo -n "Enter backup ID to restore: "
         read ID
@@ -49,38 +52,40 @@ case $OPTION in
 
         # Stop containers
         echo "[*] Stopping containers..."
-        cd composes
-        # Stop everything we can find defined in the backup script or just all running?
-        # The original script stopped specific lists. We should probably be safe and stop everything defined in .env
+        cd "$PROJECT_DIR/composes" || exit 1
         
-        # Helper to stop common services
+        # Build service list
         SERVICES="-f dns.docker-compose.yaml -f traefik.docker-compose.yaml -f prometheus.docker-compose.yaml -f loki.docker-compose.yaml -f uptimekuma.docker-compose.yaml -f watchtower.docker-compose.yaml"
-        [ "$ENABLE_HOME_AUTOMATION" = "true" ] && SERVICES="$SERVICES -f home.docker-compose.yaml"
-        [ "$ENABLE_IMMICH" = "true" ] && SERVICES="$SERVICES -f immich.docker-compose.yaml"
-        [ "$ENABLE_NEXTCLOUD" = "true" ] && SERVICES="$SERVICES -f nextcloud.docker-compose.yaml"
-        [ "$ENABLE_VAULTWARDEN" = "true" ] && SERVICES="$SERVICES -f vaultwarden.docker-compose.yaml"
+        [ "$ENABLE_HOME_AUTOMATION" = "true" ] && [ -f home.docker-compose.yaml ] && SERVICES="$SERVICES -f home.docker-compose.yaml"
+        [ "$ENABLE_IMMICH" = "true" ] && [ -f immich.docker-compose.yaml ] && SERVICES="$SERVICES -f immich.docker-compose.yaml"
+        [ "$ENABLE_NEXTCLOUD" = "true" ] && [ -f nextcloud.docker-compose.yaml ] && SERVICES="$SERVICES -f nextcloud.docker-compose.yaml"
+        [ "$ENABLE_VAULTWARDEN" = "true" ] && [ -f vaultwarden.docker-compose.yaml ] && SERVICES="$SERVICES -f vaultwarden.docker-compose.yaml"
+        [ "$ENABLE_SEARXNG" = "true" ] && [ -f searxng.docker-compose.yaml ] && SERVICES="$SERVICES -f searxng.docker-compose.yaml"
+        [ "$ENABLE_MINECRAFT" = "true" ] && [ -f mcserver.docker-compose.yaml ] && SERVICES="$SERVICES -f mcserver.docker-compose.yaml"
+        [ "$ENABLE_PORTAINER" = "true" ] && [ -f portainer.docker-compose.yaml ] && SERVICES="$SERVICES -f portainer.docker-compose.yaml"
         
-        sudo docker compose $SERVICES --env-file ../.env stop
+        sudo docker compose $SERVICES --env-file "$PROJECT_DIR/.env" stop
         
         # Restore
         echo "[*] Restoring Snapshot $ID..."
-        sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
+        sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
             exec backup restic restore $ID -H docker --exclude backingFsBlockDev --target / 
             
         # Restart
         echo "[*] Restarting containers..."
-        sudo docker compose $SERVICES --env-file ../.env start
-        cd ..
+        sudo docker compose $SERVICES --env-file "$PROJECT_DIR/.env" start
+        cd "$PROJECT_DIR"
         echo "[OK] System Restore completed."
         ;;
     
     2)
-        bash ./scripts/backups/restore-immich.sh
+        bash "$SCRIPT_DIR/restore-immich.sh"
         ;;
     
     3)
-        bash ./scripts/backups/restore-db.sh
+        bash "$SCRIPT_DIR/restore-db.sh"
         ;;
+
         
     4)
         echo "-------------------------------------------"

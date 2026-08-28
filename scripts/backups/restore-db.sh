@@ -20,12 +20,21 @@ else
     exit 1
 fi
 
-DUMP_DIR="./composes/backups/db-dumps"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+DUMP_DIR="$PROJECT_DIR/composes/backups/db-dumps"
+if [ ! -d "$DUMP_DIR" ] || [ -z "$(ls -A "$DUMP_DIR" 2>/dev/null)" ]; then
+    if [ -d "$PROJECT_DIR/backups/db-dumps" ] && [ -n "$(ls -A "$PROJECT_DIR/backups/db-dumps" 2>/dev/null)" ]; then
+        DUMP_DIR="$PROJECT_DIR/backups/db-dumps"
+    fi
+fi
 
 if [ ! -d "$DUMP_DIR" ]; then
     echo "Error: Database dump directory $DUMP_DIR not found."
     exit 1
 fi
+
 
 echo "------------------------------------------------"
 echo "Database Restore"

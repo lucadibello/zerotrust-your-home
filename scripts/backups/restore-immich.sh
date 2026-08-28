@@ -67,16 +67,19 @@ fi
 echo "[*] Starting Immich restore from $RESTORE_REL_PATH..."
 echo "[*] Note: This will import photos into your current Immich instance."
 
+IMMICH_GO_BIN=$(command -v immich-go || echo "/usr/local/bin/immich-go")
+
 # Run immich-go upload
 sudo docker run --rm \
     --network immich-network \
-    -v /usr/local/bin/immich-go:/usr/local/bin/immich-go:ro \
+    -v "$IMMICH_GO_BIN":/usr/local/bin/immich-go:ro \
     -v "$BACKUP_DIR":/backup \
     alpine:latest \
     /usr/local/bin/immich-go upload from-folder \
     --server http://immich_server:2283 \
     --api-key "$IMMICH_API_KEY" \
     "/backup/$RESTORE_REL_PATH"
+
 
 if [ $? -eq 0 ]; then
     echo "[OK] Restore/Import completed successfully."

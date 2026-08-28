@@ -40,7 +40,7 @@ echo "[*] Dumping databases..."
 bash ../scripts/backups/dump-databases.sh
 
 echo "[*] Stopping containers for backup..."
-sudo docker-compose "$COMPOSE_FILES" --env-file ../.env stop
+sudo docker compose $COMPOSE_FILES --env-file ../.env stop
 
 # Helper function for Telegram notifications
 send_telegram() {
@@ -53,29 +53,30 @@ send_telegram() {
 }
 
 echo "[*] Initializing repository if needed..."
-if ! sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env exec backup restic snapshots >/dev/null 2>&1; then
+if ! sudo docker compose -f restic.docker-compose.yaml --env-file ../.env exec backup restic snapshots >/dev/null 2>&1; then
   echo "[*] Repository not found. Initializing..."
-  sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+  sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
     exec backup restic init
 fi
 
 echo "[*] Running backup..."
-sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+sudo docker compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
 
 BACKUP_EXIT_CODE=$?
 
 if [ $BACKUP_EXIT_CODE -eq 0 ]; then
   echo "[OK] Backup completed successfully"
-  send_telegram "✅ Docker volumes backup to Google Drive completed successfully!"
+  send_telegram "✅ Docker volumes backup completed successfully!"
 else
   echo "[ERROR] Backup failed with exit code $BACKUP_EXIT_CODE"
-  send_telegram "❌ An error occurred during Docker volumes backup to Google Drive! Check Restic logs for more details."
+  send_telegram "❌ An error occurred during Docker volumes backup! Check Restic logs for more details."
 fi
 
 # Restart all containers
 echo "[*] Restarting containers..."
-sudo docker-compose "$COMPOSE_FILES" --env-file ../.env start
+sudo docker compose $COMPOSE_FILES --env-file ../.env start
+
 
 cd ..
 

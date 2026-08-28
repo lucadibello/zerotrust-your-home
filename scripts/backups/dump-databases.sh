@@ -15,15 +15,17 @@ elif [ -f ../../.env ]; then
     set -a
     source ../../.env
     set +a
-else
-    echo "Error: .env file not found."
-    exit 1
 fi
 
-DUMP_DIR="./backups/db-dumps"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+DUMP_DIR="$PROJECT_DIR/composes/backups/db-dumps"
 mkdir -p "$DUMP_DIR"
 
+
 echo "[*] Starting database dumps to $DUMP_DIR..."
+
 
 # --- Immich Database Dump ---
 if [ "$ENABLE_IMMICH" = "true" ]; then
