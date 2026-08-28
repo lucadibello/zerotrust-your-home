@@ -7,7 +7,11 @@ set +a
 
 cd composes
 
-echo "[*] Running prune..."
+echo "[*] Running prune (Local)..."
+sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
+  exec backup restic -r /repos/local/restic forget --keep-last 5 --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
+
+echo "[*] Running prune (Cloud)..."
 # Keep last 5 snapshots, 7 daily, 4 weekly, 12 monthly
 sudo docker-compose -f restic.docker-compose.yaml --env-file ../.env \
   exec backup restic forget --keep-last 5 --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune

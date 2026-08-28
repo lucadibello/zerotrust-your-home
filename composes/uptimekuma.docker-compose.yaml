@@ -23,8 +23,7 @@ services:
             - "traefik.docker.network=traefik-network"
         volumes:
             # Manage the database file
-            # - ./uptime-kuma/kuma.db:/app/data/kuma.db
-            - ./uptime-kuma/:/app/data
+            - uptimekuma_data:/app/data
             # Docker socket for docker checks
             - /var/run/docker.sock:/var/run/docker.sock
         restart: unless-stopped
@@ -34,3 +33,7 @@ services:
             - loki-network
             - dns-network
             - nextcloud-aio
+
+volumes:
+  uptimekuma_data:
+    name: uptimekuma_data
