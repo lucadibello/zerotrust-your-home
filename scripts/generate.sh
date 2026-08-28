@@ -64,21 +64,12 @@ set -a
 source .env
 set +a
 
-# Define required environment variables for configuration
-required_hotspot_vars=(
-  "HOTSPOT_SSID"
-  "HOTSPOT_PASSWORD"
-)
-
 # Core required variables (always needed)
 required_vars=(
   "IP_ADDRESS"
   "IP_GATEWAY"
   "DNS_SERVERS"
   "SUBNET_MASK"
-  "ENABLE_HOTSPOT"
-  "ALLOW_LOCAL_SSH_ACCESS"
-  "ALLOW_LOCAL_SERVICES_ACCESS"
   "TLS_CERTIFICATE_COUNTRY"
   "TLS_CERTIFICATE_STATE"
   "TLS_CERTIFICATE_LOCALITY"
@@ -86,14 +77,18 @@ required_vars=(
   "CLOUDFLARE_EMAIL"
   "CLOUDFLARE_API_KEY"
   "RESTIC_REPOSITORY"
-  "AWS_DEFAULT_REGION"
-  "AWS_ACCESS_KEY_ID"
-  "AWS_SECRET_ACCESS_KEY"
+  "RESTIC_PASSWORD"
   "TELEGRAM_BOT_TOKEN"
   "TELEGRAM_CHAT_ID"
   "TUNNEL_TOKEN"
   "DNS_DOMAIN"
   "DNS_EMAIL"
+)
+
+# Optional Hotspot variables (only if ENABLE_HOTSPOT=true)
+required_hotspot_vars=(
+  "HOTSPOT_SSID"
+  "HOTSPOT_PASSWORD"
 )
 
 # Immich required variables (only if ENABLE_IMMICH=true)
@@ -111,6 +106,18 @@ required_minecraft_vars=(
   "MC_TUNNEL_TOKEN"
 )
 
+# SearXNG required variables (only if ENABLE_SEARXNG=true)
+required_searxng_vars=(
+  "SEARCHXNG_SECRET_KEY"
+)
+
+# AWS required variables (only if using S3 restic backend)
+required_aws_vars=(
+  "AWS_DEFAULT_REGION"
+  "AWS_ACCESS_KEY_ID"
+  "AWS_SECRET_ACCESS_KEY"
+)
+
 # Verify required variables are set
 echo "[*] Validating required environment variables..."
 for var in "${required_vars[@]}"; do
@@ -120,14 +127,26 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
-if [ "$ENABLE_HOTSPOT" = true ]; then
-  for var in "${required_hotspot_vars[@]}"; do
+# Validate AWS variables only if using S3 repository
+if [[ "$RESTIC_REPOSITORY" =~ ^s3: ]]; then
+  for var in "${required_aws_vars[@]}"; do
     if [ -z "${!var}" ]; then
-      echo "[!] $var is not set. Please update your .env file."
+      echo "[!] $var is not set (required for S3 restic repository). Please update your .env file."
       exit 1
     fi
   done
 fi
+
+# Validate Hotspot variables if enabled
+if [ "${ENABLE_HOTSPOT:-false}" = "true" ]; then
+  for var in "${required_hotspot_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+      echo "[!] $var is not set. Please update your .env file for hotspot."
+      exit 1
+    fi
+  done
+fi
+
 
 # Validate Immich variables if enabled
 if [ "$ENABLE_IMMICH" = "true" ]; then
@@ -150,6 +169,18 @@ if [ "$ENABLE_MINECRAFT" = "true" ]; then
     fi
   done
 fi
+
+# Validate SearXNG variables if enabled
+if [ "$ENABLE_SEARXNG" = "true" ]; then
+  echo "[*] Validating SearXNG environment variables..."
+  for var in "${required_searxng_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+      echo "[!] $var is not set. Please update your .env file for SearXNG."
+      exit 1
+    fi
+  done
+fi
+
 
 # Create a temporary directory (if needed)
 mkdir -p ./.tmp || true

@@ -29,24 +29,17 @@ fi
 sudo systemctl start NetworkManager 2>/dev/null || true
 
 ## --- SETUP WIFI HOTSPOT (OPTIONAL)
-
-# Check if variable ENABLE_HOTSPOT is set to true
-if [ "$ENABLE_HOTSPOT" = true ]; then
-  echo "[*] Setting up wifi hotspot..."
-
+if [ "${ENABLE_HOTSPOT:-false}" = "true" ]; then
   # Find Wireless interface
   wifi_interface=$(nmcli -t -f DEVICE,TYPE device 2>/dev/null | grep -w "wifi$" | head -n1 | cut -d: -f1)
   
-  if [ -z "$wifi_interface" ]; then
-    echo "[*] No Wi-Fi device detected on this system (standard on Virtual Machines / Proxmox). Skipping Wi-Fi hotspot setup."
-  else
+  if [ -n "$wifi_interface" ]; then
     echo "[*] Configuring Wi-Fi hotspot on interface: $wifi_interface..."
     nmcli device wifi hotspot ifname "$wifi_interface" con-name hotspot ssid "$HOTSPOT_SSID" password "$HOTSPOT_PASSWORD"
     nmcli connection up hotspot || echo "[!] Warning: Could not activate hotspot connection."
   fi
-else
-  echo "[*] Skipping wifi hotspot setup..."
 fi
+
 
 ## --- SETUP STATIC IP ADDRESS
 echo "[*] Setting up static IP address and DNS server (Ethernet)..."
