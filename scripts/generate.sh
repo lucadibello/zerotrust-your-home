@@ -34,13 +34,13 @@ while [[ "$#" -gt 0 ]]; do
     exit 0
     ;;
   *)
-    echo "[!] Unknown option: $1"
-    usage
-    exit 1
+    # Ignore unknown options passed from parent orchestrators
+    shift
     ;;
   esac
-  shift
+  shift 2>/dev/null || break
 done
+
 
 # Check if .env file exists
 if [ ! -f .env ]; then

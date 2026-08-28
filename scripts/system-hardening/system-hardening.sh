@@ -146,6 +146,14 @@ done
 ## 5) SSH service hardening
 echo "[5/9] Hardening SSH service..."
 
+# Warning check: if running in a VM where only root exists
+non_root_sudoers=$(grep -Po '^sudo:.*:\K.*' /etc/group 2>/dev/null || grep -Po '^wheel:.*:\K.*' /etc/group 2>/dev/null || true)
+if [ -z "$non_root_sudoers" ]; then
+  echo "  [!] NOTICE: No non-root sudo users detected."
+  echo "  [!] SSH root login will be disabled (PermitRootLogin:no)."
+  echo "  [!] Make sure to create a non-root user with sudo privileges, or use the Proxmox VE console (noVNC) to access the system."
+fi
+
 # SSH client config - disable forwarding on client side
 # Note: AllowTcpForwarding is a server-side option (sshd_config), not client-side
 
@@ -169,7 +177,7 @@ for setting in "${sshd_settings[@]}"; do
 done
 
 echo "  [*] Restarting SSH service..."
-sudo service ssh restart 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || true
+sudo systemctl restart ssh 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || sudo service ssh restart 2>/dev/null || true
 
 ## 6) Legal notice banner
 echo "[6/9] Configuring legal notice banner..."
@@ -185,7 +193,7 @@ echo "  [=] Banner files updated"
 set_config_value /etc/ssh/sshd_config "Banner" "/etc/issue.net"
 
 echo "  [*] Restarting SSHD service..."
-sudo service sshd restart 2>/dev/null || sudo systemctl restart ssh 2>/dev/null || true
+sudo systemctl restart ssh 2>/dev/null || sudo systemctl restart sshd 2>/dev/null || sudo service sshd restart 2>/dev/null || true
 
 ## 7) System auditing
 echo "[7/9] Configuring system auditing..."
@@ -193,10 +201,11 @@ echo "[7/9] Configuring system auditing..."
 # Install auditd if not present
 if ! command -v auditd &> /dev/null; then
   echo "  [+] Installing auditd..."
-  sudo apt install auditd -y
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install auditd -y
 else
   echo "  [=] auditd already installed"
 fi
+
 
 # Download audit rules if not present or update them
 audit_rules_file="/etc/audit/rules.d/audit.rules"

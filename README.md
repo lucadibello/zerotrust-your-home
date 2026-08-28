@@ -79,7 +79,8 @@ Self-hosting services and applications is a great way to ensure the security and
 
 This project represents an autoconfigured home automation system that delivers a robust and secure infrastructure in a matter of minutes (literally!).
 
-Leveraging cutting-edge technologies, it ensures top-notch security, privacy, and user-friendliness while maintaining a low cost of ownership. The server is designed to be deployed on a low-end single-board computer, such as [Raspberry Pi](https://www.raspberrypi.org/) or alternatives like [Orange Pi](http://www.orangepi.org/) and [Banana Pi](https://www.banana-pi.org/).
+Leveraging cutting-edge technologies, it ensures top-notch security, privacy, and user-friendliness while maintaining a low cost of ownership. The server is designed to be deployed on **Proxmox Virtual Machines (QEMU/KVM)** or low-end single-board computers, such as [Raspberry Pi](https://www.raspberrypi.org/) or alternatives like [Orange Pi](http://www.orangepi.org/) and [Banana Pi](https://www.banana-pi.org/).
+
 
 Featuring [Cloudflare SSE & SASE Platform](https://www.cloudflare.com/zero-trust/#zt-features), the infrastructure adheres to the _Zero Trust security model_: users and devices must be authenticated, authorized, and their security posture verified before accessing internal services and resources. This approach ensures the security of the system, preventing unauthorized access to the infrastructure.
 

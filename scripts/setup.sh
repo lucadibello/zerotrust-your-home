@@ -104,6 +104,15 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
+# Detect environment / virtualization
+VIRT_ENV="none"
+if command -v detect_virtualization >/dev/null 2>&1; then
+  VIRT_ENV=$(detect_virtualization)
+fi
+if [ "$VIRT_ENV" != "none" ] && [ -n "$VIRT_ENV" ]; then
+  echo "[*] Virtualization detected: $VIRT_ENV (Proxmox VE / KVM VM compatible)"
+fi
+
 # === OS Setup (only run once) ===
 if [ "$SKIP_OS_SETUP" = true ]; then
   echo "[*] Skipping OS setup as per user request."
@@ -115,8 +124,11 @@ fi
 # === Configuration Tasks ===
 if [ "$SKIP_CONFIG" = false ]; then
   echo "[*] Proceeding with configuration tasks..."
-  # Call the configuration task script (which can be re-run later independently)
-  sudo bash ./scripts/generate.sh "$@"
+  # Call the configuration task script with appropriate flags
+  generate_args=()
+  [ "$HEADLESS_MODE" = true ] && generate_args+=("-y")
+  [ "$SKIP_FIREWALL" = true ] && generate_args+=("--skip-firewall")
+  sudo bash ./scripts/generate.sh "${generate_args[@]}"
 else
   echo "[*] Skipping configuration tasks as per user request."
 fi
@@ -137,11 +149,14 @@ fi
 if [ "$SKIP_FIREWALL" = true ]; then
   echo "[*] Skipping firewall configuration as per user request."
 else
-  run_script "./scripts/firewall/zero-trust-firewall.sh" "Setting up Zero Trust firewall rules"
+  firewall_args=()
+  [ "$HEADLESS_MODE" = true ] && firewall_args+=("-y")
+  run_script "./scripts/firewall/zero-trust-firewall.sh" "Setting up Zero Trust firewall rules" "${firewall_args[@]}"
 fi
 
 # === System Hardening ===
 run_script "./scripts/system-hardening/system-hardening.sh" "Hardening system"
+
 
 echo "----------------------------------------------"
 if [ "$SECURITY_ONLY" = true ]; then

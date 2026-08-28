@@ -55,12 +55,20 @@ sed "s/<DOMAIN>/$DNS_DOMAIN/g" ./scripts/containers/templates/named.conf.templat
 $SED_INPLACE "s/<FILENAME>/$filename/g" ./.tmp/bind9/named.conf
 
 # --- Build the ACL block for local subnets ---
+local_subnets=""
 if command -v nmcli >/dev/null 2>&1; then
-  # Extract local subnets (each ending with a semicolon)
-  local_subnets=$(sudo nmcli | grep route4 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+' | sed 's|$|;|g')
-else
-  echo "[!] nmcli not found. Skipping local subnet detection."
-  local_subnets=""
+  # Extract local subnets via nmcli (each ending with a semicolon)
+  local_subnets=$(sudo nmcli | grep route4 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+' | sort -u | sed 's|$|;|g')
+fi
+
+# Fallback: Detect subnets via iproute2 (ip -4 route)
+if [ -z "$local_subnets" ] && command -v ip >/dev/null 2>&1; then
+  local_subnets=$(ip -4 route show 2>/dev/null | grep -v 'default' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+' | sort -u | sed 's|$|;|g')
+fi
+
+# Fallback: Use LOCAL_NETWORK defined in .env
+if [ -z "$local_subnets" ] && [ -n "$LOCAL_NETWORK" ]; then
+  local_subnets="${LOCAL_NETWORK};"
 fi
 
 # Construct the ACL block as a variable
@@ -69,8 +77,12 @@ if [ -n "$local_subnets" ]; then
   for subnet in $local_subnets; do
     acl_block+="    ${subnet}\n"
   done
+else
+  # Minimal fallback to local loopback/private subnets if nothing detected
+  acl_block+="    127.0.0.0/8;\n    192.168.0.0/16;\n    10.0.0.0/8;\n    172.16.0.0/12;\n"
 fi
 acl_block+="};\n"
+
 
 # Prepend the ACL block to the named.conf file in a portable way
 (

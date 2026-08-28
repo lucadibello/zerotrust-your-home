@@ -2,7 +2,7 @@
 
 In this document, you can find instructions for deploying the home automation system on a remote server. It is important to note that the user requires sudo privileges on the remote server and the server must have SSH access enabled.
 
-> Note: the following instructions are tested on a remote server running Armbian 21.08.1 Buster with Linux kernel 5.10.60-sunxi64. Different OS (e.g. Ubuntu) or Linux kernel versions may require slightly different configurations.
+> Note: The setup scripts are tested on Debian, Ubuntu, and Armbian running on bare-metal Single Board Computers (Raspberry Pi, Orange Pi, Banana Pi) as well as **Proxmox Virtual Machines (QEMU/KVM)**. When running inside a Proxmox VM, the scripts automatically detect the virtualization environment and install the QEMU Guest Agent for seamless host-VM integration.
 
 ## Table of Contents<!-- omit in toc -->
 
@@ -10,7 +10,7 @@ In this document, you can find instructions for deploying the home automation sy
 - [1.1.2. Create a Zero Trust Tunnel on Cloudflare](#112-create-a-zero-trust-tunnel-on-cloudflare)
 - [1.1.3. Create an S3 bucket on AWS and configure AWS IAM](#113-create-an-s3-bucket-on-aws-and-configure-aws-iam)
 - [1.1.4. Create a Telegram bot](#114-create-a-telegram-bot)
-- [1.1.5. Install Armbian on the remote server](#115-install-armbian-on-the-remote-server)
+- [1.1.5. Prepare the OS on the remote server / Proxmox VM](#115-prepare-the-os-on-the-remote-server--proxmox-vm)
 - [1.1.6. Clone the repository locally](#116-clone-the-repository-locally)
 - [1.1.7. Create .env file](#117-create-env-file)
   - [1.1.7.1. Variable **ZIGBEE2MQTT\_DEVICE**](#1171-variable-zigbee2mqtt_device)
@@ -72,19 +72,13 @@ This step is necessary to receive notifications from the *alertmanager*, *uptime
 
 A more detailed guide is available in the paper.
 
-## 1.1.5. Install Armbian on the remote server
+## 1.1.5. Prepare the OS on the remote server / Proxmox VM
 
-This first step is necessary only if the user does not have a remote server with Armbian already installed. To install and configure Armbian on the remote server, perform the following steps:
+You can deploy this project on either:
+- **A Proxmox Virtual Machine**: Create a Debian 12 (Bookworm) or Ubuntu 24.04/22.04 LTS VM with VirtIO network and SCSI disk.
+- **A physical SBC (Armbian/Raspberry Pi OS)**: Flash the image to an SD card / eMMC.
 
-1. Download the Armbian image for your board from the [official website](https://www.armbian.com/download/)
-2. Flash the image to an SD card using [Balena Etcher](https://www.balena.io/etcher/)
-3. Insert the SD card into the remote server and power it on
-4. Connect to the remote server via SSH using the default credentials:
-   - Username: root
-   - Password: 1234
-5. Complete the first boot wizard and reboot the system when prompted
-
-Now, the remote server is ready to be configured to run the home automation system.
+Ensure SSH access is enabled and a non-root sudo user is created before proceeding.
 
 ## 1.1.6. Clone the repository locally
 
@@ -105,7 +99,7 @@ cp .env.example .env
 
 ### 1.1.7.1. Variable **ZIGBEE2MQTT_DEVICE**
 
-Note: the value of the variable *ZIGBEE2MQTT_DEVICE* must be the path to the mounted Zigbee adapter. To find the path, run the following command on the remote server:
+Note: the value of the variable *ZIGBEE2MQTT_DEVICE* must be the path to the mounted Zigbee adapter (pass through the USB device in Proxmox if running in a VM). To find the path, run the following command on the remote server:
 
 ```bash
 ls /dev/serial/by-id
@@ -115,9 +109,11 @@ ls /dev/serial/by-id
 
 ### 1.1.7.2. Variable **IF**
 
-Note: the value of the variable *IF* must be the name of the Ethernet interface. To find the name of the Ethernet interface, run the following command on the remote server:
+Note: the value of the variable *IF* must be the name of the Ethernet interface (`ens18` for Proxmox VirtIO VMs, `eth0` / `enp0s3` for standard Linux, or `end0` for Armbian/SBCs). To find the name of the Ethernet interface, run:
 
 ```bash
+ip -br link
+# or
 sudo nmcli device status
 ```
 
@@ -137,15 +133,16 @@ With this configuration, the user is able to send the project files to a remote 
 
 ### 1.1.9. Start the configuration script on the remote server
 
-To configure the Armbian-based server, the user must connect to the remote server via SSH and start the configuration script manually. The configuration script performs the following operations:
+To configure the server, connect via SSH and run:
 
 ```bash
 ssh <USER>@<IP_ADDRESS>
-unzip project.zip
-sudo ./configure.sh
+cd zerotrust-your-home
+sudo bash ./scripts/setup.sh
 ```
 
-*Note: do not use root user to run the configuration script as root access from SSH will be disabled during the configuration process.*
+*Note: Ensure you run the script as a user with sudo privileges. Root SSH login is disabled during hardening for security.*
+
 
 This configuration script performs the following operations:
 

@@ -21,9 +21,38 @@ else
 fi
 
 # Validate required variables
-if [ -z "$LOCAL_NETWORK" ] || [ -z "$IF" ]; then
-  echo "[!] Required variables LOCAL_NETWORK and IF must be set in .env"
+if [ -z "$LOCAL_NETWORK" ]; then
+  echo "[!] Required variable LOCAL_NETWORK must be set in .env"
   exit 1
+fi
+
+# Verify primary interface exists on the host
+if [ -z "$IF" ] || (! ip link show "$IF" >/dev/null 2>&1 && [ ! -d "/sys/class/net/$IF" ]); then
+  echo "[!] Warning: Configured network interface '${IF:-<unset>}' was not found on this system."
+  
+  # Auto-detect available non-loopback ethernet/virtual interfaces (e.g. ens18 on Proxmox, eth0)
+  candidate_interfaces=$(ip -o link show 2>/dev/null | awk -F': ' '{print $2}' | grep -vE 'lo|docker|br-|veth|tailscale|wg' || true)
+  default_candidate=$(echo "$candidate_interfaces" | head -n1)
+  
+  if [ -n "$default_candidate" ]; then
+    echo "[*] Detected active system interface: '$default_candidate' (typical on Proxmox VMs / VirtIO)."
+    if [ "$1" = "-y" ] || [ "$1" = "--yes" ] || [ "$HEADLESS_MODE" = "true" ]; then
+      echo "[*] Auto-selecting detected interface: $default_candidate"
+      IF="$default_candidate"
+    else
+      read -p "Use detected interface '$default_candidate'? [Y/n] " -n 1 -r
+      echo ""
+      if [[ $REPLY =~ ^[Nn]$ ]]; then
+        echo "[!] Please update IF in your .env file with your VM interface name (e.g. ens18 on Proxmox)."
+        exit 1
+      else
+        IF="$default_candidate"
+      fi
+    fi
+  else
+    echo "[!] No active network interface found. Please check your network configuration and .env file."
+    exit 1
+  fi
 fi
 
 # Print configuration and ask for confirmation
@@ -57,6 +86,7 @@ echo "[*] Starting firewall configuration..."
 chain_exists() {
   sudo iptables -n -L "$1" >/dev/null 2>&1
 }
+
 
 # Helper function: Check if rule exists in chain
 rule_exists() {
