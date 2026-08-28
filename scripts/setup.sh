@@ -157,7 +157,6 @@ fi
 # === System Hardening ===
 run_script "./scripts/system-hardening/system-hardening.sh" "Hardening system"
 
-
 echo "----------------------------------------------"
 if [ "$SECURITY_ONLY" = true ]; then
   echo "----  Security update completed successfully ----"
