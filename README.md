@@ -130,7 +130,7 @@ These services can be enabled based on user requirements:
 | `ENABLE_VAULTWARDEN`     | Vaultwarden                            | Self-hosted password manager |
 | `ENABLE_NEXTCLOUD`       | Nextcloud                              | Self-hosted cloud storage    |
 | `ENABLE_PORTAINER`       | Portainer                              | Docker management UI         |
-| `ENABLE_UPTIME_KUMA`     | Uptime Kuma                            | Service health monitoring    |
+| `ENABLE_GATUS`           | Gatus                                  | Service health monitoring & status page |
 | `ENABLE_WATCHTOWER`      | Watchtower                             | Automatic container updates  |
 
 ### 5.3. Additional services
@@ -184,7 +184,7 @@ To address these requirements, the open-source monitoring solution [Prometheus](
 To provide real-time notifications, [Prometheus Alerts](https://prometheus.io/docs/alerting/latest/alertmanager/) have been
 configured to trigger alerts when specific system metrics exceeds a predefined threshold. In the next sections will be described in detail the components of the monitoring solution and how they have been configured.
 
-[Uptime Kuma](https://github.com/louislam/uptime-kuma) monitors application and service health, alerting via a configured Telegram bot during downtimes.
+[Gatus](https://github.com/TwiN/gatus) monitors application and service health, displaying an automated status page and alerting via [ntfy.sh](https://ntfy.sh) during downtimes.
 
 ![Monitoring and Alerting System](./assets/images/continuous-monitoring-flow.png)
 
@@ -192,7 +192,7 @@ Grafana has been configured to provide two default dashboards, visualizing syste
 
 #### 6.1.1. Alerting rules
 
-Alerting rules are conditions evaluated periodically by _Prometheus_ that whenever are met, it will trigger an alert via _Prometheus Alertmanager_. The alert manager will then notify the system administrators via the configured notification channels (i.e., Telegram, E-Mail, Slack).
+Alerting rules are conditions evaluated periodically by _Prometheus_ that whenever are met, it will trigger an alert via _Prometheus Alertmanager_. The alert manager will then notify the system administrators via the configured notification channels (e.g., [ntfy.sh](https://ntfy.sh), Webhooks).
 
 The following list outlines the alerting rules configured to monitor the system health:
 
@@ -206,15 +206,12 @@ The following list outlines the alerting rules configured to monitor the system 
 
 5. _High CPU temperature_: triggers an alert when the CPU temperature of the host machine exceeds 70 °C for more than 1 minute.
 
-_Telegram has been chosen as notification channel as it provides the most convenient solution. The individuals using the services hosted on the system might not have technical skills and might not be familiar with other platforms such as Slack or WeChat._
+_[ntfy.sh](https://ntfy.sh) has been chosen as the notification channel as it provides a simple, privacy-focused, cross-platform HTTP-based pub-sub push notification service that requires no bot creation or phone numbers._
 
 #### 6.1.2. Service health monitoring
 
-[Uptime Kuma](https://github.com/louislam/uptime-kuma) allows to monitor the status of the applications and services of the system and to receive real-time notifications when a service is down. The uptime check is performed by periodically sending requests (i.e. HTTP, TCP, ICMP) to the monitored targets and alerting the system administrator using the configured Telegram bot in case of failures.
+[Gatus](https://github.com/TwiN/gatus) is an automated, declarative service health dashboard and status page. The uptime check is performed by periodically sending requests (HTTP, TCP, DNS) to monitored targets and alerting the system administrator via ntfy.sh in case of failures.
 
-![Uptime Kuma](./assets/images/uptimekuma-dashboard.png)
-
-To learn more about how _Uptime Kuma_ has been configured to perform its purpose, please refer to the file [Uptime Kuma service health monitoring](./doc/uptime-kuma-monitoring.md). On the other hand, an example of the notifications sent by _Uptime Kuma_ can be found in the dedicated document [Monitoring suite - Telegram alerts examples](./doc/monitoring-telegram-alerts.md).
 
 #### 6.1.3. Security alerting rules
 
@@ -743,7 +740,7 @@ The following table outlines the services used to build the current infrastructu
 | Node Exporter                                 | Exports system metrics for Prometheus                                        | Yes        | -                       | 9100    |
 | cAdvisor                                      | Exports Docker containers metrics for Prometheus                             | Yes        | -                       | 8080    |
 | Grafana                                       | Data visualization and alerting system                                       | Yes        | grafana.your.domain     | 3000    |
-| Uptime Kuma                                   | Dashboard and visualization platform to view the collected metrics and logs  | Yes        | status.your.domain      | 3001    |
+| Gatus                                         | Automated health dashboard and status page                                    | Yes        | status.your.domain      | 8080    |
 | Prometheus Alertmanager                       | Prometheus alert manager to send alerts to system administrator(s)           | Yes        | alerts.your.domain      | 9093    |
 | **Home automation system**                    |
 | Mosquitto                                     | MQTT broker for controlling lights and appliances                            | Yes        | -                       | 1883    |
@@ -758,6 +755,7 @@ The following table outlines the services used to build the current infrastructu
 | Watchtower                                    | Automatic Docker images updates                                              | Yes        | -                       | -       |
 | Unattended-upgrades                           | Automatic system updates and security patches                                | No         | -                       | -       |
 | **Additional services (optional)**            |
+| ntfy                                          | Self-hosted push notification service                                        | Yes        | ntfy.your.domain        | 80      |
 | Vaultwarden                                   | Self-hosted password manager (Bitwarden compatible)                          | Yes        | vault.your.domain       | 80      |
 | Nextcloud                                     | Self-hosted cloud storage and collaboration                                  | Yes        | cloud.your.domain       | 8080    |
 | Portainer                                     | Docker container management UI                                               | Yes        | portainer.your.domain   | 9000    |
@@ -793,8 +791,9 @@ The following table lists all information about the containers used by the serve
 | `node-exporter`                 | `quay.io/prometheus/node-exporter:latest`            | `traefik-network`, `prometheus-network`                                 | `always`         |
 | `cadvisor`                      | `gcr.io/cadvisor/cadvisor:latest`                    | `prometheus-network`                                                    | `always`         |
 | `grafana`                       | `grafana/grafana-oss:latest`                         | `traefik-network`, `prometheus-network`                                 | `always`         |
-| `uptimekuma`                    | `louislam/uptime-kuma:latest`                        | `traefik-network`, `prometheus-network`, `home-network`, `loki-network` | `always`         |
+| `gatus`                         | `ghcr.io/twin/gatus:stable`                          | `traefik-network`, `prometheus-network`, `loki-network`, `home-network`, `immich-network`, `nextcloud-aio`, `dns-network` | `always`         |
 | `alertmanager`                  | `prom/alertmanager:latest`                           | `traefik-network`, `prometheus-network`                                 | `always`         |
+| `ntfy`                          | `binwiederhier/ntfy:latest`                          | `traefik-network`, `prometheus-network`                                 | `unless-stopped` |
 | `mosquitto`                     | `eclipse-mosquitto:latest`                           | `home-network`                                                          | `always`         |
 | `zigbee2mqtt`                   | `koenkk/zigbee2mqtt:latest`                          | `traefik-network`, `home-network`                                       | `always`         |
 | `homeassistant`                 | `ghcr.io/home-assistant/home-assistant:stable`       | `traefik-network`, `home-network`                                       | `always`         |
