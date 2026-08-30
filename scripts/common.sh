@@ -163,4 +163,32 @@ EOF
   fi
 }
 
+# load_env: Loads key-value pairs from .env without overriding variables already set in environment
+load_env() {
+  local env_file="${1:-.env}"
+  if [ -f "$env_file" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      # Remove leading whitespace
+      line="${line#"${line%%[![:space:]]*}"}"
+      # Skip comments and empty lines
+      [[ "$line" =~ ^# ]] && continue
+      [[ -z "$line" ]] && continue
+      # Check if line contains =
+      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+        local key="${BASH_REMATCH[1]}"
+        local val="${BASH_REMATCH[2]}"
+        # Only set if not already set in environment
+        if [ -z "${!key+x}" ]; then
+          # Strip surrounding quotes if present
+          if [[ "$val" =~ ^\"(.*)\"$ ]] || [[ "$val" =~ ^\'(.*)\'$ ]]; then
+            val="${BASH_REMATCH[1]}"
+          fi
+          export "$key"="$val"
+        fi
+      fi
+    done < "$env_file"
+  fi
+}
+
+
 

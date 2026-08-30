@@ -79,7 +79,6 @@ required_vars=(
   "RESTIC_REPOSITORY"
   "RESTIC_PASSWORD"
   "NTFY_TOPIC"
-  "TUNNEL_TOKEN"
   "DNS_DOMAIN"
   "DNS_EMAIL"
 )
@@ -128,6 +127,14 @@ for var in "${required_vars[@]}"; do
     exit 1
   fi
 done
+
+# Validate Cloudflare Tunnel if enabled
+if [ "${ENABLE_TUNNEL:-true}" = "true" ]; then
+  if [ -z "${TUNNEL_TOKEN:-}" ]; then
+    echo "[!] TUNNEL_TOKEN is not set (required when ENABLE_TUNNEL=true). Please update your .env file."
+    exit 1
+  fi
+fi
 
 # Validate AWS variables only if using S3 repository
 if [[ "$RESTIC_REPOSITORY" =~ ^s3: ]]; then
@@ -190,6 +197,7 @@ mkdir -p ./.tmp || true
 # === Print enabled services ===
 echo ""
 echo "[*] Enabled services:"
+[ "${ENABLE_TUNNEL:-true}" = "true" ] && echo "    - Cloudflare Tunnel (Remote Access)"
 [ "$ENABLE_MONITORING" = "true" ] && echo "    - Monitoring (Prometheus, Grafana, Alertmanager)"
 [ "$ENABLE_LOGGING" = "true" ] && echo "    - Logging (Loki, Promtail)"
 [ "$ENABLE_BACKUP" = "true" ] && echo "    - Backup (Restic)"
@@ -214,6 +222,7 @@ echo "[*] Executing Docker containers configuration scripts..."
 ordered_scripts=(
   "./scripts/containers/setup-traefik.sh"
   "./scripts/containers/setup-letsencrypt.sh"
+  "./scripts/containers/setup-tunnel.sh"
   "./scripts/containers/post-setup-bind9.sh"
   "./scripts/containers/setup-ntfy.sh"
   "./scripts/containers/setup-prometheus.sh"

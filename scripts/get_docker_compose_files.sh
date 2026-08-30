@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-# Load environment variables
-if [ -f .env ]; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/common.sh" ]; then
+  source "$SCRIPT_DIR/common.sh"
+  load_env .env
+elif [ -f .env ]; then
   set -a
   source .env
   set +a
@@ -23,12 +26,18 @@ add_service() {
   fi
 }
 
-# Core Services (Always enabled or specific logic)
-# Tunnel is core and required
-add_service "tunnel"
+# Ingress Services
+# Tunnel (enabled by default, can be disabled with ENABLE_TUNNEL=false)
+if [ "${ENABLE_TUNNEL:-true}" = "true" ]; then
+  add_service "tunnel"
+fi
 
-# Website (No flag, assume enabled if present)
-add_service "website"
+# Website (optional static site if present)
+if [ -d "composes/website" ] || [ -f "composes/website.docker-compose.yaml" ]; then
+  if [ "${ENABLE_WEBSITE:-true}" = "true" ]; then
+    add_service "website"
+  fi
+fi
 
 # Flag-based Services
 # Format: FLAG_NAME|SERVICE_NAME
