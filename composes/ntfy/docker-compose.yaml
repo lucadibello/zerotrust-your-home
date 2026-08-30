@@ -1,0 +1,35 @@
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    restart: unless-stopped
+    command:
+      - serve
+    volumes:
+      - ./config/server.yml:/etc/ntfy/server.yml:ro
+      - ntfy_cache:/var/cache/ntfy
+      - ntfy_data:/var/lib/ntfy
+    environment:
+      - TZ=Europe/Zurich
+    networks:
+      - traefik-network
+      - prometheus-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ntfy.rule=Host(`ntfy.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.ntfy.entrypoints=websecure"
+      - "traefik.http.routers.ntfy.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ntfy.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-network"
+
+volumes:
+  ntfy_cache:
+    name: ntfy_cache
+  ntfy_data:
+    name: ntfy_data
+
+networks:
+  traefik-network:
+    external: true
+  prometheus-network:
+    external: true

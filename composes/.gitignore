@@ -10,10 +10,14 @@ dns/records/
 # Alertmanager generated configuration
 monitoring/alertmanager/alertmanager.yml
 
-# Uptime Kuma generated SQLite database
-uptimekuma/kuma.db
-uptimekuma/kuma.db-shm
-uptimekuma/kuma.db-wal
+# Gatus generated configuration and persistent database
+gatus/config/config.yaml
+gatus/data/
+
+# Self-hosted ntfy generated configuration and caches
+ntfy/config/server.yml
+ntfy/cache/
+ntfy/data/
 
 # SearXNG generated settings
 searxng/settings.yml

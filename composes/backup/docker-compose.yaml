@@ -39,13 +39,13 @@ services:
         fi
         echo "[OK] Pre-backup tasks completed."
 
-      # Notification scripts
+      # Notification scripts using ntfy.sh
       POST_COMMANDS_SUCCESS: |-
-        curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"✅ Docker volumes backup completed successfully!\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+        curl -s -H "Title: Backup Successful" -H "Tags: white_check_mark,floppy_disk" -d "Docker volumes backup completed successfully!" "${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
       POST_COMMANDS_FAILURE: |-
-        curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"❌ An error occurred during Docker volumes backup! Check Restic logs for more details.\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+        curl -s -H "Title: Backup Failed" -H "Priority: high" -H "Tags: warning,x,floppy_disk" -d "An error occurred during Docker volumes backup! Check Restic logs for details." "${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
       POST_COMMANDS_INCOMPLETE: |-
-        curl -q -X POST -H 'Content-Type: application/json' -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"⚠️ The docker volumes backup was not completed successfully! Check Restic logs for more details.\"}" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage
+        curl -s -H "Title: Backup Incomplete" -H "Priority: high" -H "Tags: warning,floppy_disk" -d "The docker volumes backup was not completed successfully! Check Restic logs for details." "${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
 
     volumes:
       # Rclone configuration (Read-Write to allow token refreshes)
