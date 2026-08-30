@@ -95,11 +95,11 @@ services:
 
 volumes:
   prometheus_data:
-    driver: local
+    name: prometheus_data
   grafana_data:
-    driver: local
+    name: grafana_data
   alertmanager_data:
-    driver: local
+    name: alertmanager_data
 
 networks:
   traefik-network:

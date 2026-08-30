@@ -59,7 +59,7 @@ services:
 
 volumes:
   mosquitto_data:
-    driver: local
+    name: mosquitto_data
 
 networks:
   traefik-network:

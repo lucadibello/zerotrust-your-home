@@ -69,8 +69,8 @@ services:
 volumes:
   immich_db_data:
     name: ${IMMICH_DB_DATA_LOCATION:-immich_db_data}
-  immich_pgdata:
   immich-model-cache:
+    name: immich-model-cache
 
 networks:
   traefik-network:

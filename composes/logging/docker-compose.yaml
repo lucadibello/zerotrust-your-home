@@ -4,6 +4,7 @@ services:
     container_name: loki
     volumes:
       - ./loki:/etc/loki
+      - loki_data:/tmp/loki
     restart: always
     command: -config.file=/etc/loki/loki.yml
     networks:
@@ -26,8 +27,10 @@ services:
       - loki-network
 
 volumes:
+  loki_data:
+    name: loki_data
   promtail_positions:
-    driver: local
+    name: promtail_positions
 
 networks:
   prometheus-network:
