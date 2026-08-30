@@ -12,7 +12,7 @@ services:
       WATCHTOWER_NOTIFICATION_REPORT: "true"
       WATCHTOWER_INCLUDE_STOPPED: "true"
       WATCHTOWER_NOTIFICATIONS: shoutrrr
-      WATCHTOWER_NOTIFICATION_URL: telegram://${TELEGRAM_BOT_TOKEN}@telegram/?channels=${TELEGRAM_CHAT_ID}
+      WATCHTOWER_NOTIFICATION_URL: generic+${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}?title=Watchtower+Container+Updates&tags=package,whale
       WATCHTOWER_NOTIFICATION_TEMPLATE: |
         {{- if .Report -}}
           {{- with .Report -}}

@@ -1,0 +1,46 @@
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:stable
+    container_name: gatus
+    restart: unless-stopped
+    volumes:
+      - ./config:/config:ro
+      - gatus_data:/data
+    environment:
+      - GATUS_CONFIG_PATH=/config/config.yaml
+      - TZ=Europe/Zurich
+    networks:
+      - traefik-network
+      - prometheus-network
+      - loki-network
+      - dns-network
+      - home-network
+      - immich-network
+      - nextcloud-aio
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gatus.rule=Host(`status.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.gatus.entrypoints=websecure"
+      - "traefik.http.routers.gatus.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gatus.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-network"
+
+volumes:
+  gatus_data:
+    name: gatus_data
+
+networks:
+  traefik-network:
+    external: true
+  prometheus-network:
+    external: true
+  loki-network:
+    external: true
+  dns-network:
+    external: true
+  home-network:
+    external: true
+  immich-network:
+    external: true
+  nextcloud-aio:
+    external: true
