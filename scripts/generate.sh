@@ -78,12 +78,14 @@ required_vars=(
   "CLOUDFLARE_API_KEY"
   "RESTIC_REPOSITORY"
   "RESTIC_PASSWORD"
-  "TELEGRAM_BOT_TOKEN"
-  "TELEGRAM_CHAT_ID"
+  "NTFY_TOPIC"
   "TUNNEL_TOKEN"
   "DNS_DOMAIN"
   "DNS_EMAIL"
 )
+
+export NTFY_URL="${NTFY_URL:-https://ntfy.sh}"
+
 
 # Optional Hotspot variables (only if ENABLE_HOTSPOT=true)
 required_hotspot_vars=(
@@ -197,7 +199,8 @@ echo "[*] Enabled services:"
 [ "$ENABLE_VAULTWARDEN" = "true" ] && echo "    - Vaultwarden (Password Manager)"
 [ "$ENABLE_NEXTCLOUD" = "true" ] && echo "    - Nextcloud (Cloud Storage)"
 [ "$ENABLE_PORTAINER" = "true" ] && echo "    - Portainer (Docker UI)"
-[ "$ENABLE_UPTIME_KUMA" = "true" ] && echo "    - Uptime Kuma (Health Monitoring)"
+[ "${ENABLE_NTFY:-false}" = "true" ] && echo "    - Push Notifications (ntfy)"
+[ "${ENABLE_GATUS:-${ENABLE_UPTIME_KUMA:-false}}" = "true" ] && echo "    - Health Monitoring (Gatus)"
 [ "$ENABLE_WATCHTOWER" = "true" ] && echo "    - Watchtower (Auto Updates)"
 [ "$ENABLE_IMMICH" = "true" ] && echo "    - Immich (Photo Library)"
 [ "$ENABLE_SEARXNG" = "true" ] && echo "    - SearXNG (Search Engine)"
@@ -212,6 +215,7 @@ ordered_scripts=(
   "./scripts/containers/setup-traefik.sh"
   "./scripts/containers/setup-letsencrypt.sh"
   "./scripts/containers/post-setup-bind9.sh"
+  "./scripts/containers/setup-ntfy.sh"
   "./scripts/containers/setup-prometheus.sh"
   "./scripts/containers/setup-alertmanager.sh"
   "./scripts/containers/setup-loki.sh"
@@ -220,7 +224,7 @@ ordered_scripts=(
   "./scripts/containers/setup-nextcloud.sh"
   "./scripts/containers/setup-searxng.sh"
   "./scripts/containers/setup-vaultwarden.sh"
-  "./scripts/containers/setup-uptime-kuma.sh"
+  "./scripts/containers/setup-gatus.sh"
   "./scripts/containers/setup-minecraft.sh"
   "./scripts/containers/setup-backup.sh"
 )

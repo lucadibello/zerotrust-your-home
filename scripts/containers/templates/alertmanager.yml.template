@@ -1,15 +1,14 @@
 global:
   resolve_timeout: 5m
 route:
-  receiver: "telegram"
+  receiver: "ntfy"
   group_by: ["alertname", "severity"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
 receivers:
-  - name: "telegram"
-    telegram_configs:
-      - bot_token: <BOT_TOKEN>
-        api_url: https://api.telegram.org
-        chat_id: <CHAT_ID>
-        parse_mode: ""
+  - name: "ntfy"
+    webhook_configs:
+      - url: "<NTFY_URL>/<NTFY_TOPIC>?format=alertmanager"
+        send_resolved: true
+        max_alerts: 10

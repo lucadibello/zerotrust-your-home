@@ -1,0 +1,28 @@
+# ntfy server configuration
+# See https://docs.ntfy.sh/config/ for full reference
+
+base-url: "https://ntfy.<DNS_DOMAIN>"
+listen-http: ":80"
+behind-proxy: true
+
+# Cache settings
+cache-file: "/var/cache/ntfy/cache.db"
+cache-duration: "12h"
+cache-startup-queries: ""
+
+# Attachment settings
+attachment-cache-dir: "/var/cache/ntfy/attachments"
+attachment-total-size-limit: "5G"
+attachment-file-size-limit: "50M"
+attachment-expiry-duration: "12h"
+
+# Authentication & access control
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "read-write"
+enable-signup: false
+enable-login: true
+enable-reservations: true
+
+# Metrics for Prometheus
+enable-metrics: true
+listen-metrics: ":9090"

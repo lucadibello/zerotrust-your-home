@@ -112,13 +112,20 @@ fi
 echo "[*] Database dumps secured. Restarting services to minimize downtime..."
 start_services
 
-# Helper function for Telegram notifications
-send_telegram() {
-  local message="$1"
-  if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
-    curl -s -X POST -H 'Content-Type: application/json' \
-      -d "{\"chat_id\": \"${TELEGRAM_CHAT_ID}\",\"text\": \"${message}\"}" \
-      "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" >/dev/null || true
+# Helper function for Ntfy notifications
+send_notification() {
+  local title="$1"
+  local message="$2"
+  local tags="${3:-floppy_disk}"
+  local priority="${4:-default}"
+  
+  if [ -n "${NTFY_TOPIC:-}" ]; then
+    local ntfy_endpoint="${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
+    local auth_header=()
+    if [ -n "${NTFY_TOKEN:-}" ]; then
+      auth_header=(-H "Authorization: Bearer ${NTFY_TOKEN}")
+    fi
+    curl -s -H "Title: ${title}" -H "Tags: ${tags}" -H "Priority: ${priority}" "${auth_header[@]}" -d "${message}" "${ntfy_endpoint}" >/dev/null 2>&1 || true
   fi
 }
 
@@ -156,19 +163,19 @@ CLOUD_EXIT=$?
 
 if [ $LOCAL_EXIT -eq 0 ] && [ $CLOUD_EXIT -eq 0 ]; then
   echo "[OK] All backups completed successfully"
-  send_telegram "✅ Docker volumes backup to Local Disk AND Cloud completed successfully!"
+  send_notification "Backup Successful" "Docker volumes backup to Local Disk and Cloud completed successfully!" "white_check_mark,floppy_disk" "default"
 elif [ $LOCAL_EXIT -ne 0 ] && [ $CLOUD_EXIT -ne 0 ]; then
   echo "[ERROR] BOTH backups failed!"
   BACKUP_EXIT_CODE=1
-  send_telegram "❌ CRITICAL: Both Local and Cloud backups failed! Check logs immediately."
+  send_notification "Backup Failed" "CRITICAL: Both Local and Cloud backups failed! Check logs immediately." "warning,x,floppy_disk" "urgent"
 elif [ $LOCAL_EXIT -ne 0 ]; then
   echo "[WARNING] Local backup failed, but Cloud backup succeeded (somehow?)."
   BACKUP_EXIT_CODE=1
-  send_telegram "⚠️ Local backup failed. Check logs."
+  send_notification "Backup Warning" "Local backup failed, but Cloud backup succeeded." "warning,floppy_disk" "high"
 else
   echo "[WARNING] Cloud backup/copy failed, but Local backup succeeded."
   BACKUP_EXIT_CODE=1
-  send_telegram "⚠️ Cloud backup upload failed (Local copy is SAFE). Check logs."
+  send_notification "Backup Warning" "Cloud backup copy failed (Local copy is SAFE). Check logs." "warning,floppy_disk" "high"
 fi
 
 # 3. Prune Old Backups

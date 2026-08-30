@@ -20,20 +20,12 @@ if [ "${ENABLE_MONITORING:-true}" != "true" ]; then
   exit 0
 fi
 
-# Clean and validate TELEGRAM_CHAT_ID (Alertmanager requires int64 for chat_id)
-CLEAN_CHAT_ID=$(echo "${TELEGRAM_CHAT_ID:-0}" | tr -d '"'\'' ')
-if [[ ! "$CLEAN_CHAT_ID" =~ ^-?[0-9]+$ ]] || [ -z "$CLEAN_CHAT_ID" ]; then
-  echo "[!] Warning: TELEGRAM_CHAT_ID ('${TELEGRAM_CHAT_ID:-}') is not a valid numeric Telegram Chat ID."
-  echo "[!] Using placeholder '0' in alertmanager.yml to prevent Alertmanager YAML parsing crash."
-  CLEAN_CHAT_ID="0"
-fi
-
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/alertmanager.yml.template"
 TARGET="$PROJECT_ROOT/composes/monitoring/alertmanager/alertmanager.yml"
 
-# Safely render the Alertmanager configuration
+# Safely render the Alertmanager configuration with ntfy endpoint
 render_template "$TEMPLATE" "$TARGET" \
-  BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-placeholder}" \
-  CHAT_ID="$CLEAN_CHAT_ID"
+  NTFY_URL="${NTFY_URL:-https://ntfy.sh}" \
+  NTFY_TOPIC="${NTFY_TOPIC:-zerotrust-alerts}"
 
 echo "[OK] AlertManager setup completed"
