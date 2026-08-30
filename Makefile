@@ -21,8 +21,8 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	$(if $(filter dns,$(1)),composes/dns/docker-compose.yaml) \
 	$(if $(filter mcserver,$(1)),composes/minecraft/docker-compose.yaml) \
 	$(if $(filter minecraft,$(1)),composes/minecraft/docker-compose.yaml) \
-	$(if $(filter uptime-kuma,$(1)),composes/uptimekuma/docker-compose.yaml) \
-	$(if $(filter uptimekuma,$(1)),composes/uptimekuma/docker-compose.yaml) \
+	$(if $(filter gatus,$(1)),composes/gatus/docker-compose.yaml) \
+	$(if $(filter ntfy,$(1)),composes/ntfy/docker-compose.yaml) \
 ))
 
 start:  # Start all docker containers
