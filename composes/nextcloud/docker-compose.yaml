@@ -1,11 +1,3 @@
-networks:
-  traefik-network:
-    external: true
-
-volumes:
-  nextcloud_aio_mastercontainer:
-    external: true
-
 services:
   nextcloud:
     container_name: nextcloud-aio-mastercontainer
@@ -22,4 +14,15 @@ services:
     ports:
       - 8080:8080
     networks:
-      - traefik-network 
+      - traefik-network
+      - nextcloud-aio
+
+volumes:
+  nextcloud_aio_mastercontainer:
+    name: nextcloud_aio_mastercontainer
+
+networks:
+  traefik-network:
+    external: true
+  nextcloud-aio:
+    external: true

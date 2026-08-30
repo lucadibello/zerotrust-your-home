@@ -1,23 +1,28 @@
-# Traefik temp directory for cert generation
-letsencrypt/
+# Traefik ACME certificates and storage
+traefik/letsencrypt/
+traefik/acme.json
 
-# BIND9 generated files
-bind9/
+# BIND9 generated zone configs and runtime caches
+dns/config/
+dns/cache/
+dns/records/
 
-# Alertmanager generated files
-alertmanager/
+# Alertmanager generated configuration
+monitoring/alertmanager/alertmanager.yml
 
-# Uptime-Kuma generated files
-uptime-kuma/
+# Uptime Kuma generated SQLite database
+uptimekuma/kuma.db
+uptimekuma/kuma.db-shm
+uptimekuma/kuma.db-wal
 
-# Nextcloud generated files
-nextcloud/
+# SearXNG generated settings
+searxng/settings.yml
 
-# searxng
-searxng/
+# Home automation generated certificates and logs
+home-assistant/certs/
+home-assistant/mosquitto/certs/
+home-assistant/mosquitto/log/
+home-assistant/zigbee2mqtt/certs/
 
-# Certs settings generated on demand
-certs/**.custom.docker-compose.yaml
-
-# backups directory
-backups/
+# Database dumps for backup
+backup/db-dumps/

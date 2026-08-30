@@ -1,19 +1,9 @@
-networks:
-  traefik-network:
-    external: true
-  home-network:
-    external: true
-
-volumes:
-  mosquitto_data:
-    driver: local
-
 services:
   homeassistant:
     container_name: "homeassistant"
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
-      - ./home-assistant:/config
+      - ./:/config
       - /etc/localtime:/etc/localtime:ro
     restart: always
     privileged: true
@@ -29,6 +19,7 @@ services:
       - "traefik.docker.network=traefik-network"
     depends_on:
       - zigbee2mqtt
+
   zigbee2mqtt:
     container_name: "zigbee2mqtt"
     image: "koenkk/zigbee2mqtt:latest"
@@ -43,7 +34,7 @@ services:
       - home-network
       - traefik-network
     devices:
-      - ${ZIGBEE2MQTT_DEVICE}:/dev/ttyACM0
+      - ${ZIGBEE2MQTT_DEVICE:-/dev/null}:/dev/ttyACM0
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -53,9 +44,10 @@ services:
       - "traefik.http.services.zigbee2mqtt.loadbalancer.server.port=8080"
     depends_on:
       - mosquitto
+
   mosquitto:
     container_name: "mosquitto"
-    image: "eclipse-mosquitto"
+    image: "eclipse-mosquitto:latest"
     restart: always
     networks:
       - home-network
@@ -64,3 +56,13 @@ services:
       - mosquitto_data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
       - ./mosquitto/certs:/mosquitto/certs
+
+volumes:
+  mosquitto_data:
+    driver: local
+
+networks:
+  traefik-network:
+    external: true
+  home-network:
+    external: true

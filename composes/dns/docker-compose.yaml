@@ -1,7 +1,3 @@
-networks:
-  traefik-network:
-    external: true
-
 services:
   bind9:
     container_name: bind9
@@ -13,9 +9,13 @@ services:
       - "${IP_ADDRESS}:53:53/tcp"
       - "${IP_ADDRESS}:53:53/udp"
     volumes:
-      - ./bind9/config:/etc/bind/
-      - ./bind9/cache:/var/cache/bind
-      - ./bind9/records:/var/lib/bind
+      - ./config:/etc/bind/
+      - ./cache:/var/cache/bind
+      - ./records:/var/lib/bind
     restart: always
     networks:
-      - traefik-network
+      - dns-network
+
+networks:
+  dns-network:
+    external: true

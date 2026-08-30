@@ -10,55 +10,57 @@ fi
 
 FILES=""
 
-# Helper function to add file
-add_file() {
-  if [ -f "composes/$1" ]; then
-    FILES="$FILES -f composes/$1"
+# Helper function to find and add service compose file
+add_service() {
+  local service="$1"
+  # Search subfolder first, then direct file
+  if [ -f "composes/$service/docker-compose.yaml" ]; then
+    FILES="$FILES -f composes/$service/docker-compose.yaml"
+  elif [ -f "composes/$service/$service.docker-compose.yaml" ]; then
+    FILES="$FILES -f composes/$service/$service.docker-compose.yaml"
+  elif [ -f "composes/$service.docker-compose.yaml" ]; then
+    FILES="$FILES -f composes/$service.docker-compose.yaml"
   fi
 }
 
 # Core Services (Always enabled or specific logic)
 # Tunnel is core and required
-add_file "tunnel.docker-compose.yaml"
+add_service "tunnel"
 
 # Website (No flag, assume enabled if present)
-add_file "website.docker-compose.yaml"
+add_service "website"
 
 # Flag-based Services
-# Format: FLAG_NAME|FILENAME
-# We use echo to feed the loop to avoid bash array compatibility issues if any (though bash 4+ is standard)
+# Format: FLAG_NAME|SERVICE_NAME
 while read -r line; do
   if [ -z "$line" ]; then continue; fi
   FLAG="${line%%|*}"
-  FILE="${line##*|}"
+  SERVICE="${line##*|}"
   
-  # Check if flag is true
-  # We use indirect expansion ${!FLAG}
-  VAL="${!FLAG}"
+  # Check if flag is true (indirect expansion)
+  VAL="${!FLAG:-false}"
   if [ "$VAL" = "true" ]; then
-      add_file "$FILE"
+      add_service "$SERVICE"
   fi
 done <<EOF
-ENABLE_REVERSE_PROXY|traefik.docker-compose.yaml
-ENABLE_DNS|dns.docker-compose.yaml
-ENABLE_MONITORING|prometheus.docker-compose.yaml
-ENABLE_LOGGING|loki.docker-compose.yaml
-ENABLE_BACKUP|restic.docker-compose.yaml
-ENABLE_HOME_AUTOMATION|home.docker-compose.yaml
-ENABLE_VAULTWARDEN|vaultwarden.docker-compose.yaml
-ENABLE_NEXTCLOUD|nextcloud.docker-compose.yaml
-ENABLE_PORTAINER|portainer.docker-compose.yaml
-ENABLE_UPTIME_KUMA|uptimekuma.docker-compose.yaml
-ENABLE_WATCHTOWER|watchtower.docker-compose.yaml
-ENABLE_IMMICH|immich.docker-compose.yaml
-ENABLE_SEARXNG|searxng.docker-compose.yaml
-ENABLE_MINECRAFT|mcserver.docker-compose.yaml
+ENABLE_REVERSE_PROXY|traefik
+ENABLE_DNS|dns
+ENABLE_MONITORING|monitoring
+ENABLE_LOGGING|logging
+ENABLE_BACKUP|backup
+ENABLE_HOME_AUTOMATION|home-assistant
+ENABLE_VAULTWARDEN|vaultwarden
+ENABLE_NEXTCLOUD|nextcloud
+ENABLE_PORTAINER|portainer
+ENABLE_UPTIME_KUMA|uptimekuma
+ENABLE_WATCHTOWER|watchtower
+ENABLE_IMMICH|immich
+ENABLE_SEARXNG|searxng
+ENABLE_MINECRAFT|minecraft
 EOF
 
-# Custom Files
-# Find all files ending in .custom.docker-compose.yaml in composes/
-# We use a loop to handle the glob expansion
-for custom in composes/*.custom.docker-compose.yaml; do
+# Custom Files (both root composes/ and subdirectories)
+for custom in composes/*.custom.docker-compose.yaml composes/*/*.custom.docker-compose.yaml; do
   if [ -e "$custom" ]; then
     FILES="$FILES -f $custom"
   fi

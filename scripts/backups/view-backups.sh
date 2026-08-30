@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 trap "exit" INT
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,17 +12,19 @@ if [ -f "$PROJECT_DIR/.env" ]; then
     set +a
 fi
 
-cd "$PROJECT_DIR/composes" || exit 1
+RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
+if [ ! -f "$RESTIC_COMPOSE" ]; then
+    RESTIC_COMPOSE="$PROJECT_DIR/composes/restic.docker-compose.yaml"
+fi
 
 echo "=== Local Repository ==="
-# Check both /repos/local/restic and /repos/local
 LOCAL_REPO="/repos/local/restic"
-if sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
+if sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec -T backup test -f /repos/local/config 2>/dev/null; then
     LOCAL_REPO="/repos/local"
 fi
 
-sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
+sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec -T backup restic -r "$LOCAL_REPO" snapshots -H docker || {
     echo "  [!] Could not read local repository at $LOCAL_REPO"
     echo "      Check that LOCAL_BACKUP_DIR in .env matches your host path and RESTIC_PASSWORD is correct."
@@ -29,19 +32,16 @@ sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env"
 
 echo ""
 echo "=== Cloud Repository ==="
-# Check if rclone is needed and configured
 IS_RCLONE=false
-if [[ "$RESTIC_REPOSITORY" =~ ^rclone: ]]; then
+if [[ "${RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
     IS_RCLONE=true
 fi
 
 if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
     echo "  (Cloud repository skipped: Rclone is not configured. Run 'make configure-backup' to set up.)"
 else
-    sudo docker compose -f restic.docker-compose.yaml --env-file "$PROJECT_DIR/.env" \
+    sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
       exec -T backup restic snapshots -H docker || {
         echo "  [!] Could not read cloud repository."
     }
 fi
-
-cd "$PROJECT_DIR"

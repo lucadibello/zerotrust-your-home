@@ -1,18 +1,80 @@
 #!/bin/bash
+set -euo pipefail
 trap "exit" INT
 
-# Load .env
-set -a
-source .env
-set +a
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load environment variables
+if [ -f "$PROJECT_ROOT/.env" ]; then
+  set -a
+  source "$PROJECT_ROOT/.env"
+  set +a
+fi
 
 # Skip if Home Automation is not enabled
-if [ "$ENABLE_HOME_AUTOMATION" != "true" ]; then
+if [ "${ENABLE_HOME_AUTOMATION:-false}" != "true" ]; then
   echo "[*] Home Automation is disabled, skipping setup..."
   exit 0
 fi
 
-# Create custom network for Home Assistant and other dependant containers (ignore if already exists)
-docker network create home-network || true
+HA_DIR="$PROJECT_ROOT/composes/home-assistant"
 
-echo "[OK] Home Assistant setup completed"
+# Ensure directories exist
+mkdir -p "$HA_DIR/certs" \
+         "$HA_DIR/mosquitto/certs" \
+         "$HA_DIR/mosquitto/log" \
+         "$HA_DIR/zigbee2mqtt/certs"
+
+# Create external home-network for isolated IoT communication
+sudo docker network create home-network >/dev/null 2>&1 || true
+
+# Initialize mosquitto.conf if not present
+if [ ! -f "$HA_DIR/mosquitto/mosquitto.conf" ]; then
+  echo "[*] Creating default mosquitto.conf..."
+  cat <<'EOF' > "$HA_DIR/mosquitto/mosquitto.conf"
+listener 1883
+allow_anonymous true
+
+listener 8883
+cafile /mosquitto/certs/ca.crt
+certfile /mosquitto/certs/service.crt
+keyfile /mosquitto/certs/service.key
+require_certificate false
+
+persistence true
+persistence_location /mosquitto/data/
+log_dest file /mosquitto/log/mosquitto.log
+EOF
+fi
+
+# Initialize Home Assistant configuration.yaml if not present
+if [ ! -f "$HA_DIR/configuration.yaml" ]; then
+  echo "[*] Creating default Home Assistant configuration.yaml..."
+  cat <<'EOF' > "$HA_DIR/configuration.yaml"
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.16.0.0/12
+    - 10.0.0.0/8
+    - 192.168.0.0/16
+EOF
+fi
+
+# Initialize automations.yaml if not present
+if [ ! -f "$HA_DIR/automations.yaml" ]; then
+  touch "$HA_DIR/automations.yaml"
+fi
+
+echo "[OK] Home Automation setup completed"

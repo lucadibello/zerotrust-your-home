@@ -20,7 +20,6 @@ services:
       TZ: Europe/Zurich
       
       # Additional environment variables for specific backends (e.g. Rclone)
-      # Pass them through from host .env
       RCLONE_CONFIG_PASS: ${RCLONE_CONFIG_PASS:-}
 
       # Database dump settings (for pre-backup export)
@@ -32,10 +31,10 @@ services:
       PRE_COMMANDS: |-
         docker volume prune -f
         echo "[*] Dumping databases before backup..."
-        mkdir -p /mnt/backup/project/backups/db-dumps
+        mkdir -p /mnt/backup/project/composes/backup/db-dumps
         if [ "$ENABLE_IMMICH" = "true" ] && docker ps -q -f name=immich_postgres | grep -q .; then
           echo "[*] Dumping Immich database..."
-          docker exec -t immich_postgres pg_dump -c -U "$IMMICH_DB_USERNAME" "$IMMICH_DB_DATABASE_NAME" | gzip > /mnt/backup/project/backups/db-dumps/immich_db_dump.sql.gz
+          docker exec -t immich_postgres pg_dump -c -U "$IMMICH_DB_USERNAME" "$IMMICH_DB_DATABASE_NAME" | gzip > /mnt/backup/project/composes/backup/db-dumps/immich_db_dump.sql.gz
           echo "[OK] Immich database dumped."
         fi
         echo "[OK] Pre-backup tasks completed."
@@ -50,20 +49,17 @@ services:
 
     volumes:
       # Rclone configuration (Read-Write to allow token refreshes)
-      - ../config/rclone:/root/.config/rclone
+      - ../../config/rclone:/root/.config/rclone
       
       # Backup sources
       - /var/lib/docker/volumes:/mnt/backup/docker:ro
-      - ./:/mnt/backup/project:ro
-      # Optional data directories (mapped even if empty/unused, but must exist on host or be handled)
-      # We map them directly. If they don't exist on host, Docker might create them as root owned dirs.
-      # Users should ensure variables are set correctly in .env
+      - ../../:/mnt/backup/project:ro
+      
+      # Optional data directories
       - ${NEXTCLOUD_DATADIR:-/mnt/nas-data}:/mnt/backup/nextcloud:ro
       - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/library}:/mnt/backup/immich:ro
       - ${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}:/mnt/backup/immich-go:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
       
-      # Docker socket (legacy, might not be needed for instrumentisto/restic but keeping for compatibility if we add scripts)
+      # Docker socket
       - /var/run/docker.sock:/var/run/docker.sock
-
-

@@ -89,3 +89,78 @@ get_default_network_interface() {
   echo "$iface"
 }
 
+# render_template: Safely renders a template file to a target destination.
+# Replaces <KEY> placeholders using explicit KEY=VALUE arguments, falling back to environment variables.
+# Handles special characters (slashes, quotes, ampersands, newlines) safely.
+# Automatically creates the destination directory and performs atomic file writes.
+#
+# Usage: render_template <template_file> <output_file> [KEY=VALUE ...]
+render_template() {
+  local template_path="$1"
+  local output_path="$2"
+  shift 2 || true
+
+  if [ ! -f "$template_path" ]; then
+    echo "[!] Error: Template file not found: $template_path"
+    return 1
+  fi
+
+  local target_dir
+  target_dir="$(dirname "$output_path")"
+  mkdir -p "$target_dir"
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$template_path" "$output_path" "$@" <<'EOF'
+import sys
+import os
+import re
+
+template_file = sys.argv[1]
+output_file = sys.argv[2]
+explicit_args = sys.argv[3:]
+
+replacements = {}
+for arg in explicit_args:
+    if '=' in arg:
+        k, v = arg.split('=', 1)
+        replacements[k] = v
+
+with open(template_file, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+def replacer(match):
+    key = match.group(1)
+    if key in replacements:
+        return str(replacements[key])
+    if key in os.environ:
+        return str(os.environ[key])
+    return match.group(0)
+
+rendered = re.sub(r'<([A-Za-z0-9_]+)>', replacer, content)
+
+tmp_file = output_file + '.tmp'
+with open(tmp_file, 'w', encoding='utf-8') as f:
+    f.write(rendered)
+
+os.replace(tmp_file, output_file)
+EOF
+  else
+    # Fallback using portable temporary file and sed escaping
+    local tmp_file="${output_path}.tmp"
+    cp "$template_path" "$tmp_file"
+    for pair in "$@"; do
+      local k="${pair%%=*}"
+      local v="${pair#*=}"
+      local safe_v
+      safe_v=$(printf '%s\n' "$v" | sed -e 's/[\/&]/\\&/g')
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/<$k>/$safe_v/g" "$tmp_file"
+      else
+        sed -i "s/<$k>/$safe_v/g" "$tmp_file"
+      fi
+    done
+    mv "$tmp_file" "$output_path"
+  fi
+}
+
+

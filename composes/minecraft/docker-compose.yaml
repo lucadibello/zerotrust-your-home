@@ -1,9 +1,3 @@
-networks:
-  mc-network:
-
-volumes:
-  mcdata:
-
 services:
   mc:
     image: itzg/minecraft-server
@@ -34,3 +28,11 @@ services:
     command: tunnel --no-autoupdate run --url tcp://mc:25565
     networks:
       - mc-network
+
+volumes:
+  mcdata:
+    name: mcdata
+
+networks:
+  mc-network:
+    name: mc-network

@@ -1,23 +1,23 @@
 #!/bin/bash
+set -euo pipefail
 trap "exit" INT
 
-# Ensure the letsencrypt directory exists
-mkdir -p ./composes/letsencrypt
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Ensure the letsencrypt directory exists inside Traefik composes directory
+ACME_DIR="$PROJECT_ROOT/composes/traefik/letsencrypt"
+ACME_FILE="$ACME_DIR/acme.json"
+
+mkdir -p "$ACME_DIR"
 
 # Check if acme.json exists, if not create it
-if [ ! -f ./composes/letsencrypt/acme.json ]; then
-    echo "[*] Creating acme.json..."
-    touch ./composes/letsencrypt/acme.json
+if [ ! -f "$ACME_FILE" ]; then
+  echo "[*] Initializing $ACME_FILE..."
+  touch "$ACME_FILE"
 fi
 
-# Set permissions to 600 (required by Traefik)
-echo "[*] Setting permissions for acme.json to 600..."
-chmod 600 ./composes/letsencrypt/acme.json
+# Set permissions to 600 (strictly required by Traefik for security)
+chmod 600 "$ACME_FILE"
 
-# If running as root (sudo), we might want to ensure ownership is correct if possible,
-# but usually Traefik (running as root in container or user) needs to read it.
-# Docker binds it. If the file is 600 owned by root on host, and container runs as root, it works.
-# If container runs as user, it might fail unless uid matches. Traefik container usually runs as root unless specified.
-# So root:root 600 is fine.
-
-echo "[OK] LetsEncrypt setup completed."
+echo "[OK] LetsEncrypt ACME storage setup completed."

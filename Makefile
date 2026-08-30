@@ -4,6 +4,27 @@ ENVFILE = .env
 # Dynamically generate compose arguments based on enabled services and custom files
 COMPOSE_ARGS := $(shell bash scripts/get_docker_compose_files.sh)
 
+# Helper function to find the docker compose file for a given service name or alias
+FIND_COMPOSE = $(firstword $(wildcard \
+	composes/$(1)/docker-compose.yaml \
+	composes/$(1)/$(1).docker-compose.yaml \
+	composes/$(1).docker-compose.yaml \
+	$(if $(filter home,$(1)),composes/home-assistant/docker-compose.yaml) \
+	$(if $(filter home-assistant,$(1)),composes/home-assistant/docker-compose.yaml) \
+	$(if $(filter prometheus,$(1)),composes/monitoring/docker-compose.yaml) \
+	$(if $(filter monitoring,$(1)),composes/monitoring/docker-compose.yaml) \
+	$(if $(filter loki,$(1)),composes/logging/docker-compose.yaml) \
+	$(if $(filter logging,$(1)),composes/logging/docker-compose.yaml) \
+	$(if $(filter restic,$(1)),composes/backup/docker-compose.yaml) \
+	$(if $(filter backup,$(1)),composes/backup/docker-compose.yaml) \
+	$(if $(filter bind9,$(1)),composes/dns/docker-compose.yaml) \
+	$(if $(filter dns,$(1)),composes/dns/docker-compose.yaml) \
+	$(if $(filter mcserver,$(1)),composes/minecraft/docker-compose.yaml) \
+	$(if $(filter minecraft,$(1)),composes/minecraft/docker-compose.yaml) \
+	$(if $(filter uptime-kuma,$(1)),composes/uptimekuma/docker-compose.yaml) \
+	$(if $(filter uptimekuma,$(1)),composes/uptimekuma/docker-compose.yaml) \
+))
+
 start:  # Start all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
 
@@ -67,21 +88,31 @@ update-hardening: # Update only system hardening settings
 
 # Specific commands to control each part of the system
 start-%:
-	@echo "Starting $* service..."
-	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) up -d
+	@file="$(call FIND_COMPOSE,$*)"; \
+	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
+	echo "Starting $* service (using $$file)..."; \
+	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) up -d
 
 down-%:
-	@echo "Downing $* service..."
-	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) down
+	@file="$(call FIND_COMPOSE,$*)"; \
+	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
+	echo "Downing $* service (using $$file)..."; \
+	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) down
 
 stop-%:
-	@echo "Stopping $* service..."
-	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) stop
+	@file="$(call FIND_COMPOSE,$*)"; \
+	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
+	echo "Stopping $* service (using $$file)..."; \
+	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) stop
 
 logs-%:
-	@echo "Logs $* service..."
-	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) logs
+	@file="$(call FIND_COMPOSE,$*)"; \
+	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
+	echo "Logs for $* service (using $$file)..."; \
+	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) logs
 
 restart-%:
-	@echo "Restarting $* service..."
-	@sudo $(COMPOSE) --file composes/$*.docker-compose.yaml --env-file $(ENVFILE) restart
+	@file="$(call FIND_COMPOSE,$*)"; \
+	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
+	echo "Restarting $* service (using $$file)..."; \
+	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) restart

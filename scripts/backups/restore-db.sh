@@ -1,40 +1,34 @@
 #!/bin/bash
-
+set -o pipefail
 trap "exit" INT
-
-# Load .env file
-if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
-elif [ -f ../.env ]; then
-    set -a
-    source ../.env
-    set +a
-elif [ -f ../../.env ]; then
-    set -a
-    source ../../.env
-    set +a
-else
-    echo "Error: .env file not found."
-    exit 1
-fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-DUMP_DIR="$PROJECT_DIR/composes/backups/db-dumps"
+# Load .env file
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
+elif [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
+DUMP_DIR="$PROJECT_DIR/composes/backup/db-dumps"
 if [ ! -d "$DUMP_DIR" ] || [ -z "$(ls -A "$DUMP_DIR" 2>/dev/null)" ]; then
-    if [ -d "$PROJECT_DIR/backups/db-dumps" ] && [ -n "$(ls -A "$PROJECT_DIR/backups/db-dumps" 2>/dev/null)" ]; then
+    if [ -d "$PROJECT_DIR/composes/backups/db-dumps" ] && [ -n "$(ls -A "$PROJECT_DIR/composes/backups/db-dumps" 2>/dev/null)" ]; then
+        DUMP_DIR="$PROJECT_DIR/composes/backups/db-dumps"
+    elif [ -d "$PROJECT_DIR/backups/db-dumps" ] && [ -n "$(ls -A "$PROJECT_DIR/backups/db-dumps" 2>/dev/null)" ]; then
         DUMP_DIR="$PROJECT_DIR/backups/db-dumps"
     fi
 fi
 
 if [ ! -d "$DUMP_DIR" ]; then
-    echo "Error: Database dump directory $DUMP_DIR not found."
+    echo "Error: Database dump directory not found ($DUMP_DIR)."
     exit 1
 fi
-
 
 echo "------------------------------------------------"
 echo "Database Restore"
@@ -71,7 +65,7 @@ SUGGESTED_CONTAINER=""
 if [[ "$FILENAME" == *"immich"* ]]; then
     SUGGESTED_CONTAINER="immich_postgres"
 elif [[ "$FILENAME" == *"nextcloud"* ]]; then
-    SUGGESTED_CONTAINER="nextcloud-aio-database" # Example
+    SUGGESTED_CONTAINER="nextcloud-aio-database"
 fi
 
 echo -n "Enter target Docker container name"
@@ -90,16 +84,11 @@ if [ -z "$CONTAINER_NAME" ]; then
     exit 1
 fi
 
-# Ask for DB user/name if needed?
-# Usually pg_dump -c includes the drop/create commands, but psql needs a user to connect.
-# We'll assume the dump includes ownership or we use the root user of the DB.
-# For postgres, -U is usually required.
-
 DB_USER=""
 DB_NAME=""
 DB_PASS_ENV=""
 if [[ "$CONTAINER_NAME" == "immich_postgres" ]]; then
-    DB_USER="$IMMICH_DB_USERNAME"
+    DB_USER="${IMMICH_DB_USERNAME:-postgres}"
     DB_NAME="${IMMICH_DB_DATABASE_NAME:-immich}"
 elif [[ "$CONTAINER_NAME" == "nextcloud-aio-database" ]]; then
     # Auto-detect Nextcloud credentials from the running container
@@ -142,9 +131,6 @@ fi
 if [ -n "$DB_NAME" ]; then
     CMD="$CMD -d $DB_NAME"
 fi
-# Note: pg_dump -c output includes DROP/CREATE commands that assume
-# the connection targets the correct database. We specify -d $DB_NAME
-# when available to ensure psql connects to the right database.
 
 echo "[*] Restoring $FILENAME to container $CONTAINER_NAME..."
 echo "[*] Command: gzip -dc $SELECTED_FILE | $CMD"

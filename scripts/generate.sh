@@ -206,31 +206,72 @@ echo ""
 
 # === Docker Containers Configuration ===
 echo "[*] Executing Docker containers configuration scripts..."
-containers_scripts=$(find ./scripts/containers -type f \( -name "setup-*.sh" -o -name "post-setup-*.sh" \) | sort -r)
-for script in $containers_scripts; do
-  short_name=$(basename "$script" | cut -d- -f2 | cut -d. -f1)
-  echo "[*] Configuring ${short_name}..."
-  sudo bash "$script"
-  if [ $? -ne 0 ]; then
-    echo "[!] Error occurred while configuring ${short_name}. Aborting..."
-    exit 1
+
+# Ordered execution list for deterministic service setup
+ordered_scripts=(
+  "./scripts/containers/setup-traefik.sh"
+  "./scripts/containers/setup-letsencrypt.sh"
+  "./scripts/containers/post-setup-bind9.sh"
+  "./scripts/containers/setup-prometheus.sh"
+  "./scripts/containers/setup-alertmanager.sh"
+  "./scripts/containers/setup-loki.sh"
+  "./scripts/containers/setup-home-assistant.sh"
+  "./scripts/containers/setup-immich.sh"
+  "./scripts/containers/setup-nextcloud.sh"
+  "./scripts/containers/setup-searxng.sh"
+  "./scripts/containers/setup-vaultwarden.sh"
+  "./scripts/containers/setup-uptime-kuma.sh"
+  "./scripts/containers/setup-minecraft.sh"
+  "./scripts/containers/setup-backup.sh"
+)
+
+# Run ordered scripts
+for script in "${ordered_scripts[@]}"; do
+  if [ -f "$script" ]; then
+    short_name=$(basename "$script" | sed -E 's/^(setup-|post-setup-)//' | cut -d. -f1)
+    echo "[*] Configuring ${short_name}..."
+    bash "$script"
+    if [ $? -ne 0 ]; then
+      echo "[!] Error occurred while configuring ${short_name}. Aborting..."
+      exit 1
+    fi
+  fi
+done
+
+# Run any additional custom setup scripts not in the ordered list
+for extra_script in ./scripts/containers/setup-*.sh ./scripts/containers/post-setup-*.sh; do
+  if [ -f "$extra_script" ]; then
+    # Check if already executed
+    already_run=false
+    for run_script in "${ordered_scripts[@]}"; do
+      if [ "$extra_script" = "$run_script" ]; then
+        already_run=true
+        break
+      fi
+    done
+    if [ "$already_run" = false ]; then
+      short_name=$(basename "$extra_script" | sed -E 's/^(setup-|post-setup-)//' | cut -d. -f1)
+      echo "[*] Configuring custom ${short_name}..."
+      bash "$extra_script"
+      if [ $? -ne 0 ]; then
+        echo "[!] Error occurred while configuring ${short_name}. Aborting..."
+        exit 1
+      fi
+    fi
   fi
 done
 
 # Clean up temporary directory
 rm -rf ./.tmp
 
-# Fix permissions for the generated files (User owned, Container readable)
-if [ -n "$SUDO_USER" ]; then
+# Fix permissions for generated files (User owned, Container readable)
+if [ -n "${SUDO_USER:-}" ]; then
     echo "[*] Fixing permissions for user $SUDO_USER..."
     chown -R "$SUDO_USER:$(id -gn "$SUDO_USER")" ./composes
     chmod -R o+rX ./composes
     
-    # Restore strict permissions for acme.json (Traefik requirement)
-    if [ -f ./composes/letsencrypt/acme.json ]; then
-        echo "[*] Restoring strict permissions for acme.json..."
-        chmod 600 ./composes/letsencrypt/acme.json
-    fi
+    # Restore strict permissions for acme.json files (Traefik requirement)
+    find ./composes -name "acme.json" -exec chmod 600 {} + 2>/dev/null || true
 fi
 
 echo ""
