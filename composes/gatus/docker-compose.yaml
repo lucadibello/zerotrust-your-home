@@ -4,7 +4,7 @@ services:
     container_name: gatus
     restart: unless-stopped
     volumes:
-      - ./config:/config:ro
+      - ./composes/gatus/config:/config:ro
       - gatus_data:/data
     environment:
       - GATUS_CONFIG_PATH=/config/config.yaml

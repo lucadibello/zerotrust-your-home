@@ -1,6 +1,6 @@
 .PHONY: help start restart logs status stop down view-backups configure-backup backup backup-export prune check restore backup-cron-enable backup-cron-disable backup-cron-status generate update-security update-security-headless update-firewall update-hardening
 
-COMPOSE = docker compose --project-name zerotrust-your-home
+COMPOSE = docker compose --project-name zerotrust-your-home --project-directory .
 ENVFILE = .env
 
 # Dynamically generate compose arguments based on enabled services and custom files
@@ -28,6 +28,7 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	$(if $(filter traefik reverse-proxy proxy,$(1)),composes/traefik/docker-compose.yaml) \
 	$(if $(filter tunnel cloudflare cloudflared,$(1)),composes/tunnel/docker-compose.yaml) \
 	$(if $(filter vaultwarden bitwarden,$(1)),composes/vaultwarden/docker-compose.yaml) \
+	$(if $(filter diun,$(1)),composes/diun/docker-compose.yaml) \
 ))
 
 help:  # Show available commands

@@ -10,7 +10,7 @@ services:
       SEARXNG_BASE_URL: "https://search.${DNS_DOMAIN}/"
       UWSGI_WORKERS: "2"
     volumes:
-      - ./settings.yml:/etc/searxng/settings.yml:ro
+      - ./composes/searxng/settings.yml:/etc/searxng/settings.yml:ro
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.searxng.rule=Host(`search.${DNS_DOMAIN}`)"

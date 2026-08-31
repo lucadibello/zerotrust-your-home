@@ -3,7 +3,7 @@ services:
     container_name: "homeassistant"
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
-      - ./:/config
+      - ./composes/home-assistant:/config
       - /etc/localtime:/etc/localtime:ro
     restart: always
     privileged: true
@@ -24,8 +24,8 @@ services:
     container_name: "zigbee2mqtt"
     image: "koenkk/zigbee2mqtt:latest"
     volumes:
-      - ./zigbee2mqtt:/app/data
-      - ./zigbee2mqtt/certs:/app/certs
+      - ./composes/home-assistant/zigbee2mqtt:/app/data
+      - ./composes/home-assistant/zigbee2mqtt/certs:/app/certs
       - /run/udev:/run/udev:ro
     restart: always
     environment:
@@ -52,10 +52,10 @@ services:
     networks:
       - home-network
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./composes/home-assistant/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - mosquitto_data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
-      - ./mosquitto/certs:/mosquitto/certs
+      - ./composes/home-assistant/mosquitto/log:/mosquitto/log
+      - ./composes/home-assistant/mosquitto/certs:/mosquitto/certs
 
 volumes:
   mosquitto_data:

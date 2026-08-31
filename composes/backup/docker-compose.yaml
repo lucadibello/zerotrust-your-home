@@ -49,11 +49,11 @@ services:
 
     volumes:
       # Rclone configuration (Read-Write to allow token refreshes)
-      - ../../config/rclone:/root/.config/rclone
+      - ./config/rclone:/root/.config/rclone
       
       # Backup sources
       - /var/lib/docker/volumes:/mnt/backup/docker:ro
-      - ../../:/mnt/backup/project:ro
+      - ./:/mnt/backup/project:ro
       
       # Optional data directories
       - ${NEXTCLOUD_DATADIR:-/mnt/nas-data}:/mnt/backup/nextcloud:ro

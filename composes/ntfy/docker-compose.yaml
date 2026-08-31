@@ -6,7 +6,7 @@ services:
     command:
       - serve
     volumes:
-      - ./config/server.yml:/etc/ntfy/server.yml:ro
+      - ./composes/ntfy/config/server.yml:/etc/ntfy/server.yml:ro
       - ntfy_cache:/var/cache/ntfy
       - ntfy_data:/var/lib/ntfy
     environment:

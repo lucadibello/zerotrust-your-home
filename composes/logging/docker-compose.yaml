@@ -3,7 +3,7 @@ services:
     image: grafana/loki:latest
     container_name: loki
     volumes:
-      - ./loki:/etc/loki
+      - ./composes/logging/loki:/etc/loki
       - loki_data:/tmp/loki
     restart: always
     command: -config.file=/etc/loki/loki.yml
@@ -19,7 +19,7 @@ services:
       - /var/log/audit:/var/log/audit:ro
       - /var/log/immich-go:/var/log/immich-go:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./promtail:/etc/promtail
+      - ./composes/logging/promtail:/etc/promtail
       - promtail_positions:/var/promtail
     restart: always
     command: -config.file=/etc/promtail/promtail.yml

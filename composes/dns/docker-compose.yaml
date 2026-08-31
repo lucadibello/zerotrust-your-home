@@ -9,9 +9,9 @@ services:
       - "${IP_ADDRESS}:53:53/tcp"
       - "${IP_ADDRESS}:53:53/udp"
     volumes:
-      - ./config:/etc/bind/
-      - ./cache:/var/cache/bind
-      - ./records:/var/lib/bind
+      - ./composes/dns/config:/etc/bind/
+      - ./composes/dns/cache:/var/cache/bind
+      - ./composes/dns/records:/var/lib/bind
     restart: always
     networks:
       - dns-network

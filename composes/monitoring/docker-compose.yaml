@@ -3,7 +3,7 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
-      - ./prometheus:/etc/prometheus
+      - ./composes/monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
     restart: always
     command:
@@ -27,7 +27,7 @@ services:
     container_name: alertmanager
     restart: unless-stopped
     volumes:
-      - ./alertmanager:/config
+      - ./composes/monitoring/alertmanager:/config
       - alertmanager_data:/data
     command:
       - "--config.file=/config/alertmanager.yml"
@@ -51,9 +51,9 @@ services:
     container_name: grafana
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/settings/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana/settings/datasources:/etc/grafana/provisioning/datasources
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./composes/monitoring/grafana/settings/dashboards:/etc/grafana/provisioning/dashboards
+      - ./composes/monitoring/grafana/settings/datasources:/etc/grafana/provisioning/datasources
+      - ./composes/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     restart: always
     networks:
       - prometheus-network

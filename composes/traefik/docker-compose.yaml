@@ -41,8 +41,8 @@ services:
       - "80:80"   # HTTP
       - "443:443" # HTTPS
     volumes:
-      - "./letsencrypt/acme.json:/letsencrypt/acme.json"
-      - "./dynamic:/etc/traefik/dynamic:ro"
+      - "./composes/traefik/letsencrypt/acme.json:/letsencrypt/acme.json"
+      - "./composes/traefik/dynamic:/etc/traefik/dynamic:ro"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - traefik-network
