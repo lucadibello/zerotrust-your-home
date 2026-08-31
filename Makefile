@@ -28,6 +28,7 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	$(if $(filter traefik reverse-proxy proxy,$(1)),composes/traefik/docker-compose.yaml) \
 	$(if $(filter tunnel cloudflare cloudflared,$(1)),composes/tunnel/docker-compose.yaml) \
 	$(if $(filter vaultwarden bitwarden,$(1)),composes/vaultwarden/docker-compose.yaml) \
+	$(if $(filter homepage dashboard,$(1)),composes/homepage/docker-compose.yaml) \
 	$(if $(filter diun,$(1)),composes/diun/docker-compose.yaml) \
 ))
 
