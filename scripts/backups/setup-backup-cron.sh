@@ -9,7 +9,7 @@ trap "exit" INT
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CRON_COMMENT="# zerotrust-backup-full"
 CRON_TIME="0 0 * * *"
-CRON_CMD="cd $PROJECT_DIR && make backup >> /var/log/zerotrust-backup.log 2>&1"
+CRON_CMD="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:\$PATH cd $PROJECT_DIR && make backup >> /var/log/zerotrust-backup.log 2>&1"
 
 ensure_cron_installed() {
     if ! command -v crontab >/dev/null 2>&1; then

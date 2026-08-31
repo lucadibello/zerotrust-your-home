@@ -18,13 +18,15 @@ fi
 # Build list of active compose files to manage during backup
 COMPOSE_ARGS=$(bash "$PROJECT_DIR/scripts/get_docker_compose_files.sh")
 
+BACKUP_COMPLETED=false
+
 # Cleanup function to ensure containers restart and maintenance mode is off
 cleanup() {
   echo "[!] Script interrupted or failed. Running cleanup..."
 
   # Restart containers if they were stopped
   echo "[*] Restarting containers (Emergency)..."
-  sudo docker compose $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
+  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
 
   # Start Nextcloud AIO sibling containers explicitly
   if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
@@ -38,12 +40,16 @@ cleanup() {
     echo "[*] Disabling Nextcloud Maintenance Mode (Emergency)..."
     docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off 2>/dev/null || true
   fi
+
+  if [ "$BACKUP_COMPLETED" != "true" ]; then
+    send_ntfy "Backup Aborted" "CRITICAL: Backup process was interrupted or encountered an unexpected failure." "warning,x,floppy_disk" "urgent"
+  fi
 }
 
 # Function to restart containers and disable maintenance mode normally
 start_services() {
   echo "[*] Restarting containers..."
-  sudo docker compose $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
+  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
 
   if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
     echo "[*] Starting Nextcloud AIO containers..."
@@ -72,16 +78,51 @@ start_services() {
 trap cleanup EXIT INT TERM
 
 # Check for required environment variables
-if [ -z "${NEXTCLOUD_DATADIR:-}" ] || [ -z "${LOCAL_BACKUP_DIR:-}" ]; then
-  echo "[ERROR] Required environment variables NEXTCLOUD_DATADIR or LOCAL_BACKUP_DIR are not set."
+if [ -z "${LOCAL_BACKUP_DIR:-}" ]; then
+  echo "[ERROR] Required environment variable LOCAL_BACKUP_DIR is not set."
   echo "        Please check your .env file."
+  send_ntfy "Backup Configuration Error" "Backup aborted: LOCAL_BACKUP_DIR is not set in .env." "warning,x,floppy_disk" "high"
+  BACKUP_COMPLETED=true
   exit 1
 fi
+
+if [ -z "${RESTIC_PASSWORD:-}" ]; then
+  echo "[ERROR] Required environment variable RESTIC_PASSWORD is not set."
+  echo "        Please check your .env file."
+  send_ntfy "Backup Configuration Error" "Backup aborted: RESTIC_PASSWORD is not set in .env." "warning,x,floppy_disk" "high"
+  BACKUP_COMPLETED=true
+  exit 1
+fi
+
+if [ -z "${RESTIC_REPOSITORY:-}" ]; then
+  echo "[ERROR] Required environment variable RESTIC_REPOSITORY is not set."
+  echo "        Please check your .env file."
+  send_ntfy "Backup Configuration Error" "Backup aborted: RESTIC_REPOSITORY is not set in .env." "warning,x,floppy_disk" "high"
+  BACKUP_COMPLETED=true
+  exit 1
+fi
+
+if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] && [ -z "${NEXTCLOUD_DATADIR:-}" ]; then
+  echo "[ERROR] Required environment variable NEXTCLOUD_DATADIR is not set while Nextcloud is enabled."
+  echo "        Please check your .env file."
+  send_ntfy "Backup Configuration Error" "Backup aborted: NEXTCLOUD_DATADIR is not set in .env while Nextcloud is enabled." "warning,x,floppy_disk" "high"
+  BACKUP_COMPLETED=true
+  exit 1
+fi
+
+# Ensure local backup directory exists
+mkdir -p "${LOCAL_BACKUP_DIR}" 2>/dev/null || sudo mkdir -p "${LOCAL_BACKUP_DIR}" 2>/dev/null || true
+
+IMMICH_EXPORT_FAILED=false
+DB_DUMP_FAILED=false
 
 # Run Immich backup if enabled (requires Immich to be running)
 if [ "${ENABLE_IMMICH:-false}" = "true" ]; then
   echo "[*] Running Immich export..."
-  bash "$PROJECT_DIR/scripts/backups/backup-immich.sh"
+  if ! bash "$PROJECT_DIR/scripts/backups/backup-immich.sh"; then
+    echo "[WARNING] Immich export encountered errors."
+    IMMICH_EXPORT_FAILED=true
+  fi
 fi
 
 # Enable Maintenance Mode for Nextcloud
@@ -92,10 +133,13 @@ fi
 
 # Dump databases (requires containers to be running)
 echo "[*] Dumping databases..."
-bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"
+if ! bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"; then
+  echo "[ERROR] Database dumps encountered errors."
+  DB_DUMP_FAILED=true
+fi
 
 echo "[*] Stopping containers for consistent state..."
-sudo docker compose $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
+sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
 
 # Explicitly stop Nextcloud AIO sibling containers if they are running
 if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
@@ -109,70 +153,83 @@ fi
 echo "[*] Database dumps secured. Restarting services to minimize downtime..."
 start_services
 
-# Helper function for Ntfy notifications
-send_notification() {
-  local title="$1"
-  local message="$2"
-  local tags="${3:-floppy_disk}"
-  local priority="${4:-default}"
-  
-  if [ -n "${NTFY_TOPIC:-}" ]; then
-    local ntfy_endpoint="${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
-    local auth_header=()
-    if [ -n "${NTFY_TOKEN:-}" ]; then
-      auth_header=(-H "Authorization: Bearer ${NTFY_TOKEN}")
-    fi
-    curl -s -H "Title: ${title}" -H "Tags: ${tags}" -H "Priority: ${priority}" "${auth_header[@]}" -d "${message}" "${ntfy_endpoint}" >/dev/null 2>&1 || true
-  fi
-}
+# Ensure the backup container is running
+sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
 
 echo "[*] Initializing repository if needed..."
 # 1. Local Repository Initialization
-if ! sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic -r /repos/local/restic snapshots >/dev/null 2>&1; then
+if ! sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic -r /repos/local/restic snapshots >/dev/null 2>&1; then
   echo "[*] Local Repository not found. Initializing..."
-  sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
     exec backup restic -r /repos/local/restic init
 fi
 
-# 2. Cloud Repository Initialization
-if ! sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic snapshots >/dev/null 2>&1; then
-  echo "[*] Cloud Repository not found. Initializing..."
-  sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-    exec backup restic init
+# 2. Cloud Repository Initialization (Check Rclone setup if using rclone backend)
+IS_RCLONE=false
+if [[ "${RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
+  IS_RCLONE=true
+fi
+
+if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
+  echo "[WARNING] Cloud backup skipped: Rclone is not configured ($PROJECT_DIR/config/rclone/rclone.conf missing)."
+  echo "          Run 'make configure-backup' to configure Google Drive remote."
+else
+  if ! sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic snapshots >/dev/null 2>&1; then
+    echo "[*] Cloud Repository not found. Initializing..."
+    sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+      exec backup restic init
+  fi
 fi
 
 echo "[*] Running backup (Services are ONLINE)..."
 BACKUP_EXIT_CODE=0
 
 # 1. Local Backup
-echo "[*] >> Starting Local Backup (Live System)..."
+echo "[*] >> Starting Local Backup (Live System to Second Disk)..."
 echo "[!] NOTE: Raw database files in /var/lib/docker/volumes may be inconsistent."
 echo "[!]       You MUST use the SQL dumps in backups/db-dumps/ for database recovery."
-sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec backup restic -r /repos/local/restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
 LOCAL_EXIT=$?
 
 # 2. Cloud Backup (Copy from Local Repo)
-echo "[*] >> Starting Cloud Backup (Copying from Local Repo)..."
-sudo docker compose -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-  exec -e RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}" backup restic copy --from-repo /repos/local/restic
-CLOUD_EXIT=$?
+CLOUD_EXIT=0
+if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
+  CLOUD_EXIT=1
+else
+  echo "[*] >> Starting Cloud Backup (Copying from Local Repo)..."
+  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+    exec -e RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}" backup restic copy --from-repo /repos/local/restic
+  CLOUD_EXIT=$?
+fi
 
+# Send status notification
 if [ $LOCAL_EXIT -eq 0 ] && [ $CLOUD_EXIT -eq 0 ]; then
-  echo "[OK] All backups completed successfully"
-  send_notification "Backup Successful" "Docker volumes backup to Local Disk and Cloud completed successfully!" "white_check_mark,floppy_disk" "default"
+  if [ "$DB_DUMP_FAILED" = "true" ] || [ "$IMMICH_EXPORT_FAILED" = "true" ]; then
+    echo "[WARNING] Backups completed, but pre-backup export had errors."
+    BACKUP_EXIT_CODE=1
+    send_ntfy "Backup Completed (Warnings)" "Restic snapshots completed to Local & Cloud, but database/photo export had errors. Check logs." "warning,floppy_disk" "high"
+  else
+    echo "[OK] All backups completed successfully"
+    send_ntfy "Backup Successful" "Docker volumes backup to Local Disk and Cloud completed successfully!" "white_check_mark,floppy_disk" "default"
+  fi
 elif [ $LOCAL_EXIT -ne 0 ] && [ $CLOUD_EXIT -ne 0 ]; then
   echo "[ERROR] BOTH backups failed!"
   BACKUP_EXIT_CODE=1
-  send_notification "Backup Failed" "CRITICAL: Both Local and Cloud backups failed! Check logs immediately." "warning,x,floppy_disk" "urgent"
+  send_ntfy "Backup Failed" "CRITICAL: Both Local and Cloud backups failed! Check logs immediately." "warning,x,floppy_disk" "urgent"
 elif [ $LOCAL_EXIT -ne 0 ]; then
-  echo "[WARNING] Local backup failed, but Cloud backup succeeded (somehow?)."
+  echo "[WARNING] Local backup failed, but Cloud backup succeeded."
   BACKUP_EXIT_CODE=1
-  send_notification "Backup Warning" "Local backup failed, but Cloud backup succeeded." "warning,floppy_disk" "high"
+  send_ntfy "Backup Warning" "Local backup to second disk failed, but Cloud backup succeeded. Check logs." "warning,floppy_disk" "high"
 else
-  echo "[WARNING] Cloud backup/copy failed, but Local backup succeeded."
+  if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
+    echo "[WARNING] Local backup succeeded. Cloud backup skipped (Rclone not configured)."
+    send_ntfy "Backup Warning" "Local backup to second disk completed. Cloud backup skipped: Rclone not configured. Run 'make configure-backup'." "warning,floppy_disk" "high"
+  else
+    echo "[WARNING] Cloud backup/copy failed, but Local backup succeeded."
+    send_ntfy "Backup Warning" "Cloud backup copy to Google Drive failed (Local copy is SAFE on second disk). Check logs." "warning,floppy_disk" "high"
+  fi
   BACKUP_EXIT_CODE=1
-  send_notification "Backup Warning" "Cloud backup copy failed (Local copy is SAFE). Check logs." "warning,floppy_disk" "high"
 fi
 
 # 3. Prune Old Backups
@@ -180,6 +237,8 @@ if [ $BACKUP_EXIT_CODE -eq 0 ]; then
   echo "[*] >> Pruning old snapshots to free up space..."
   bash "$PROJECT_DIR/scripts/backups/prune.sh"
 fi
+
+BACKUP_COMPLETED=true
 
 # Unset trap before exiting successfully
 trap - EXIT INT TERM

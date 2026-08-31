@@ -110,7 +110,7 @@ configure-backup: # Configure Rclone for Google Drive
 backup: # Create a system backup
 	@bash scripts/backups/backup.sh
 
-backup-export: # Export data only (Immich photos, DB dumps). Used by cronjob before restic's automatic run.
+backup-export: # Export data only (Immich photos, DB dumps) without Restic snapshot
 	@bash scripts/backups/backup-export.sh
 
 prune: # Prune old backups to free up space
@@ -122,10 +122,10 @@ check: # Verify backup integrity
 restore: # Restore from backup
 	@bash scripts/backups/restore.sh
 
-backup-cron-enable: # Enable automatic daily backup export at 23:30
+backup-cron-enable: # Enable automatic daily system backup at 00:00
 	@bash scripts/backups/setup-backup-cron.sh enable
 
-backup-cron-disable: # Disable automatic daily backup export
+backup-cron-disable: # Disable automatic daily system backup
 	@bash scripts/backups/setup-backup-cron.sh disable
 
 backup-cron-status: # Show backup cronjob status

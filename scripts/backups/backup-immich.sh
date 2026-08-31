@@ -29,7 +29,7 @@ fi
 BACKUP_DIR="${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}"
 DAY_OF_MONTH=$(date '+%d')
 TODAY=$(date '+%Y-%m-%d')
-YESTERDAY=$(date -d '1 day ago' '+%Y-%m-%d')
+YESTERDAY=$(date -d '1 day ago' '+%Y-%m-%d' 2>/dev/null || date -v-1d '+%Y-%m-%d' 2>/dev/null || date '+%Y-%m-%d')
 
 # Ensure host directory exists (requires sudo if path is restricted, or user permissions)
 if [ ! -d "$BACKUP_DIR" ]; then

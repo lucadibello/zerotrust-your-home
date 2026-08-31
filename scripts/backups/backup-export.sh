@@ -9,14 +9,29 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
+EXPORT_STATUS=0
+
 # Run Immich backup if enabled (requires Immich to be running)
 if [ "${ENABLE_IMMICH:-false}" = "true" ]; then
     echo "[*] Running Immich export..."
-    bash "$PROJECT_DIR/scripts/backups/backup-immich.sh"
+    if ! bash "$PROJECT_DIR/scripts/backups/backup-immich.sh"; then
+        echo "[WARNING] Immich photo export failed."
+        EXPORT_STATUS=1
+    fi
 fi
 
 # Dump databases (requires containers to be running)
 echo "[*] Dumping databases..."
-bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"
+if ! bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"; then
+    echo "[ERROR] Database dumps failed."
+    EXPORT_STATUS=1
+fi
 
-echo "[OK] Backup data exported successfully. Restic will include DB dumps in next scheduled backup."
+if [ $EXPORT_STATUS -eq 0 ]; then
+    echo "[OK] Backup data exported successfully."
+else
+    echo "[WARNING] Backup data export finished with errors."
+    send_ntfy "Backup Export Warning" "Data export (photos/databases) completed with errors. Check logs." "warning,floppy_disk" "high"
+fi
+
+exit $EXPORT_STATUS

@@ -205,5 +205,21 @@ load_env() {
   fi
 }
 
-
-
+# send_ntfy: Sends a push notification to ntfy if NTFY_TOPIC is configured
+send_ntfy() {
+  local title="$1"
+  local message="$2"
+  local tags="${3:-floppy_disk}"
+  local priority="${4:-default}"
+  
+  if [ -n "${NTFY_TOPIC:-}" ]; then
+    local ntfy_base="${NTFY_URL:-https://ntfy.sh}"
+    ntfy_base="${ntfy_base%/}"
+    local ntfy_endpoint="${ntfy_base}/${NTFY_TOPIC}"
+    local auth_header=()
+    if [ -n "${NTFY_TOKEN:-}" ]; then
+      auth_header=(-H "Authorization: Bearer ${NTFY_TOKEN}")
+    fi
+    curl -s -H "Title: ${title}" -H "Tags: ${tags}" -H "Priority: ${priority}" "${auth_header[@]}" -d "${message}" "${ntfy_endpoint}" >/dev/null 2>&1 || true
+  fi
+}
