@@ -2,6 +2,8 @@
 	backup backup-full backup-export backup-export-full backup-restore backup-view \
 	backup-check backup-prune backup-unlock backup-configure \
 	backup-cron-enable backup-cron-disable backup-cron-status \
+	backup-prune-cron-enable backup-prune-cron-disable \
+	backup-cron-enable-all backup-cron-disable-all \
 	restore view-backups check prune unlock configure-backup \
 	generate update-security update-security-headless update-firewall update-hardening
 
@@ -86,7 +88,10 @@ help:  # Show available commands
 	@echo "  make backup-configure           Configure Rclone remote (Google Drive/S3)"
 	@echo "  make backup-cron-enable         Enable daily automatic backup cron"
 	@echo "  make backup-cron-disable        Disable daily automatic backup cron"
-	@echo "  make backup-cron-status         Show backup cron status"
+	@echo "  make backup-prune-cron-enable   Enable weekly automatic prune cron (Sunday 03:00)"
+	@echo "  make backup-prune-cron-disable  Disable weekly automatic prune cron"
+	@echo "  make backup-cron-enable-all     Enable both daily backup & weekly prune crons"
+	@echo "  make backup-cron-status         Show all backup and prune cronjob statuses"
 	@echo ""
 	@echo "Security targets:"
 	@echo "  make update-security            Update hardening and firewall interactively"
@@ -160,7 +165,19 @@ backup-cron-enable: # Enable automatic daily system backup at 00:00
 backup-cron-disable: # Disable automatic daily system backup
 	@bash scripts/backups/setup-backup-cron.sh disable
 
-backup-cron-status: # Show backup cronjob status
+backup-prune-cron-enable: # Enable automatic weekly backup prune (Sunday at 03:00)
+	@bash scripts/backups/setup-backup-cron.sh enable-prune
+
+backup-prune-cron-disable: # Disable automatic weekly backup prune
+	@bash scripts/backups/setup-backup-cron.sh disable-prune
+
+backup-cron-enable-all: # Enable both daily backup and weekly prune cronjobs
+	@bash scripts/backups/setup-backup-cron.sh enable-all
+
+backup-cron-disable-all: # Disable all backup and prune cronjobs
+	@bash scripts/backups/setup-backup-cron.sh disable-all
+
+backup-cron-status: # Show all backup and prune cronjob statuses
 	@bash scripts/backups/setup-backup-cron.sh status
 
 generate: # Regenerate configuration files for all services based on .env configuration
