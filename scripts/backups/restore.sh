@@ -17,13 +17,22 @@ COMPOSE_ARGS=$(bash "$PROJECT_DIR/scripts/get_docker_compose_files.sh")
 
 # Cleanup trap
 RESTORE_SERVICES_STOPPED=false
+RESTORE_CLEANUP_RUNNING=false
 cleanup() {
+    if [ "$RESTORE_CLEANUP_RUNNING" = "true" ]; then
+        return 0
+    fi
+    RESTORE_CLEANUP_RUNNING=true
+    trap '' EXIT INT TERM
+
     if [ "$RESTORE_SERVICES_STOPPED" = "true" ]; then
         echo ""
         echo "[!] Interrupted during restore. Attempting to restart services..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
         echo "[*] Services restart attempted. Please verify with 'make status'."
     fi
+
+    exit 1
 }
 trap cleanup EXIT INT TERM
 

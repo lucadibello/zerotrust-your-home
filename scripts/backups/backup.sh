@@ -47,31 +47,48 @@ fi
 COMPOSE_ARGS=$(bash "$PROJECT_DIR/scripts/get_docker_compose_files.sh")
 
 BACKUP_COMPLETED=false
+CLEANUP_RUNNING=false
+SERVICES_STOPPED=false
+NEXTCLOUD_MAINTENANCE_ENABLED=false
 
 # Cleanup function to ensure containers restart and maintenance mode is off
 cleanup() {
+  # Prevent recursive execution when Ctrl+C is pressed repeatedly
+  if [ "$CLEANUP_RUNNING" = "true" ]; then
+    return 0
+  fi
+  CLEANUP_RUNNING=true
+  trap '' EXIT INT TERM
+
+  echo ""
   echo "[!] Script interrupted or failed. Running cleanup..."
 
-  # Restart containers if they were stopped
-  echo "[*] Restarting containers (Emergency)..."
-  docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
+  # Restart containers ONLY if they were previously stopped
+  if [ "$SERVICES_STOPPED" = "true" ]; then
+    echo "[*] Restarting containers (Emergency)..."
+    docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
 
-  # Start Nextcloud AIO sibling containers explicitly
-  if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
-    echo "[*] Starting Nextcloud AIO containers (Emergency)..."
-    docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
-    sleep 10
+    # Start Nextcloud AIO sibling containers explicitly
+    if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
+      echo "[*] Starting Nextcloud AIO containers (Emergency)..."
+      docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
+      sleep 5
+    fi
   fi
 
-  # Disable Maintenance Mode for Nextcloud
-  if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] && docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
-    echo "[*] Disabling Nextcloud Maintenance Mode (Emergency)..."
-    docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off 2>/dev/null || true
+  # Disable Maintenance Mode for Nextcloud if it was activated
+  if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] && [ "$NEXTCLOUD_MAINTENANCE_ENABLED" = "true" ]; then
+    if docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
+      echo "[*] Disabling Nextcloud Maintenance Mode (Emergency)..."
+      docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off 2>/dev/null || true
+    fi
   fi
 
   if [ "$BACKUP_COMPLETED" != "true" ]; then
     send_ntfy "Backup Aborted" "CRITICAL: Backup process was interrupted or encountered an unexpected failure." "warning,x,floppy_disk" "urgent"
   fi
+
+  exit 1
 }
 
 # Function to restart containers and disable maintenance mode normally
@@ -98,8 +115,10 @@ start_services() {
       echo "[*] Disabling Nextcloud Maintenance Mode..."
       sleep 5
       docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --off 2>/dev/null || true
+      NEXTCLOUD_MAINTENANCE_ENABLED=false
     fi
   fi
+  SERVICES_STOPPED=false
 }
 
 # Register cleanup trap
@@ -161,6 +180,7 @@ fi
 if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] && docker ps -q -f name=nextcloud-aio-nextcloud 2>/dev/null | grep -q .; then
   echo "[*] Enabling Nextcloud Maintenance Mode..."
   docker exec --user www-data nextcloud-aio-nextcloud php /var/www/html/occ maintenance:mode --on
+  NEXTCLOUD_MAINTENANCE_ENABLED=true
 fi
 
 # Dump databases (requires containers to be running)
@@ -171,6 +191,7 @@ if ! bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"; then
 fi
 
 echo "[*] Stopping containers for consistent state..."
+SERVICES_STOPPED=true
 docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
 
 # Explicitly stop Nextcloud AIO sibling containers if they are running
