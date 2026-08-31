@@ -235,7 +235,7 @@ if [ "${ENABLE_IMMICH:-false}" = "true" ]; then
   # Applications: Immich
   - name: Immich
     group: Applications
-    url: "http://immich_server:2283/api/server-info/ping"
+    url: "http://immich_server:2283/api/server/ping"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
