@@ -8,7 +8,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=Europe/Zurich
-      - HOMEPAGE_ALLOWED_HOSTS=homepage.${DNS_DOMAIN},homepage.${DNS_DOMAIN}:443,homepage:3000,homepage,localhost:3000,127.0.0.1:3000
+      - HOMEPAGE_ALLOWED_HOSTS=${DNS_DOMAIN},${DNS_DOMAIN}:443,homepage:3000,homepage,localhost:3000,127.0.0.1:3000
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
@@ -16,7 +16,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.homepage.rule=Host(`homepage.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.homepage.rule=Host(`${DNS_DOMAIN}`)"
       - "traefik.http.routers.homepage.entrypoints=websecure"
       - "traefik.http.routers.homepage.tls.certresolver=letsencrypt"
       - "traefik.http.services.homepage.loadbalancer.server.port=3000"
