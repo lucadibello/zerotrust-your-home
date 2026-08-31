@@ -26,6 +26,13 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # Transport timeouts (20m max upload duration for large videos, 180s idle timeout to prevent starvation)
+      - "--entrypoints.web.transport.respondingTimeouts.readTimeout=1200s"
+      - "--entrypoints.web.transport.respondingTimeouts.writeTimeout=1200s"
+      - "--entrypoints.web.transport.respondingTimeouts.idleTimeout=180s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.readTimeout=1200s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.writeTimeout=1200s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.idleTimeout=180s"
       # Set up the TLS configuration for websecure entrypoint
       - "--entrypoints.websecure.http.tls=true"
       - "--entrypoints.websecure.http.tls.certResolver=letsencrypt"

@@ -28,7 +28,6 @@ services:
       - "traefik.http.routers.immich.rule=Host(`photos.${DNS_DOMAIN}`)"
       - "traefik.http.routers.immich.entrypoints=websecure"
       - "traefik.http.routers.immich.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.immich.middlewares=strip"
       - "traefik.http.services.immich.loadbalancer.server.port=2283"
       - "traefik.docker.network=traefik-network"
 
