@@ -1,6 +1,6 @@
 .PHONY: help start restart logs status stop down view-backups configure-backup backup backup-export prune check restore backup-cron-enable backup-cron-disable backup-cron-status generate update-security update-security-headless update-firewall update-hardening
 
-COMPOSE = docker compose
+COMPOSE = docker compose --project-name zerotrust-your-home
 ENVFILE = .env
 
 # Dynamically generate compose arguments based on enabled services and custom files
