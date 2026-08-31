@@ -36,7 +36,7 @@ define RUN_SERVICE_COMPOSE
 	@file="$(call FIND_COMPOSE,$(1))"; \
 	if [ -z "$$file" ]; then echo "Error: Compose file for service '$(1)' not found."; exit 1; fi; \
 	echo "$(2) $(1) service (using $$file)..."; \
-	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) $(3)
+	$(COMPOSE) --file "$$file" --env-file $(ENVFILE) $(3)
 endef
 
 # Common prerequisite targets for validation
@@ -84,22 +84,22 @@ help:  # Show available commands
 	@echo "  make update-hardening           Update system hardening only"
 
 start: check-services  # Start all docker containers
-	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
+	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
 
 restart: check-services  # Restart all docker containers
-	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) restart
+	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) restart
 
 logs: check-services  # View all docker containers logs
-	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) logs -f --tail=50
+	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) logs -f --tail=50
 
 status: check-services  # View the status of the current ZeroTrust Your Home services
-	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
+	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
 
 stop: check-services  # Stop all docker containers
-	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) stop
+	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) stop
 
 down: check-services  # Stop and remove all docker containers
-	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) down
+	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) down
 
 view-backups: # View all backups
 	@bash scripts/backups/view-backups.sh
@@ -132,19 +132,19 @@ backup-cron-status: # Show backup cronjob status
 	@bash scripts/backups/setup-backup-cron.sh status
 
 generate: # Regenerate configuration files for all services based on .env configuration
-	@sudo bash scripts/generate.sh --headless
+	@bash scripts/generate.sh --headless
 
 update-security: # Update security posture (hardening + firewall) on existing instances
-	@sudo bash scripts/update-security.sh
+	@bash scripts/update-security.sh
 
 update-security-headless: # Update security posture without prompts
-	@sudo bash scripts/update-security.sh -y
+	@bash scripts/update-security.sh -y
 
 update-firewall: # Update only firewall rules
-	@sudo bash scripts/update-security.sh -y --firewall-only
+	@bash scripts/update-security.sh -y --firewall-only
 
 update-hardening: # Update only system hardening settings
-	@sudo bash scripts/update-security.sh -y --hardening-only
+	@bash scripts/update-security.sh -y --hardening-only
 
 
 # Specific commands to control each part of the system

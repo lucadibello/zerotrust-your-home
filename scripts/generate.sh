@@ -47,12 +47,6 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-# Ensure the script is run as root
-if [ "$EUID" -ne 0 ]; then
-  echo "[!] Please run as root"
-  exit 1
-fi
-
 export HEADLESS_MODE
 
 # Source common functions

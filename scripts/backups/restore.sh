@@ -21,7 +21,7 @@ cleanup() {
     if [ "$RESTORE_SERVICES_STOPPED" = "true" ]; then
         echo ""
         echo "[!] Interrupted during restore. Attempting to restart services..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
         echo "[*] Services restart attempted. Please verify with 'make status'."
     fi
 }
@@ -61,12 +61,12 @@ case $OPTION in
         read SOURCE_OPT
         
         # Ensure backup container is running to query snapshots
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
 
         REPO_ARGS=""
         if [ "$SOURCE_OPT" = "1" ] || [ -z "$SOURCE_OPT" ]; then
             LOCAL_REPO="/repos/local/restic"
-            if sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+            if docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
               exec -T backup test -f /repos/local/config 2>/dev/null; then
                 LOCAL_REPO="/repos/local"
             fi
@@ -77,7 +77,7 @@ case $OPTION in
         fi
 
         echo "[*] Fetching snapshots..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS snapshots -H docker
         
         echo -n "Enter backup ID to restore: "
@@ -98,18 +98,18 @@ case $OPTION in
 
         echo "[*] Stopping service containers..."
         RESTORE_SERVICES_STOPPED=true
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
         
         # Start only the backup container to perform the restore
         echo "[*] Ensuring restic backup container is active for restore..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
 
         echo "[*] Restoring Snapshot $ID..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS restore $ID -H docker --exclude backingFsBlockDev --target / 
             
         echo "[*] Restarting containers..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
         RESTORE_SERVICES_STOPPED=false
         echo "[OK] System Restore completed."
         ;;
@@ -151,12 +151,12 @@ case $OPTION in
         read SOURCE_OPT
         
         # Ensure backup container is running to query snapshots
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
 
         REPO_ARGS=""
         if [ "$SOURCE_OPT" = "1" ] || [ -z "$SOURCE_OPT" ]; then
             LOCAL_REPO="/repos/local/restic"
-            if sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+            if docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
               exec -T backup test -f /repos/local/config 2>/dev/null; then
                 LOCAL_REPO="/repos/local"
             fi
@@ -167,7 +167,7 @@ case $OPTION in
         fi
 
         echo "[*] Fetching snapshots..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS snapshots -H docker
         
         echo -n "Enter backup ID to browse: "
@@ -179,7 +179,7 @@ case $OPTION in
         fi
 
         echo "[*] Listing directories in snapshot $ID..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS ls $ID /mnt/backup | grep "^d" | awk '{print $NF}'
             
         echo ""
@@ -203,7 +203,7 @@ case $OPTION in
         fi
 
         echo "[*] Restoring..."
-        sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS restore $ID --include "$TARGET_PATH" --target /
             
         if [ $? -eq 0 ]; then
@@ -217,12 +217,12 @@ case $OPTION in
         echo "-------------------------------------------"
         echo "Nextcloud Data Restore Info"
         echo "-------------------------------------------"
-        echo "Nextcloud data (files) are backed up by Restic from ${NEXTCLOUD_DATADIR:-/mnt/nas-data}."
+        echo "Nextcloud data (files) are backed up by Restic from ${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}."
         echo "You can restore them using System Restore (Option 1)."
         echo ""
         echo "If you need to manually restore ONLY the Nextcloud data directory:"
         echo "1. Ensure Nextcloud container is stopped."
-        echo "2. Run: sudo docker compose -f composes/backup/docker-compose.yaml exec backup restic restore <snapshot-id> --include /mnt/backup/nextcloud --target /"
+        echo "2. Run: docker compose -f composes/backup/docker-compose.yaml exec backup restic restore <snapshot-id> --include /mnt/backup/nextcloud --target /"
         echo ""
         echo "After restoring data and config, run '3) Database Restore' to restore the Nextcloud DB."
         ;;

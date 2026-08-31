@@ -20,8 +20,8 @@ NTFY_DIR="$PROJECT_ROOT/composes/ntfy"
 mkdir -p "$NTFY_DIR/config"
 
 # Create external networks if not already present
-sudo docker network create traefik-network >/dev/null 2>&1 || true
-sudo docker network create prometheus-network >/dev/null 2>&1 || true
+docker network create traefik-network >/dev/null 2>&1 || true
+docker network create prometheus-network >/dev/null 2>&1 || true
 
 # Render ntfy server config from template
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/ntfy-server.yml.template"

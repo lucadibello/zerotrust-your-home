@@ -21,13 +21,13 @@ GATUS_DIR="$PROJECT_ROOT/composes/gatus"
 mkdir -p "$GATUS_DIR/config"
 
 # Create external networks if not already present
-sudo docker network create traefik-network >/dev/null 2>&1 || true
-sudo docker network create prometheus-network >/dev/null 2>&1 || true
-sudo docker network create loki-network >/dev/null 2>&1 || true
-sudo docker network create dns-network >/dev/null 2>&1 || true
-sudo docker network create home-network >/dev/null 2>&1 || true
-sudo docker network create immich-network >/dev/null 2>&1 || true
-sudo docker network create nextcloud-aio >/dev/null 2>&1 || true
+docker network create traefik-network >/dev/null 2>&1 || true
+docker network create prometheus-network >/dev/null 2>&1 || true
+docker network create loki-network >/dev/null 2>&1 || true
+docker network create dns-network >/dev/null 2>&1 || true
+docker network create home-network >/dev/null 2>&1 || true
+docker network create immich-network >/dev/null 2>&1 || true
+docker network create nextcloud-aio >/dev/null 2>&1 || true
 
 # Render Gatus config from template
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/gatus.yaml.template"

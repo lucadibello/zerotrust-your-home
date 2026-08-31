@@ -21,7 +21,7 @@ mkdir -p "$PROJECT_ROOT/composes/traefik/dynamic" \
          "$PROJECT_ROOT/composes/traefik/letsencrypt"
 
 # Create external networks if they don't already exist
-sudo docker network create traefik-network >/dev/null 2>&1 || true
-sudo docker network create nextcloud-aio >/dev/null 2>&1 || true
+docker network create traefik-network >/dev/null 2>&1 || true
+docker network create nextcloud-aio >/dev/null 2>&1 || true
 
 echo "[OK] Traefik setup completed"

@@ -24,6 +24,6 @@ mkdir -p "$PROJECT_ROOT/composes/monitoring/prometheus" \
          "$PROJECT_ROOT/composes/monitoring/grafana/settings/datasources"
 
 # Create external prometheus network
-sudo docker network create prometheus-network >/dev/null 2>&1 || true
+docker network create prometheus-network >/dev/null 2>&1 || true
 
 echo "[OK] Prometheus monitoring setup completed"

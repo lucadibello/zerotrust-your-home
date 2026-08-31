@@ -66,7 +66,7 @@ echo "[*] Note: This will import photos into your current Immich instance."
 IMMICH_GO_BIN=$(command -v immich-go || echo "/usr/local/bin/immich-go")
 
 # Run immich-go upload
-sudo docker run --rm \
+docker run --rm \
     --network immich-network \
     -v "$IMMICH_GO_BIN":/usr/local/bin/immich-go:ro \
     -v "$BACKUP_DIR":/backup \

@@ -23,6 +23,6 @@ if [ -z "${TUNNEL_TOKEN:-}" ]; then
 fi
 
 # Ensure traefik-network exists for tunnel connectivity
-sudo docker network create traefik-network >/dev/null 2>&1 || true
+docker network create traefik-network >/dev/null 2>&1 || true
 
 echo "[OK] Cloudflare Tunnel setup completed"

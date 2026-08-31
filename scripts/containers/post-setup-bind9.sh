@@ -23,7 +23,7 @@ mkdir -p "$DNS_CONFIG_DIR" \
          "$PROJECT_ROOT/composes/dns/records"
 
 # Create external Docker network for DNS
-sudo docker network create dns-network >/dev/null 2>&1 || true
+docker network create dns-network >/dev/null 2>&1 || true
 
 # Generate zone filename (e.g., "example.com" becomes "example-com")
 filename=$(echo "$DNS_DOMAIN" | sed 's/\./-/g')
@@ -45,7 +45,7 @@ render_template "$ZONE_TEMPLATE" "$ZONE_TARGET" \
 # 2. Build the ACL block for local subnets
 local_subnets=""
 if command -v nmcli >/dev/null 2>&1; then
-  local_subnets=$(sudo nmcli | grep route4 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+' | sort -u | sed 's|$|;|g' || true)
+  local_subnets=$(nmcli | grep route4 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+' | sort -u | sed 's|$|;|g' || true)
 fi
 
 # Fallback: Detect subnets via iproute2

@@ -14,16 +14,16 @@ if [ ! -f "$RESTIC_COMPOSE" ]; then
 fi
 
 # Ensure backup container is running
-sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
+docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
 
 LOCAL_REPO="/repos/local/restic"
-if sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+if docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec -T backup test -f /repos/local/config 2>/dev/null; then
     LOCAL_REPO="/repos/local"
 fi
 
 echo "[*] Running prune (Local: $LOCAL_REPO)..."
-sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec -T backup restic -r "$LOCAL_REPO" forget --keep-last 5 --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
 LOCAL_EXIT=$?
 
@@ -37,7 +37,7 @@ if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" 
     echo "[*] Cloud prune skipped: Rclone is not configured."
 else
     echo "[*] Running prune (Cloud)..."
-    sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+    docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
       exec -T backup restic forget --keep-last 5 --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
     CLOUD_EXIT=$?
 fi

@@ -25,7 +25,7 @@ mkdir -p "$HA_DIR/certs" \
          "$HA_DIR/zigbee2mqtt/certs"
 
 # Create external home-network for isolated IoT communication
-sudo docker network create home-network >/dev/null 2>&1 || true
+docker network create home-network >/dev/null 2>&1 || true
 
 # Generate TLS certificates for Home Automation if not present
 if [ ! -f "$HA_DIR/mosquitto/certs/ca.crt" ] && [ -f "$PROJECT_ROOT/scripts/certs/generate-certificates.sh" ]; then

@@ -23,9 +23,9 @@ if [ -z "${MC_TUNNEL_TOKEN:-}" ]; then
 fi
 
 # Create Minecraft persistent data volume
-sudo docker volume create mcdata >/dev/null 2>&1 || true
+docker volume create mcdata >/dev/null 2>&1 || true
 
 # Create isolated Minecraft network
-sudo docker network create mc-network >/dev/null 2>&1 || true
+docker network create mc-network >/dev/null 2>&1 || true
 
 echo "[OK] Minecraft server setup completed"

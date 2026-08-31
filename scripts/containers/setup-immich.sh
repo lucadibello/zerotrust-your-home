@@ -34,12 +34,12 @@ for var in "${required_vars[@]}"; do
 done
 
 # Create Immich persistent volumes
-sudo docker volume create "${IMMICH_DB_DATA_LOCATION:-immich_db_data}" >/dev/null 2>&1 || true
-sudo docker volume create immich_pgdata >/dev/null 2>&1 || true
-sudo docker volume create immich-model-cache >/dev/null 2>&1 || true
+docker volume create "${IMMICH_DB_DATA_LOCATION:-immich_db_data}" >/dev/null 2>&1 || true
+docker volume create immich_pgdata >/dev/null 2>&1 || true
+docker volume create immich-model-cache >/dev/null 2>&1 || true
 
 # Create isolated immich internal network
-sudo docker network create immich-network >/dev/null 2>&1 || true
+docker network create immich-network >/dev/null 2>&1 || true
 
 # Ensure host upload and log directories exist
 mkdir -p "${IMMICH_UPLOAD_LOCATION}" \

@@ -52,12 +52,12 @@ echo "[*] Starting Immich backup to $BACKUP_DIR$TARGET_PATH..."
 
 # Ensure log directory exists on host
 IMMICH_LOG_DIR="/var/log/immich-go"
-sudo mkdir -p "$IMMICH_LOG_DIR"
+mkdir -p "$IMMICH_LOG_DIR" 2>/dev/null || true
 
 # Run immich-go inside an alpine container attached to the immich-network
 # We mount the statically linked binary from the host
 # Logs are exported to /var/log/immich-go/ for Loki collection
-sudo docker run --rm \
+docker run --rm \
     --network immich-network \
     -v /usr/local/bin/immich-go:/usr/local/bin/immich-go:ro \
     -v "$BACKUP_DIR":/backup \

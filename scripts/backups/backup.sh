@@ -26,12 +26,12 @@ cleanup() {
 
   # Restart containers if they were stopped
   echo "[*] Restarting containers (Emergency)..."
-  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
+  docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
 
   # Start Nextcloud AIO sibling containers explicitly
   if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
     echo "[*] Starting Nextcloud AIO containers (Emergency)..."
-    sudo docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
+    docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
     sleep 10
   fi
 
@@ -49,11 +49,11 @@ cleanup() {
 # Function to restart containers and disable maintenance mode normally
 start_services() {
   echo "[*] Restarting containers..."
-  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
+  docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
 
   if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
     echo "[*] Starting Nextcloud AIO containers..."
-    sudo docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
+    docker start nextcloud-aio-database nextcloud-aio-redis nextcloud-aio-apache nextcloud-aio-nextcloud 2>/dev/null || true
     
     echo "[*] Waiting for Nextcloud container to start..."
     ATTEMPTS=0
@@ -111,7 +111,7 @@ if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] && [ -z "${NEXTCLOUD_DATADIR:-}" ];
 fi
 
 # Ensure local backup directory exists
-mkdir -p "${LOCAL_BACKUP_DIR}" 2>/dev/null || sudo mkdir -p "${LOCAL_BACKUP_DIR}" 2>/dev/null || true
+mkdir -p "${LOCAL_BACKUP_DIR}" 2>/dev/null || true
 
 IMMICH_EXPORT_FAILED=false
 DB_DUMP_FAILED=false
@@ -139,12 +139,12 @@ if ! bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"; then
 fi
 
 echo "[*] Stopping containers for consistent state..."
-sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
+docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
 
 # Explicitly stop Nextcloud AIO sibling containers if they are running
 if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
   echo "[*] Ensuring Nextcloud AIO containers are stopped..."
-  sudo docker stop nextcloud-aio-database nextcloud-aio-nextcloud nextcloud-aio-redis nextcloud-aio-apache 2>/dev/null || true
+  docker stop nextcloud-aio-database nextcloud-aio-nextcloud nextcloud-aio-redis nextcloud-aio-apache 2>/dev/null || true
 fi
 
 # ------------------------------------------------------------------------------
@@ -154,13 +154,13 @@ echo "[*] Database dumps secured. Restarting services to minimize downtime..."
 start_services
 
 # Ensure the backup container is running
-sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
+docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
 
 echo "[*] Initializing repository if needed..."
 # 1. Local Repository Initialization
-if ! sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic -r /repos/local/restic snapshots >/dev/null 2>&1; then
+if ! docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic -r /repos/local/restic snapshots >/dev/null 2>&1; then
   echo "[*] Local Repository not found. Initializing..."
-  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+  docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
     exec backup restic -r /repos/local/restic init
 fi
 
@@ -174,9 +174,9 @@ if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" 
   echo "[WARNING] Cloud backup skipped: Rclone is not configured ($PROJECT_DIR/config/rclone/rclone.conf missing)."
   echo "          Run 'make configure-backup' to configure Google Drive remote."
 else
-  if ! sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic snapshots >/dev/null 2>&1; then
+  if ! docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic snapshots >/dev/null 2>&1; then
     echo "[*] Cloud Repository not found. Initializing..."
-    sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+    docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
       exec backup restic init
   fi
 fi
@@ -188,7 +188,7 @@ BACKUP_EXIT_CODE=0
 echo "[*] >> Starting Local Backup (Live System to Second Disk)..."
 echo "[!] NOTE: Raw database files in /var/lib/docker/volumes may be inconsistent."
 echo "[!]       You MUST use the SQL dumps in backups/db-dumps/ for database recovery."
-sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec backup restic -r /repos/local/restic backup /mnt/backup --host docker --tag backup --exclude='*.tmp' --verbose
 LOCAL_EXIT=$?
 
@@ -198,7 +198,7 @@ if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" 
   CLOUD_EXIT=1
 else
   echo "[*] >> Starting Cloud Backup (Copying from Local Repo)..."
-  sudo docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+  docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
     exec -e RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}" backup restic copy --from-repo /repos/local/restic
   CLOUD_EXIT=$?
 fi

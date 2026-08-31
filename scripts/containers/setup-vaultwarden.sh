@@ -17,6 +17,6 @@ if [ "${ENABLE_VAULTWARDEN:-false}" != "true" ]; then
 fi
 
 # Create vaultwarden persistent volume
-sudo docker volume create vaultwarden_data >/dev/null 2>&1 || true
+docker volume create vaultwarden_data >/dev/null 2>&1 || true
 
 echo "[OK] Vaultwarden setup completed"

@@ -22,7 +22,7 @@ mkdir -p "$PROJECT_ROOT/composes/logging/loki" \
          /var/log/audit /var/log/immich-go 2>/dev/null || true
 
 # Create networks for Loki log ingestion and Grafana/Alertmanager communication
-sudo docker network create loki-network >/dev/null 2>&1 || true
-sudo docker network create prometheus-network >/dev/null 2>&1 || true
+docker network create loki-network >/dev/null 2>&1 || true
+docker network create prometheus-network >/dev/null 2>&1 || true
 
 echo "[OK] Loki logging setup completed"
