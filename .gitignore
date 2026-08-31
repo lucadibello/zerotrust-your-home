@@ -1,6 +1,8 @@
 .DS_Store
 .env
 .vscode
+.tmp/
+*.tmp
 
 # custom docker-compose files
 composes/*.custom.docker-compose.yaml
@@ -8,8 +10,12 @@ composes/*.custom.docker-compose.yaml
 # additional resources (needed by custom docker-compose files)
 composes/lucadibello
 
-# Ignored Databases
+# Cloud storage & backup configuration (Rclone credentials/tokens)
+config/rclone/
+
+# Ignored Databases & backups
 composes/uptime-kuma/kuma.db
+*.sql.gz
 
 # Secrets / Certificates
 composes/letsencrypt/acme.json
