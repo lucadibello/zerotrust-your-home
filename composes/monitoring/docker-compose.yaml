@@ -88,7 +88,7 @@ services:
       - "/:/host:ro,rslave"
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
     restart: always
     networks:
