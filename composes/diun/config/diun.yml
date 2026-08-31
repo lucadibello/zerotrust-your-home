@@ -1,0 +1,27 @@
+db:
+  path: /data/diun.db
+
+watch:
+  workers: 10
+  schedule: "0 0 * * *"
+  jitter: 30s
+
+providers:
+  docker:
+    watchByDefault: true
+    endpoint: "unix:///var/run/docker.sock"
+
+notif:
+  ntfy:
+    endpoint: "https://ntfy.sh"
+    topic: "my-super-secret-ntfy-topic"
+    token: ""
+    priority: 3
+    tags:
+      - whale
+      - package
+    icon: "https://raw.githubusercontent.com/crazy-max/diun/master/.res/diun.png"
+    timeout: 10s
+    templateTitle: "Docker Image Update: {{ .Entry.Image }}"
+    templateBody: |
+      Docker tag {{ .Entry.Image }} which you subscribed to through {{ .Entry.Provider }} provider has been released.
