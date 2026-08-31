@@ -23,6 +23,7 @@ fi
 
 if [ -z "$IMMICH_API_KEY" ] || [ "$IMMICH_API_KEY" = "your-api-key" ]; then
     echo "Error: IMMICH_API_KEY is not set or is default. Please configure it in .env"
+    send_ntfy "Immich Backup Config Error" "IMMICH_API_KEY is not configured in .env." "warning,camera" "high"
     exit 1
 fi
 
@@ -92,6 +93,7 @@ fi
 # Ensure immich_server container is running
 if [ -z "$(docker ps -q -f name=immich_server 2>/dev/null)" ]; then
     echo "[ERROR] Immich server container (immich_server) is not running. Skipping export."
+    send_ntfy "Immich Backup Failed" "immich_server container is not running. Photo export aborted." "warning,camera,x" "high"
     exit 1
 fi
 
@@ -138,5 +140,6 @@ else
         echo "[*] Relevant error logs from $LATEST_LOG:"
         grep -E "ERR |level=error|Unauthorized|Invalid credentials|connection refused|failed to connect" "$LATEST_LOG" 2>/dev/null | tail -n 5 || tail -n 5 "$LATEST_LOG"
     fi
+    send_ntfy "Immich Backup Failed" "Immich photo export failed ($SUB_DIR). Check logs in /var/log/immich-go/." "warning,camera,x" "high"
     exit 1
 fi
