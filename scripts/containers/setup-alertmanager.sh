@@ -19,6 +19,10 @@ fi
 ALERTMANAGER_DIR="$PROJECT_ROOT/composes/monitoring/alertmanager"
 mkdir -p "$ALERTMANAGER_DIR"
 
+# Create external networks if not already present
+docker network create traefik-network >/dev/null 2>&1 || true
+docker network create prometheus-network >/dev/null 2>&1 || true
+
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/alertmanager.yml.template"
 TARGET="$ALERTMANAGER_DIR/alertmanager.yml"
 
@@ -29,7 +33,7 @@ fi
 
 # Safely render the Alertmanager configuration with ntfy endpoint
 render_template "$TEMPLATE" "$TARGET" \
-  NTFY_URL="${NTFY_URL:-https://ntfy.sh}" \
-  NTFY_TOPIC="${NTFY_TOPIC:-zerotrust-alerts}"
+  NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
+  NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}"
 
 echo "[OK] AlertManager setup completed"

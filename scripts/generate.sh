@@ -74,7 +74,7 @@ required_vars=(
   "DNS_EMAIL"
 )
 
-export NTFY_URL="${NTFY_URL:-https://ntfy.sh}"
+export NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}"
 
 # Optional Hotspot variables (only if ENABLE_HOTSPOT=true)
 required_hotspot_vars=(

@@ -112,6 +112,7 @@ case $OPTION in
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
         RESTORE_SERVICES_STOPPED=false
         echo "[OK] System Restore completed."
+        send_ntfy "System Restore Completed" "Snapshot $ID system restore completed successfully!" "white_check_mark,arrows_counterclockwise" "high"
         ;;
     
     2)
@@ -208,8 +209,10 @@ case $OPTION in
             
         if [ $? -eq 0 ]; then
             echo "[OK] Service restore completed successfully."
+            send_ntfy "Service Restore Completed" "Restored $TARGET_PATH from snapshot $ID successfully." "white_check_mark,arrows_counterclockwise" "default"
         else
             echo "[ERROR] Restore failed."
+            send_ntfy "Service Restore Failed" "Failed to restore $TARGET_PATH from snapshot $ID." "warning,x,arrows_counterclockwise" "high"
         fi
         ;;
 

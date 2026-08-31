@@ -39,8 +39,8 @@ if [ -d "$TARGET" ]; then
 fi
 
 render_template "$TEMPLATE" "$TARGET" \
-  NTFY_URL="${NTFY_URL:-https://ntfy.sh}" \
-  NTFY_TOPIC="${NTFY_TOPIC:-zerotrust-alerts}" \
+  NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
+  NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
   NTFY_TOKEN="${NTFY_TOKEN:-}" \
   DNS_DOMAIN="${DNS_DOMAIN:-example.com}"
 

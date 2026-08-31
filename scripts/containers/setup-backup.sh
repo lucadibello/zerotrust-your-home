@@ -16,6 +16,9 @@ if [ "${ENABLE_BACKUP:-true}" != "true" ]; then
   exit 0
 fi
 
+# Create external networks if not already present
+docker network create traefik-network >/dev/null 2>&1 || true
+
 # Create required directories for backup configs and database dumps
 mkdir -p "$PROJECT_ROOT/composes/backup/db-dumps" \
          "$PROJECT_ROOT/config/rclone" \

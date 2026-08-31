@@ -20,6 +20,9 @@ fi
 DIUN_DIR="$PROJECT_ROOT/composes/diun"
 mkdir -p "$DIUN_DIR/config"
 
+# Create external networks if not already present
+docker network create traefik-network >/dev/null 2>&1 || true
+
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/diun.yml.template"
 TARGET="$DIUN_DIR/config/diun.yml"
 
@@ -29,8 +32,8 @@ if [ -d "$TARGET" ]; then
 fi
 
 render_template "$TEMPLATE" "$TARGET" \
-  NTFY_URL="${NTFY_URL:-https://ntfy.sh}" \
-  NTFY_TOPIC="${NTFY_TOPIC:-zerotrust-alerts}" \
+  NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
+  NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
   NTFY_TOKEN="${NTFY_TOKEN:-}"
 
 echo "[OK] DIUN setup completed"

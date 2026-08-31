@@ -213,7 +213,7 @@ send_ntfy() {
   local priority="${4:-default}"
   
   if [ -n "${NTFY_TOPIC:-}" ]; then
-    local ntfy_base="${NTFY_URL:-https://ntfy.sh}"
+    local ntfy_base="${NTFY_URL:-https://ntfy.home.lucadibello.ch}"
     ntfy_base="${ntfy_base%/}"
     local ntfy_endpoint="${ntfy_base}/${NTFY_TOPIC}"
     local auth_header=()
