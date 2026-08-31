@@ -31,3 +31,6 @@ home-assistant/zigbee2mqtt/certs/
 
 # Database dumps for backup
 backup/db-dumps/
+
+# Homepage generated configuration
+homepage/config/

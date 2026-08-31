@@ -84,6 +84,23 @@ if [ "${ENABLE_NTFY:-false}" = "true" ]; then
   count=$((count + 1))
 fi
 
+# Dashboard: Homepage (ENABLE_HOMEPAGE)
+if [ "${ENABLE_HOMEPAGE:-false}" = "true" ]; then
+  endpoints_block+='
+  # Homepage Dashboard
+  - name: Homepage Dashboard
+    group: Core Infrastructure
+    url: "http://homepage:3000"
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: ntfy
+        enabled: true
+'
+  count=$((count + 1))
+fi
+
 # Core Infrastructure: BIND9 DNS (ENABLE_DNS)
 if [ "${ENABLE_DNS:-true}" = "true" ]; then
   domain_name="${DNS_DOMAIN:-example.com}"
