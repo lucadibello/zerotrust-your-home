@@ -11,7 +11,7 @@ http:
         certresolver: "letsencrypt"
 
     nextcloud-aio:
-      rule: "Host(`iao-cloud.<DOMAIN>`)"
+      rule: "Host(`aio-cloud.<DOMAIN>`)"
       entrypoints:
         - "websecure"
       service: nextcloud-aio
