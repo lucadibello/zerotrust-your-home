@@ -2,15 +2,13 @@
 set -euo pipefail
 trap "exit" INT
 
+# Load common features
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Skip if Logging is disabled
 if [ "${ENABLE_LOGGING:-true}" != "true" ]; then
@@ -20,7 +18,8 @@ fi
 
 # Ensure directories exist
 mkdir -p "$PROJECT_ROOT/composes/logging/loki" \
-         "$PROJECT_ROOT/composes/logging/promtail"
+         "$PROJECT_ROOT/composes/logging/promtail" \
+         /var/log/audit /var/log/immich-go 2>/dev/null || true
 
 # Create networks for Loki log ingestion and Grafana/Alertmanager communication
 sudo docker network create loki-network >/dev/null 2>&1 || true

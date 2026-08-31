@@ -7,11 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Check enable flag (support ENABLE_GATUS, with fallback to legacy ENABLE_UPTIME_KUMA)
 IS_ENABLED="${ENABLE_GATUS:-${ENABLE_UPTIME_KUMA:-false}}"
@@ -36,6 +32,11 @@ sudo docker network create nextcloud-aio >/dev/null 2>&1 || true
 # Render Gatus config from template
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/gatus.yaml.template"
 TARGET="$GATUS_DIR/config/config.yaml"
+
+# If TARGET was accidentally created as a directory by Docker, remove it
+if [ -d "$TARGET" ]; then
+  rm -rf "$TARGET"
+fi
 
 render_template "$TEMPLATE" "$TARGET" \
   NTFY_URL="${NTFY_URL:-https://ntfy.sh}" \

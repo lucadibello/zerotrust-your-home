@@ -7,11 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Skip if SearXNG is not enabled
 if [ "${ENABLE_SEARXNG:-false}" != "true" ]; then
@@ -19,8 +15,16 @@ if [ "${ENABLE_SEARXNG:-false}" != "true" ]; then
   exit 0
 fi
 
+SEARXNG_DIR="$PROJECT_ROOT/composes/searxng"
+mkdir -p "$SEARXNG_DIR"
+
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/settings.yml.template"
-TARGET="$PROJECT_ROOT/composes/searxng/settings.yml"
+TARGET="$SEARXNG_DIR/settings.yml"
+
+# If TARGET was accidentally created as a directory by Docker, remove it
+if [ -d "$TARGET" ]; then
+  rm -rf "$TARGET"
+fi
 
 # Safely render the SearXNG configuration
 render_template "$TEMPLATE" "$TARGET" \

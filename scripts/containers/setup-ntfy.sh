@@ -7,11 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Skip if ntfy self-hosting is disabled
 if [ "${ENABLE_NTFY:-false}" != "true" ]; then
@@ -30,6 +26,11 @@ sudo docker network create prometheus-network >/dev/null 2>&1 || true
 # Render ntfy server config from template
 TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/ntfy-server.yml.template"
 TARGET="$NTFY_DIR/config/server.yml"
+
+# If TARGET was accidentally created as a directory by Docker, remove it
+if [ -d "$TARGET" ]; then
+  rm -rf "$TARGET"
+fi
 
 render_template "$TEMPLATE" "$TARGET" \
   DNS_DOMAIN="${DNS_DOMAIN:-example.com}"

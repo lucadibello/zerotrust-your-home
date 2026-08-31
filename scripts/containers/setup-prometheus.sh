@@ -2,15 +2,13 @@
 set -euo pipefail
 trap "exit" INT
 
+# Load common features
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Skip if Monitoring is disabled
 if [ "${ENABLE_MONITORING:-true}" != "true" ]; then
@@ -21,7 +19,9 @@ fi
 # Ensure monitoring directory structure exists
 mkdir -p "$PROJECT_ROOT/composes/monitoring/prometheus" \
          "$PROJECT_ROOT/composes/monitoring/alertmanager" \
-         "$PROJECT_ROOT/composes/monitoring/grafana"
+         "$PROJECT_ROOT/composes/monitoring/grafana/dashboards" \
+         "$PROJECT_ROOT/composes/monitoring/grafana/settings/dashboards" \
+         "$PROJECT_ROOT/composes/monitoring/grafana/settings/datasources"
 
 # Create external prometheus network
 sudo docker network create prometheus-network >/dev/null 2>&1 || true

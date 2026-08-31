@@ -2,15 +2,13 @@
 set -euo pipefail
 trap "exit" INT
 
+# Load common features
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Skip if Home Automation is not enabled
 if [ "${ENABLE_HOME_AUTOMATION:-false}" != "true" ]; then
@@ -28,6 +26,12 @@ mkdir -p "$HA_DIR/certs" \
 
 # Create external home-network for isolated IoT communication
 sudo docker network create home-network >/dev/null 2>&1 || true
+
+# Generate TLS certificates for Home Automation if not present
+if [ ! -f "$HA_DIR/mosquitto/certs/ca.crt" ] && [ -f "$PROJECT_ROOT/scripts/certs/generate-certificates.sh" ]; then
+  echo "[*] Generating certificates for Home Automation..."
+  bash "$PROJECT_ROOT/scripts/certs/generate-certificates.sh"
+fi
 
 # Initialize mosquitto.conf if not present
 if [ ! -f "$HA_DIR/mosquitto/mosquitto.conf" ]; then

@@ -2,15 +2,13 @@
 set -euo pipefail
 trap "exit" INT
 
+# Load common features
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/scripts/common.sh"
 
 # Load environment variables
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  source "$PROJECT_ROOT/.env"
-  set +a
-fi
+load_env "$PROJECT_ROOT/.env"
 
 # Check if Cloudflare Tunnel is enabled (default: true)
 if [ "${ENABLE_TUNNEL:-true}" != "true" ]; then
