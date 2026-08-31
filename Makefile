@@ -1,4 +1,4 @@
-.PHONY: help start restart logs status stop down view-backups configure-backup backup backup-export prune check restore backup-cron-enable backup-cron-disable backup-cron-status generate update-security update-security-headless update-firewall update-hardening
+.PHONY: check-env check-services help start restart logs status stop down view-backups configure-backup backup backup-export prune check restore backup-cron-enable backup-cron-disable backup-cron-status generate update-security update-security-headless update-firewall update-hardening
 
 COMPOSE = docker compose --project-name zerotrust-your-home --project-directory .
 ENVFILE = .env
@@ -30,6 +30,21 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	$(if $(filter vaultwarden bitwarden,$(1)),composes/vaultwarden/docker-compose.yaml) \
 	$(if $(filter diun,$(1)),composes/diun/docker-compose.yaml) \
 ))
+
+# Macro for running single-service compose commands
+define RUN_SERVICE_COMPOSE
+	@file="$(call FIND_COMPOSE,$(1))"; \
+	if [ -z "$$file" ]; then echo "Error: Compose file for service '$(1)' not found."; exit 1; fi; \
+	echo "$(2) $(1) service (using $$file)..."; \
+	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) $(3)
+endef
+
+# Common prerequisite targets for validation
+check-env:
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+
+check-services: check-env
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
 
 help:  # Show available commands
 	@echo "ZeroTrust Your Home - Available Make targets:"
@@ -68,34 +83,22 @@ help:  # Show available commands
 	@echo "  make update-firewall            Update firewall rules only"
 	@echo "  make update-hardening           Update system hardening only"
 
-start:  # Start all docker containers
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
-	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+start: check-services  # Start all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
 
-restart:  # Restart all docker containers
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
-	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+restart: check-services  # Restart all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) restart
 
-logs:  # View all docker containers logs
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
-	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+logs: check-services  # View all docker containers logs
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) logs -f --tail=50
 
-status:  # View the status of the current ZeroTrust Your Home services
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
-	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+status: check-services  # View the status of the current ZeroTrust Your Home services
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
 
-stop:  # Stop all docker containers
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
-	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+stop: check-services  # Stop all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) stop
 
-down:  # Stop and remove all docker containers
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
-	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+down: check-services  # Stop and remove all docker containers
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) down
 
 view-backups: # View all backups
@@ -145,37 +148,17 @@ update-hardening: # Update only system hardening settings
 
 
 # Specific commands to control each part of the system
-start-%:
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
-	file="$(call FIND_COMPOSE,$*)"; \
-	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
-	echo "Starting $* service (using $$file)..."; \
-	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) up -d
+start-%: check-env
+	$(call RUN_SERVICE_COMPOSE,$*,Starting,up -d)
 
-down-%:
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
-	file="$(call FIND_COMPOSE,$*)"; \
-	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
-	echo "Downing $* service (using $$file)..."; \
-	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) down
+down-%: check-env
+	$(call RUN_SERVICE_COMPOSE,$*,Downing,down)
 
-stop-%:
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
-	file="$(call FIND_COMPOSE,$*)"; \
-	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
-	echo "Stopping $* service (using $$file)..."; \
-	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) stop
+stop-%: check-env
+	$(call RUN_SERVICE_COMPOSE,$*,Stopping,stop)
 
-logs-%:
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
-	file="$(call FIND_COMPOSE,$*)"; \
-	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
-	echo "Logs for $* service (using $$file)..."; \
-	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) logs
+logs-%: check-env
+	$(call RUN_SERVICE_COMPOSE,$*,Showing logs for,logs -f --tail=50)
 
-restart-%:
-	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
-	file="$(call FIND_COMPOSE,$*)"; \
-	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
-	echo "Restarting $* service (using $$file)..."; \
-	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) restart
+restart-%: check-env
+	$(call RUN_SERVICE_COMPOSE,$*,Restarting,restart)
