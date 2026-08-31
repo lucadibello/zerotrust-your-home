@@ -3,7 +3,7 @@ services:
     container_name: immich_server
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     volumes:
-      - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
+      - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/immich}:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     environment:
       - DB_HOSTNAME=database
