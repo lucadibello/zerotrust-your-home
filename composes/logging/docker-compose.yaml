@@ -2,6 +2,7 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: loki
+    user: "0:0"
     volumes:
       - ./composes/logging/loki:/etc/loki
       - loki_data:/tmp/loki
@@ -14,6 +15,7 @@ services:
   promtail:
     image: grafana/promtail:latest
     container_name: promtail
+    user: "0:0"
     volumes:
       - /var/log:/var/log:ro
       - /var/log/audit:/var/log/audit:ro
