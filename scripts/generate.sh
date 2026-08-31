@@ -41,7 +41,6 @@ while [[ "$#" -gt 0 ]]; do
   shift 2>/dev/null || break
 done
 
-
 # Check if .env file exists
 if [ ! -f .env ]; then
   echo "[!] .env file not found. Please create one by copying .env.example and filling in the required variables."
@@ -84,7 +83,6 @@ required_vars=(
 )
 
 export NTFY_URL="${NTFY_URL:-https://ntfy.sh}"
-
 
 # Optional Hotspot variables (only if ENABLE_HOTSPOT=true)
 required_hotspot_vars=(
@@ -156,7 +154,6 @@ if [ "${ENABLE_HOTSPOT:-false}" = "true" ]; then
   done
 fi
 
-
 # Validate Immich variables if enabled
 if [ "$ENABLE_IMMICH" = "true" ]; then
   echo "[*] Validating Immich environment variables..."
@@ -189,7 +186,6 @@ if [ "$ENABLE_SEARXNG" = "true" ]; then
     fi
   done
 fi
-
 
 # Create a temporary directory (if needed)
 mkdir -p ./.tmp || true
@@ -279,12 +275,12 @@ rm -rf ./.tmp
 
 # Fix permissions for generated files (User owned, Container readable)
 if [ -n "${SUDO_USER:-}" ]; then
-    echo "[*] Fixing permissions for user $SUDO_USER..."
-    chown -R "$SUDO_USER:$(id -gn "$SUDO_USER")" ./composes
-    chmod -R o+rX ./composes
-    
-    # Restore strict permissions for acme.json files (Traefik requirement)
-    find ./composes -name "acme.json" -exec chmod 600 {} + 2>/dev/null || true
+  echo "[*] Fixing permissions for user $SUDO_USER..."
+  chown -R "$SUDO_USER:$(id -gn "$SUDO_USER")" ./composes
+  chmod -R o+rX ./composes
+
+  # Restore strict permissions for acme.json files (Traefik requirement)
+  find ./composes -name "acme.json" -exec chmod 600 {} + 2>/dev/null || true
 fi
 
 echo ""

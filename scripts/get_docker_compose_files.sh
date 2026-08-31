@@ -2,12 +2,25 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="${1:-}"
+
+if [ -z "$ENV_FILE" ]; then
+  if [ -f "$PROJECT_DIR/.env" ]; then
+    ENV_FILE="$PROJECT_DIR/.env"
+  elif [ -f .env ]; then
+    ENV_FILE=".env"
+  fi
+fi
+
 if [ -f "$SCRIPT_DIR/common.sh" ]; then
   source "$SCRIPT_DIR/common.sh"
-  load_env .env
-elif [ -f .env ]; then
+  if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
+    load_env "$ENV_FILE"
+  fi
+elif [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
   set -a
-  source .env
+  source "$ENV_FILE"
   set +a
 fi
 
@@ -16,13 +29,20 @@ FILES=""
 # Helper function to find and add service compose file
 add_service() {
   local service="$1"
+  local target=""
   # Search subfolder first, then direct file
   if [ -f "composes/$service/docker-compose.yaml" ]; then
-    FILES="$FILES -f composes/$service/docker-compose.yaml"
+    target="composes/$service/docker-compose.yaml"
   elif [ -f "composes/$service/$service.docker-compose.yaml" ]; then
-    FILES="$FILES -f composes/$service/$service.docker-compose.yaml"
+    target="composes/$service/$service.docker-compose.yaml"
   elif [ -f "composes/$service.docker-compose.yaml" ]; then
-    FILES="$FILES -f composes/$service.docker-compose.yaml"
+    target="composes/$service.docker-compose.yaml"
+  fi
+
+  if [ -n "$target" ]; then
+    if [[ " $FILES " != *" -f $target "* ]]; then
+      FILES="$FILES -f $target"
+    fi
   fi
 }
 

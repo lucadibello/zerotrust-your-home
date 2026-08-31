@@ -167,22 +167,37 @@ EOF
 load_env() {
   local env_file="${1:-.env}"
   if [ -f "$env_file" ]; then
+    local dq_re='^"(([^"\\]|\\.)*)"'
+    local sq_re="^'([^']*)'"
     while IFS= read -r line || [ -n "$line" ]; do
       # Remove leading whitespace
       line="${line#"${line%%[![:space:]]*}"}"
       # Skip comments and empty lines
       [[ "$line" =~ ^# ]] && continue
       [[ -z "$line" ]] && continue
+      # Strip optional export prefix
+      if [[ "$line" =~ ^export[[:space:]]+ ]]; then
+        line="${line#export }"
+        line="${line#"${line%%[![:space:]]*}"}"
+      fi
       # Check if line contains =
       if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
         local key="${BASH_REMATCH[1]}"
         local val="${BASH_REMATCH[2]}"
+        # Strip leading whitespace from val
+        val="${val#"${val%%[![:space:]]*}"}"
+        if [[ "$val" =~ $dq_re ]]; then
+          val="${BASH_REMATCH[1]}"
+        elif [[ "$val" =~ $sq_re ]]; then
+          val="${BASH_REMATCH[1]}"
+        else
+          # Strip trailing comments (starting with #)
+          val="${val%%#*}"
+          # Strip trailing whitespace
+          val="${val%"${val##*[![:space:]]}"}"
+        fi
         # Only set if not already set in environment
         if [ -z "${!key+x}" ]; then
-          # Strip surrounding quotes if present
-          if [[ "$val" =~ ^\"(.*)\"$ ]] || [[ "$val" =~ ^\'(.*)\'$ ]]; then
-            val="${BASH_REMATCH[1]}"
-          fi
           export "$key"="$val"
         fi
       fi

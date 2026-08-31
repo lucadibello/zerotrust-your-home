@@ -1,19 +1,21 @@
+.PHONY: help start restart logs status stop down view-backups configure-backup backup backup-export prune check restore backup-cron-enable backup-cron-disable backup-cron-status generate update-security update-security-headless update-firewall update-hardening
+
 COMPOSE = docker compose
 ENVFILE = .env
 
 # Dynamically generate compose arguments based on enabled services and custom files
-COMPOSE_ARGS := $(shell bash scripts/get_docker_compose_files.sh)
+COMPOSE_ARGS := $(shell bash scripts/get_docker_compose_files.sh $(ENVFILE))
 
 # Helper function to find the docker compose file for a given service name or alias
 FIND_COMPOSE = $(firstword $(wildcard \
 	composes/$(1)/docker-compose.yaml \
 	composes/$(1)/$(1).docker-compose.yaml \
 	composes/$(1).docker-compose.yaml \
-	$(if $(filter home,$(1)),composes/home-assistant/docker-compose.yaml) \
+	$(if $(filter home homeassistant hass,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter home-assistant,$(1)),composes/home-assistant/docker-compose.yaml) \
-	$(if $(filter prometheus,$(1)),composes/monitoring/docker-compose.yaml) \
+	$(if $(filter prometheus grafana alertmanager,$(1)),composes/monitoring/docker-compose.yaml) \
 	$(if $(filter monitoring,$(1)),composes/monitoring/docker-compose.yaml) \
-	$(if $(filter loki,$(1)),composes/logging/docker-compose.yaml) \
+	$(if $(filter loki promtail,$(1)),composes/logging/docker-compose.yaml) \
 	$(if $(filter logging,$(1)),composes/logging/docker-compose.yaml) \
 	$(if $(filter restic,$(1)),composes/backup/docker-compose.yaml) \
 	$(if $(filter backup,$(1)),composes/backup/docker-compose.yaml) \
@@ -21,24 +23,79 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	$(if $(filter dns,$(1)),composes/dns/docker-compose.yaml) \
 	$(if $(filter mcserver,$(1)),composes/minecraft/docker-compose.yaml) \
 	$(if $(filter minecraft,$(1)),composes/minecraft/docker-compose.yaml) \
-	$(if $(filter gatus,$(1)),composes/gatus/docker-compose.yaml) \
+	$(if $(filter gatus uptime-kuma uptimekuma,$(1)),composes/gatus/docker-compose.yaml) \
 	$(if $(filter ntfy,$(1)),composes/ntfy/docker-compose.yaml) \
+	$(if $(filter traefik reverse-proxy proxy,$(1)),composes/traefik/docker-compose.yaml) \
+	$(if $(filter tunnel cloudflare cloudflared,$(1)),composes/tunnel/docker-compose.yaml) \
+	$(if $(filter vaultwarden bitwarden,$(1)),composes/vaultwarden/docker-compose.yaml) \
 ))
 
+help:  # Show available commands
+	@echo "ZeroTrust Your Home - Available Make targets:"
+	@echo ""
+	@echo "Management targets:"
+	@echo "  make start                      Start all enabled services"
+	@echo "  make stop                       Stop all running services"
+	@echo "  make restart                    Restart all enabled services"
+	@echo "  make status                     View status of all services"
+	@echo "  make logs                       View live tail of all logs"
+	@echo "  make down                       Stop and remove all containers"
+	@echo "  make generate                   Regenerate configurations from .env"
+	@echo ""
+	@echo "Service-specific targets (<service> = traefik, nextcloud, immich, etc.):"
+	@echo "  make start-<service>            Start a specific service"
+	@echo "  make stop-<service>             Stop a specific service"
+	@echo "  make restart-<service>          Restart a specific service"
+	@echo "  make logs-<service>             View logs for a specific service"
+	@echo "  make down-<service>             Stop and remove a specific service"
+	@echo ""
+	@echo "Backup & restore targets:"
+	@echo "  make backup                     Create a full system backup"
+	@echo "  make backup-export              Export DB dumps and Immich photos"
+	@echo "  make restore                    Interactive restore menu"
+	@echo "  make view-backups               View cloud backups"
+	@echo "  make check                      Verify backup integrity"
+	@echo "  make prune                      Prune old backups"
+	@echo "  make configure-backup           Configure Rclone remote"
+	@echo "  make backup-cron-enable         Enable daily automatic backup cron"
+	@echo "  make backup-cron-disable        Disable daily automatic backup cron"
+	@echo "  make backup-cron-status         Show backup cron status"
+	@echo ""
+	@echo "Security targets:"
+	@echo "  make update-security            Update hardening and firewall interactively"
+	@echo "  make update-security-headless   Update hardening and firewall without prompts"
+	@echo "  make update-firewall            Update firewall rules only"
+	@echo "  make update-hardening           Update system hardening only"
+
 start:  # Start all docker containers
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) up -d
 
 restart:  # Restart all docker containers
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) restart
 
 logs:  # View all docker containers logs
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) logs -f --tail=50
 
 status:  # View the status of the current ZeroTrust Your Home services
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}"
 
 stop:  # Stop all docker containers
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
 	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) stop
+
+down:  # Stop and remove all docker containers
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi
+	@if [ -z "$(COMPOSE_ARGS)" ]; then echo "Error: No enabled service compose files found. Check your $(ENVFILE) configuration."; exit 1; fi
+	@sudo $(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) down
 
 view-backups: # View all backups
 	@bash scripts/backups/view-backups.sh
@@ -88,31 +145,36 @@ update-hardening: # Update only system hardening settings
 
 # Specific commands to control each part of the system
 start-%:
-	@file="$(call FIND_COMPOSE,$*)"; \
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
+	file="$(call FIND_COMPOSE,$*)"; \
 	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
 	echo "Starting $* service (using $$file)..."; \
 	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) up -d
 
 down-%:
-	@file="$(call FIND_COMPOSE,$*)"; \
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
+	file="$(call FIND_COMPOSE,$*)"; \
 	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
 	echo "Downing $* service (using $$file)..."; \
 	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) down
 
 stop-%:
-	@file="$(call FIND_COMPOSE,$*)"; \
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
+	file="$(call FIND_COMPOSE,$*)"; \
 	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
 	echo "Stopping $* service (using $$file)..."; \
 	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) stop
 
 logs-%:
-	@file="$(call FIND_COMPOSE,$*)"; \
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
+	file="$(call FIND_COMPOSE,$*)"; \
 	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
 	echo "Logs for $* service (using $$file)..."; \
 	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) logs
 
 restart-%:
-	@file="$(call FIND_COMPOSE,$*)"; \
+	@if [ ! -f $(ENVFILE) ]; then echo "Error: $(ENVFILE) file not found. Please create one by copying .env.example."; exit 1; fi; \
+	file="$(call FIND_COMPOSE,$*)"; \
 	if [ -z "$$file" ]; then echo "Error: Compose file for service '$*' not found."; exit 1; fi; \
 	echo "Restarting $* service (using $$file)..."; \
 	sudo $(COMPOSE) --file "$$file" --env-file $(ENVFILE) restart
