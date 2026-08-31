@@ -59,9 +59,7 @@ export HEADLESS_MODE
 source ./scripts/common.sh
 
 # Load environment variables
-set -a
-source .env
-set +a
+load_env .env
 
 # Core required variables (always needed)
 required_vars=(
