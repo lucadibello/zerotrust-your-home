@@ -10,6 +10,7 @@ dns/records/
 
 # Alertmanager generated configuration
 monitoring/alertmanager/alertmanager.yml
+monitoring/alertmanager/data/
 
 # Gatus generated configuration and persistent database
 gatus/config/config.yaml
@@ -20,6 +21,10 @@ ntfy/config/server.yml
 ntfy/cache/
 ntfy/data/
 
+# DIUN generated configuration and database
+diun/config/
+diun/data/
+
 # SearXNG generated settings
 searxng/settings.yml
 
@@ -27,7 +32,10 @@ searxng/settings.yml
 home-assistant/certs/
 home-assistant/mosquitto/certs/
 home-assistant/mosquitto/log/
+home-assistant/mosquitto/data/
 home-assistant/zigbee2mqtt/certs/
+home-assistant/zigbee2mqtt/log/
+home-assistant/zigbee2mqtt/data/
 
 # Database dumps for backup
 backup/db-dumps/
