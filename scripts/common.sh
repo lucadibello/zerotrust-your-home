@@ -202,6 +202,9 @@ load_env() {
         fi
       fi
     done < "$env_file"
+
+    export PRIMARY_DNS="${PRIMARY_DNS:-192.168.0.253}"
+    export SECONDARY_DNS="${SECONDARY_DNS:-1.1.1.1}"
   fi
 }
 

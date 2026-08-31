@@ -12,6 +12,9 @@ services:
       - TZ=Europe/Zurich
       - LOG_LEVEL=info
       - LOG_JSON=false
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
     networks:
       - traefik-network
 

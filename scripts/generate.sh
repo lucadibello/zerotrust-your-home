@@ -59,7 +59,8 @@ load_env .env
 required_vars=(
   "IP_ADDRESS"
   "IP_GATEWAY"
-  "DNS_SERVERS"
+  "PRIMARY_DNS"
+  "SECONDARY_DNS"
   "SUBNET_MASK"
   "TLS_CERTIFICATE_COUNTRY"
   "TLS_CERTIFICATE_STATE"
@@ -75,6 +76,8 @@ required_vars=(
 )
 
 export NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}"
+export PRIMARY_DNS="${PRIMARY_DNS:-192.168.0.253}"
+export SECONDARY_DNS="${SECONDARY_DNS:-1.1.1.1}"
 
 # Optional Hotspot variables (only if ENABLE_HOTSPOT=true)
 required_hotspot_vars=(

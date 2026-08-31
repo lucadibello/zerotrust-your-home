@@ -9,6 +9,9 @@ services:
     environment:
       SEARXNG_BASE_URL: "https://search.${DNS_DOMAIN}/"
       UWSGI_WORKERS: "2"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
     volumes:
       - ./composes/searxng/settings.yml:/etc/searxng/settings.yml:ro
     labels:

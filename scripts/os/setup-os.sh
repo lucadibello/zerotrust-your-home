@@ -207,6 +207,14 @@ if ! systemctl is-active --quiet systemd-timesyncd.service 2>/dev/null; then
   sudo systemctl start systemd-timesyncd.service 2>/dev/null || true
 fi
 
+# Configure Docker daemon default DNS
+p_dns="${PRIMARY_DNS:-192.168.0.253}"
+s_dns="${SECONDARY_DNS:-1.1.1.1}"
+sudo mkdir -p /etc/docker
+if [ ! -f /etc/docker/daemon.json ]; then
+  echo "{\"dns\": [\"$p_dns\", \"$s_dns\"]}" | sudo tee /etc/docker/daemon.json >/dev/null
+fi
+
 # Enable and start Docker service
 if command -v docker >/dev/null 2>&1; then
   echo "[*] Ensuring Docker service is running..."

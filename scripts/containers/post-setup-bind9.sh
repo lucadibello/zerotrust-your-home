@@ -58,13 +58,14 @@ if [ -z "$local_subnets" ] && [ -n "${LOCAL_NETWORK:-}" ]; then
   local_subnets="${LOCAL_NETWORK};"
 fi
 
-acl_block="acl internal {\n"
+acl_block="acl internal {\n    127.0.0.0/8;\n    10.0.0.0/8;\n    172.16.0.0/12;\n    192.168.0.0/16;\n"
 if [ -n "$local_subnets" ]; then
   for subnet in $local_subnets; do
-    acl_block+="    ${subnet}\n"
+    # avoid duplicates if already standard
+    if [[ "$subnet" != "127."* && "$subnet" != "10."* && "$subnet" != "172.16."* && "$subnet" != "192.168."* ]]; then
+      acl_block+="    ${subnet}\n"
+    fi
   done
-else
-  acl_block+="    127.0.0.0/8;\n    192.168.0.0/16;\n    10.0.0.0/8;\n    172.16.0.0/12;\n"
 fi
 acl_block+="};\n"
 

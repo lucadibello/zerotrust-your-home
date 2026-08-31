@@ -66,15 +66,17 @@ if [ -z "$eth_connection" ]; then
   eth_connection=$(nmcli -t -f NAME,DEVICE,TYPE connection show 2>/dev/null | grep ":ethernet$" | head -n1 | cut -d: -f1)
 fi
 
+dns_config="${PRIMARY_DNS:-192.168.0.253} ${SECONDARY_DNS:-1.1.1.1}"
+
 if [ -n "$eth_connection" ]; then
   echo "[*] Modifying existing NetworkManager connection: '$eth_connection'..."
   sudo nmcli connection modify "$eth_connection" ipv4.method manual ipv4.addresses "$IP_ADDRESS/$SUBNET_MASK" ipv4.gateway "$IP_GATEWAY"
-  sudo nmcli connection modify "$eth_connection" ipv4.dns "$DNS_SERVERS"
+  sudo nmcli connection modify "$eth_connection" ipv4.dns "$dns_config"
   sudo nmcli connection up "$eth_connection" || echo "[!] Warning: Could not re-activate connection '$eth_connection'."
 elif [ -n "$target_if" ]; then
   echo "[*] Creating new NetworkManager connection for device '$target_if'..."
   sudo nmcli connection add type ethernet con-name "$target_if" ifname "$target_if" \
-    ipv4.method manual ipv4.addresses "$IP_ADDRESS/$SUBNET_MASK" ipv4.gateway "$IP_GATEWAY" ipv4.dns "$DNS_SERVERS"
+    ipv4.method manual ipv4.addresses "$IP_ADDRESS/$SUBNET_MASK" ipv4.gateway "$IP_GATEWAY" ipv4.dns "$dns_config"
   sudo nmcli connection up "$target_if" || echo "[!] Warning: Could not activate new connection '$target_if'."
 else
   echo "[!] Warning: No Ethernet interface or connection profile found. If on Proxmox, please configure IP in Proxmox Cloud-Init."
