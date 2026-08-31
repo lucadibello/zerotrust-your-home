@@ -793,10 +793,10 @@ The following table lists all information about the containers used by the serve
 | `mosquitto`                     | `eclipse-mosquitto:latest`                           | `home-network`                                                          | `always`         |
 | `zigbee2mqtt`                   | `koenkk/zigbee2mqtt:latest`                          | `traefik-network`, `home-network`                                       | `always`         |
 | `homeassistant`                 | `ghcr.io/home-assistant/home-assistant:stable`       | `traefik-network`, `home-network`                                       | `always`         |
-| `restic`                        | `mazzolino/restic:latest`                            | `bridge`                                                                | `always`         |
+| `restic`                        | `instrumentisto/restic:latest`                       | `traefik-network`                                                       | `unless-stopped` |
 | `loki`                          | `grafana/loki:latest`                                | `traefik-network`, `loki-network`                                       | `always`         |
 | `promtail`                      | `grafana/promtail:latest`                            | `loki-network`                                                          | `always`         |
-| `diun`                          | `crazymax/diun:latest`                               | `bridge`                                                                | `always`         |
+| `diun`                          | `crazymax/diun:latest`                               | `traefik-network`                                                       | `always`         |
 | `vaultwarden`                   | `vaultwarden/server:latest`                          | `traefik-network`                                                       | `always`         |
 | `nextcloud-aio-mastercontainer` | `nextcloud/all-in-one:latest`                        | `traefik-network`                                                       | `always`         |
 | `portainer`                     | `portainer/portainer-ce:latest`                      | `traefik-network`                                                       | `always`         |
