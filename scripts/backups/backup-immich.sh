@@ -89,11 +89,19 @@ else
     ARGS="--from-date-range=$YESTERDAY,$TODAY"
 fi
 
+# Ensure immich_server container is running
+if [ -z "$(docker ps -q -f name=immich_server 2>/dev/null)" ]; then
+    echo "[ERROR] Immich server container (immich_server) is not running. Skipping export."
+    exit 1
+fi
+
 echo "[*] Starting Immich backup to $BACKUP_DIR/$SUB_DIR..."
 
 # Ensure log directory exists on host
 IMMICH_LOG_DIR="/var/log/immich-go"
 mkdir -p "$IMMICH_LOG_DIR" 2>/dev/null || true
+
+PREV_LOG=$(ls -t "$IMMICH_LOG_DIR"/immich-go_*.log 2>/dev/null | head -1 || true)
 
 # Run immich-go inside an alpine container attached to the immich-network
 # We mount the statically linked binary from the host
@@ -109,10 +117,26 @@ docker run --rm \
     --from-api-key="$IMMICH_API_KEY" \
     --write-to-folder="/backup/$SUB_DIR" \
     $ARGS
+IMMICH_EXIT=$?
 
-if [ $? -eq 0 ]; then
+# Identify the newly created log file
+LATEST_LOG=$(ls -t "$IMMICH_LOG_DIR"/immich-go_*.log 2>/dev/null | head -1 || true)
+
+# Detect failure if docker run exited non-zero OR if log file recorded errors
+HAS_LOG_ERRORS=false
+if [ -n "$LATEST_LOG" ] && [ "$LATEST_LOG" != "$PREV_LOG" ] && [ -f "$LATEST_LOG" ]; then
+    if grep -qE "ERR |level=error|Unauthorized|Invalid credentials|connection refused|failed to connect" "$LATEST_LOG" 2>/dev/null; then
+        HAS_LOG_ERRORS=true
+    fi
+fi
+
+if [ $IMMICH_EXIT -eq 0 ] && [ "$HAS_LOG_ERRORS" = "false" ]; then
     echo "[OK] Immich backup completed successfully."
 else
     echo "[ERROR] Immich backup failed."
+    if [ -n "$LATEST_LOG" ] && [ -f "$LATEST_LOG" ]; then
+        echo "[*] Relevant error logs from $LATEST_LOG:"
+        grep -E "ERR |level=error|Unauthorized|Invalid credentials|connection refused|failed to connect" "$LATEST_LOG" 2>/dev/null | tail -n 5 || tail -n 5 "$LATEST_LOG"
+    fi
     exit 1
 fi
