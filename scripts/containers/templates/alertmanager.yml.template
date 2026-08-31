@@ -11,6 +11,6 @@ route:
 receivers:
   - name: "ntfy"
     webhook_configs:
-      - url: "<NTFY_URL>/<NTFY_TOPIC>?format=alertmanager"
+      - url: "<NTFY_URL>/<NTFY_TOPIC>?template=alertmanager"
         send_resolved: true
         max_alerts: 10<NTFY_AUTH_CONFIG>
