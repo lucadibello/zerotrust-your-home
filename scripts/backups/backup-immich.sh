@@ -77,19 +77,19 @@ if [ "$FORCE_FULL" = "true" ] || [ "$DAY_OF_MONTH" = "01" ]; then
     else
         echo "[*] Date is 1st of the month. Running FULL Periodic Backup..."
     fi
-    TARGET_PATH="/backup/full/$(date +%Y-%m)"
+    SUB_DIR="full/$(date +%Y-%m)"
     ARGS=""
 elif [ -n "$CUSTOM_DATE_RANGE" ]; then
     echo "[*] Running custom date range backup ($CUSTOM_DATE_RANGE)..."
-    TARGET_PATH="/backup/custom/$TODAY"
+    SUB_DIR="custom/$TODAY"
     ARGS="--from-date-range=$CUSTOM_DATE_RANGE"
 else
     echo "[*] Running INCREMENTAL Backup (Yesterday: $YESTERDAY to Today: $TODAY)..."
-    TARGET_PATH="/backup/incremental/$TODAY"
+    SUB_DIR="incremental/$TODAY"
     ARGS="--from-date-range=$YESTERDAY,$TODAY"
 fi
 
-echo "[*] Starting Immich backup to $BACKUP_DIR$TARGET_PATH..."
+echo "[*] Starting Immich backup to $BACKUP_DIR/$SUB_DIR..."
 
 # Ensure log directory exists on host
 IMMICH_LOG_DIR="/var/log/immich-go"
@@ -107,7 +107,7 @@ docker run --rm \
     /usr/local/bin/immich-go archive from-immich \
     --from-server=http://immich_server:2283 \
     --from-api-key="$IMMICH_API_KEY" \
-    --write-to-folder="$TARGET_PATH" \
+    --write-to-folder="/backup/$SUB_DIR" \
     $ARGS
 
 if [ $? -eq 0 ]; then
