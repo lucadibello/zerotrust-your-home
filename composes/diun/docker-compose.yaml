@@ -12,7 +12,13 @@ services:
       - TZ=Europe/Zurich
       - LOG_LEVEL=info
       - LOG_JSON=false
+    networks:
+      - traefik-network
 
 volumes:
   diun_data:
     name: diun_data
+
+networks:
+  traefik-network:
+    external: true

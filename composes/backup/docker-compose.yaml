@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     # Infinite loop to keep container running for 'exec' commands
     entrypoint: /bin/sh -c 'while true; do sleep 3600; done'
+    networks:
+      - traefik-network
     environment:
       RUN_ON_STARTUP: "true" # Backup on startup
       BACKUP_CRON: "0 0 * * *" # Backup every day at 00:00
@@ -27,6 +29,11 @@ services:
       IMMICH_DB_USERNAME: ${IMMICH_DB_USERNAME:-postgres}
       IMMICH_DB_DATABASE_NAME: ${IMMICH_DB_DATABASE_NAME:-immich}
 
+      # Ntfy notifications
+      NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
+      NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+
       # Pre-backup commands: clean volumes + dump databases
       PRE_COMMANDS: |-
         docker volume prune -f
@@ -39,13 +46,13 @@ services:
         fi
         echo "[OK] Pre-backup tasks completed."
 
-      # Notification scripts using ntfy.sh
+      # Notification scripts using ntfy
       POST_COMMANDS_SUCCESS: |-
-        curl -s -H "Title: Backup Successful" -H "Tags: white_check_mark,floppy_disk" -d "Docker volumes backup completed successfully!" "${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
+        curl -s -H "Title: Backup Successful" -H "Tags: white_check_mark,floppy_disk" -d "Docker volumes backup completed successfully!" "${NTFY_URL:-https://ntfy.home.lucadibello.ch}/${NTFY_TOPIC:-lucadibello-homelab-status}"
       POST_COMMANDS_FAILURE: |-
-        curl -s -H "Title: Backup Failed" -H "Priority: high" -H "Tags: warning,x,floppy_disk" -d "An error occurred during Docker volumes backup! Check Restic logs for details." "${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
+        curl -s -H "Title: Backup Failed" -H "Priority: high" -H "Tags: warning,x,floppy_disk" -d "An error occurred during Docker volumes backup! Check Restic logs for details." "${NTFY_URL:-https://ntfy.home.lucadibello.ch}/${NTFY_TOPIC:-lucadibello-homelab-status}"
       POST_COMMANDS_INCOMPLETE: |-
-        curl -s -H "Title: Backup Incomplete" -H "Priority: high" -H "Tags: warning,floppy_disk" -d "The docker volumes backup was not completed successfully! Check Restic logs for details." "${NTFY_URL:-https://ntfy.sh}/${NTFY_TOPIC}"
+        curl -s -H "Title: Backup Incomplete" -H "Priority: high" -H "Tags: warning,floppy_disk" -d "The docker volumes backup was not completed successfully! Check Restic logs for details." "${NTFY_URL:-https://ntfy.home.lucadibello.ch}/${NTFY_TOPIC:-lucadibello-homelab-status}"
 
     volumes:
       # Rclone configuration (Read-Write to allow token refreshes)
@@ -63,3 +70,7 @@ services:
       
       # Docker socket
       - /var/run/docker.sock:/var/run/docker.sock
+
+networks:
+  traefik-network:
+    external: true
