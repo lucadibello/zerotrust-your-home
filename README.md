@@ -131,7 +131,7 @@ These services can be enabled based on user requirements:
 | `ENABLE_NEXTCLOUD`       | Nextcloud                              | Self-hosted cloud storage    |
 | `ENABLE_PORTAINER`       | Portainer                              | Docker management UI         |
 | `ENABLE_GATUS`           | Gatus                                  | Service health monitoring & status page |
-| `ENABLE_WATCHTOWER`      | Watchtower                             | Automatic container updates  |
+| `ENABLE_DIUN`            | DIUN                                   | Docker image update notifier |
 
 ### 5.3. Additional services
 
@@ -239,7 +239,7 @@ The following security alerting rules are configured:
 
 10. **Systemd Service Failed**: triggers when multiple systemd services fail or stop unexpectedly within 5 minutes.
 
-These alerts are sent via *Alertmanager* to the configured Telegram bot, ensuring system administrators are notified in real-time of potential security incidents.
+These alerts are sent via *Alertmanager* to the configured ntfy topic, ensuring system administrators are notified in real-time of potential security incidents.
 
 ### 6.2. Log management suite
 
@@ -301,8 +301,8 @@ A unified CLI is provided to manage all backup and restore operations.
     4.  **Nextcloud Info:** Displays instructions for restoring Nextcloud files.
 
 #### 6.3.5. Backup notifications
-
-Leveraging Telegram APIs, the system notifies administrators when backup operations complete, fail, or encounter errors.
+ 
+Leveraging ntfy push notifications, the system notifies administrators when backup operations complete, fail, or encounter errors.
 
 
 <img src="./assets/images/restic-backup-notification.jpeg" width="400">
@@ -370,13 +370,9 @@ To solve this problem, the system configuration script installs and configure th
 
 Given the virtualized nature of the system infrastructure, it is critical to keep Docker containers up to date with the latest security patches and updates. Similar to system updates, this can be done either manually by administrators or autonomously using dedicated tools that periodically check for new image versions and update running containers.
 
-To automate this process, the tool [Watchtower](https://github.com/containrrr/watchtower) has been selected due to its simplicity to deploy and use. This containerized tool periodically scans the running containers for out- dated images and based on the specified configuration, updates containers with the latest available image version (if any).
+To automate this process, [DIUN (Docker Image Update Notifier)](https://github.com/crazy-max/diun) has been selected. This tool periodically scans running containers and registries for outdated images and sends notifications via ntfy whenever an updated image is published.
 
-Notably, this tool automatically restarts updated containers using the new image, ensuring the latest version of the image is always running. This is a critical feature as it allows to maintain the previous container configuration to prevent breaking changes.
-
-The _Watchtower_ container has been configured to check for new versions of the images every 24 hours. After every cycle, a full report is generated and sent to the system administrator via Telegram. This is a screenshot of the update report sent by _Watchtower_:
-
-<img src="./assets/images/watchtower-notification.jpg" width="400">
+The _DIUN_ container is configured to check for new image versions daily. Notifications with image tags, digests, and details are sent directly to the configured ntfy topic.
 
 ### 6.6. Network infrastructure
 
@@ -752,7 +748,7 @@ The following table outlines the services used to build the current infrastructu
 | Grafana Loki                                  | Log aggregation system to collect and store logs                             | Yes        | -                       | 3100    |
 | Grafana Promtail                              | Loki log collector (agent)                                                   | Yes        | -                       | 9080    |
 | **Automatic updates**                         |
-| Watchtower                                    | Automatic Docker images updates                                              | Yes        | -                       | -       |
+| DIUN                                          | Docker image update notifier                                                 | Yes        | -                       | -       |
 | Unattended-upgrades                           | Automatic system updates and security patches                                | No         | -                       | -       |
 | **Additional services (optional)**            |
 | ntfy                                          | Self-hosted push notification service                                        | Yes        | ntfy.your.domain        | 80      |
@@ -800,7 +796,7 @@ The following table lists all information about the containers used by the serve
 | `restic`                        | `mazzolino/restic:latest`                            | `bridge`                                                                | `always`         |
 | `loki`                          | `grafana/loki:latest`                                | `traefik-network`, `loki-network`                                       | `always`         |
 | `promtail`                      | `grafana/promtail:latest`                            | `loki-network`                                                          | `always`         |
-| `watchtower`                    | `containrrr/watchtower:latest`                       | `bridge`                                                                | `always`         |
+| `diun`                          | `crazymax/diun:latest`                               | `bridge`                                                                | `always`         |
 | `vaultwarden`                   | `vaultwarden/server:latest`                          | `traefik-network`                                                       | `always`         |
 | `nextcloud-aio-mastercontainer` | `nextcloud/all-in-one:latest`                        | `traefik-network`                                                       | `always`         |
 | `portainer`                     | `portainer/portainer-ce:latest`                      | `traefik-network`                                                       | `always`         |
