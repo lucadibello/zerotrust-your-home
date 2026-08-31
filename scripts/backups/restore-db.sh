@@ -5,15 +5,12 @@ trap "exit" INT
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Load .env file
+# Load common features and .env
+source "$PROJECT_DIR/scripts/common.sh"
 if [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
+    load_env "$PROJECT_DIR/.env"
 elif [ -f .env ]; then
-    set -a
-    source .env
-    set +a
+    load_env .env
 fi
 
 DUMP_DIR="$PROJECT_DIR/composes/backup/db-dumps"

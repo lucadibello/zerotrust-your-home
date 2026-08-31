@@ -5,12 +5,9 @@ trap "exit" INT
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Load .env file
-if [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
-fi
+# Load common features and .env
+source "$PROJECT_DIR/scripts/common.sh"
+load_env "$PROJECT_DIR/.env"
 
 # Run Immich backup if enabled (requires Immich to be running)
 if [ "${ENABLE_IMMICH:-false}" = "true" ]; then

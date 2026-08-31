@@ -2,19 +2,15 @@
 
 trap "exit" INT
 
-# Load .env file
-if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
-elif [ -f ../.env ]; then
-    set -a
-    source ../.env
-    set +a
-elif [ -f ../../.env ]; then
-    set -a
-    source ../../.env
-    set +a
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load common features and .env
+source "$PROJECT_DIR/scripts/common.sh"
+if [ -f "$PROJECT_DIR/.env" ]; then
+    load_env "$PROJECT_DIR/.env"
+elif [ -f .env ]; then
+    load_env .env
 else
     echo "Error: .env file not found."
     exit 1
