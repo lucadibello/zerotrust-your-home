@@ -8,6 +8,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=Europe/Zurich
+      - HOMEPAGE_ALLOWED_HOSTS=homepage.${DNS_DOMAIN},homepage.${DNS_DOMAIN}:443,homepage:3000,homepage,localhost:3000,127.0.0.1:3000
     networks:
       - traefik-network
     labels:
