@@ -225,7 +225,7 @@ fi
 
 if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
   echo "[WARNING] Cloud backup skipped: Rclone is not configured ($PROJECT_DIR/config/rclone/rclone.conf missing)."
-  echo "          Run 'make configure-backup' to configure Google Drive remote."
+  echo "          Run 'make backup-configure' to configure Google Drive remote."
 else
   if ! docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic snapshots >/dev/null 2>&1; then
     echo "[*] Cloud Repository not found. Initializing..."
@@ -277,7 +277,7 @@ elif [ $LOCAL_EXIT -ne 0 ]; then
 else
   if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
     echo "[WARNING] Local backup succeeded. Cloud backup skipped (Rclone not configured)."
-    send_ntfy "Backup Warning" "Local backup to second disk completed. Cloud backup skipped: Rclone not configured. Run 'make configure-backup'." "warning,floppy_disk" "high"
+    send_ntfy "Backup Warning" "Local backup to second disk completed. Cloud backup skipped: Rclone not configured. Run 'make backup-configure'." "warning,floppy_disk" "high"
   else
     echo "[WARNING] Cloud backup/copy failed, but Local backup succeeded."
     send_ntfy "Backup Warning" "Cloud backup copy to Google Drive failed (Local copy is SAFE on second disk). Check logs." "warning,floppy_disk" "high"

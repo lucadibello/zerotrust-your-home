@@ -1,4 +1,9 @@
-.PHONY: check-env check-services help start restart logs status stop down view-backups configure-backup backup backup-full backup-export backup-export-full prune check restore backup-cron-enable backup-cron-disable backup-cron-status generate update-security update-security-headless update-firewall update-hardening
+.PHONY: check-env check-services help start restart logs status stop down \
+	backup backup-full backup-export backup-export-full backup-restore backup-view \
+	backup-check backup-prune backup-unlock backup-configure \
+	backup-cron-enable backup-cron-disable backup-cron-status \
+	restore view-backups check prune unlock configure-backup \
+	generate update-security update-security-headless update-firewall update-hardening
 
 COMPOSE = docker compose --project-name zerotrust-your-home --project-directory .
 ENVFILE = .env
@@ -73,11 +78,12 @@ help:  # Show available commands
 	@echo "  make backup-full                Create a full system backup (full Immich export)"
 	@echo "  make backup-export              Export DB dumps and Immich photos (incremental)"
 	@echo "  make backup-export-full         Export DB dumps and Immich photos (full)"
-	@echo "  make restore                    Interactive restore menu"
-	@echo "  make view-backups               View cloud backups"
-	@echo "  make check                      Verify backup integrity"
-	@echo "  make prune                      Prune old backups"
-	@echo "  make configure-backup           Configure Rclone remote"
+	@echo "  make backup-restore             Interactive restore menu"
+	@echo "  make backup-view                View backup snapshots"
+	@echo "  make backup-check               Verify backup integrity"
+	@echo "  make backup-prune               Prune old backups"
+	@echo "  make backup-unlock              Remove stale locks from backup repositories"
+	@echo "  make backup-configure           Configure Rclone remote (Google Drive/S3)"
 	@echo "  make backup-cron-enable         Enable daily automatic backup cron"
 	@echo "  make backup-cron-disable        Disable daily automatic backup cron"
 	@echo "  make backup-cron-status         Show backup cron status"
@@ -106,11 +112,15 @@ stop: check-services  # Stop all docker containers
 down: check-services  # Stop and remove all docker containers
 	@$(COMPOSE) $(COMPOSE_ARGS) --env-file $(ENVFILE) down
 
-view-backups: # View all backups
+backup-view: # View all backups
 	@bash scripts/backups/view-backups.sh
 
-configure-backup: # Configure Rclone for Google Drive
+view-backups: backup-view
+
+backup-configure: # Configure Rclone for Google Drive/S3
 	@bash scripts/backups/configure-rclone.sh
+
+configure-backup: backup-configure
 
 backup: # Create a system backup (pass ARGS="--full" or use 'make backup-full')
 	@bash scripts/backups/backup.sh $(ARGS)
@@ -124,14 +134,25 @@ backup-export: # Export data only (Immich photos, DB dumps) without Restic snaps
 backup-export-full: # Force full export of data (all Immich photos + DB dumps)
 	@bash scripts/backups/backup-export.sh --full
 
-prune: # Prune old backups to free up space
+backup-prune: # Prune old backups to free up space
 	@bash scripts/backups/prune.sh
 
-check: # Verify backup integrity
+prune: backup-prune
+
+backup-check: # Verify backup integrity
 	@bash scripts/backups/check.sh
 
-restore: # Restore from backup
+check: backup-check
+
+backup-unlock: # Remove stale repository locks
+	@bash scripts/backups/unlock.sh
+
+unlock: backup-unlock
+
+backup-restore: # Restore from backup
 	@bash scripts/backups/restore.sh
+
+restore: backup-restore
 
 backup-cron-enable: # Enable automatic daily system backup at 00:00
 	@bash scripts/backups/setup-backup-cron.sh enable

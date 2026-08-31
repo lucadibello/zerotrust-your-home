@@ -288,13 +288,13 @@ Nextcloud data (files stored in `/mnt/nas-data`) is **not** included in the Rest
 
 A unified CLI is provided to manage all backup and restore operations.
 
-*   **`make backup`**: Triggers a manual system backup. This includes:
-    *   Running Immich export (if enabled).
-    *   Dumping databases (Postgres, etc.) to SQL files.
-    *   Running Restic backup for Docker volumes and config to Google Drive.
-*   **`make view-backups`**: Lists available Restic snapshots.
-*   **`make configure-backup`**: Runs the wizard to configure Google Drive access.
-*   **`make restore`**: Launches an interactive **Restore Menu** with the following options:
+*   **`make backup`**: Triggers a manual system backup. (Use `make backup-full` to force a full photo export).
+*   **`make backup-view`**: Lists available Restic snapshots (alias: `make view-backups`).
+*   **`make backup-configure`**: Runs the wizard to configure Google Drive/S3 access (alias: `make configure-backup`).
+*   **`make backup-check`**: Verifies repository data integrity (alias: `make check`).
+*   **`make backup-prune`**: Cleans old snapshots per retention policy (alias: `make prune`).
+*   **`make backup-unlock`**: Clears stale repository lock files (alias: `make unlock`).
+*   **`make backup-restore`**: Launches the interactive **Restore Menu** (alias: `make restore`):
     1.  **System Restore:** Restores Docker volumes and config from Google Drive (Restic). *Stops all services.*
     2.  **Immich Restore:** Interactively restores photos/albums from local `immich-go` backups.
     3.  **Database Restore:** Helper to restore specific SQL dumps to running containers.
