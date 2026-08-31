@@ -11,6 +11,8 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	composes/$(1)/docker-compose.yaml \
 	composes/$(1)/$(1).docker-compose.yaml \
 	composes/$(1).docker-compose.yaml \
+	composes/extras/$(1)/docker-compose.yml \
+	composes/extras/$(1)/docker-compose.yaml \
 	$(if $(filter home homeassistant hass,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter home-assistant,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter prometheus grafana alertmanager,$(1)),composes/monitoring/docker-compose.yaml) \

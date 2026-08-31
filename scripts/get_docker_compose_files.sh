@@ -98,4 +98,17 @@ for custom in composes/*.custom.docker-compose.yaml composes/*/*.custom.docker-c
   fi
 done
 
+# Discover Extra Services (composes/extras/<service>/docker-compose.yml or docker-compose.yaml)
+if [ -d "composes/extras" ]; then
+  for extra_dir in composes/extras/*/; do
+    if [ -d "$extra_dir" ]; then
+      if [ -f "${extra_dir}docker-compose.yml" ]; then
+        FILES="$FILES -f ${extra_dir}docker-compose.yml"
+      elif [ -f "${extra_dir}docker-compose.yaml" ]; then
+        FILES="$FILES -f ${extra_dir}docker-compose.yaml"
+      fi
+    fi
+  done
+fi
+
 echo "$FILES"

@@ -303,6 +303,45 @@ if [ "${ENABLE_PORTAINER:-false}" = "true" ]; then
   count=$((count + 1))
 fi
 
+# Extras: Dynamically append endpoints from composes/extras/<service>/gatus.yaml
+EXTRAS_DIR="$PROJECT_ROOT/composes/extras"
+if [ -d "$EXTRAS_DIR" ]; then
+  for extra_dir in "$EXTRAS_DIR"/*/; do
+    if [ -d "$extra_dir" ]; then
+      service_name=$(basename "$extra_dir")
+      gatus_fragment=""
+      if [ -f "${extra_dir}gatus.yaml" ]; then
+        gatus_fragment="${extra_dir}gatus.yaml"
+      elif [ -f "${extra_dir}gatus.yml" ]; then
+        gatus_fragment="${extra_dir}gatus.yml"
+      fi
+
+      if [ -n "$gatus_fragment" ]; then
+        # Render template placeholders (e.g., <DNS_DOMAIN>) in the fragment
+        temp_fragment="$(mktemp)"
+        render_template "$gatus_fragment" "$temp_fragment" \
+          DNS_DOMAIN="${DNS_DOMAIN:-example.com}" \
+          NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
+          NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
+          NTFY_TOKEN="${NTFY_TOKEN:-}"
+
+        rendered_content="$(cat "$temp_fragment")"
+        rm -f "$temp_fragment"
+
+        if [ -n "$rendered_content" ]; then
+          # Indent fragment content to match endpoints block format (2 spaces)
+          indented_content="$(echo "$rendered_content" | sed 's/^/  /')"
+          endpoints_block+=$'\n'"  # Extra: ${service_name}"$'\n'"${indented_content}"
+          # Count the number of endpoint entries in the fragment
+          fragment_count=$(echo "$rendered_content" | grep -c '^\- name:' || true)
+          count=$((count + fragment_count))
+          echo "[*] Added Gatus endpoints from extra service: ${service_name} (${fragment_count} endpoint(s))"
+        fi
+      fi
+    fi
+  done
+fi
+
 # Write endpoints to target configuration
 if [ -n "$endpoints_block" ]; then
   {

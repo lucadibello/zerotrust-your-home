@@ -205,6 +205,23 @@ echo "[*] Enabled services:"
 [ "$ENABLE_IMMICH" = "true" ] && echo "    - Immich (Photo Library)"
 [ "$ENABLE_SEARXNG" = "true" ] && echo "    - SearXNG (Search Engine)"
 [ "$ENABLE_MINECRAFT" = "true" ] && echo "    - Minecraft Server"
+
+# Print discovered extra services
+if [ -d "composes/extras" ]; then
+  extras_found=false
+  for extra_dir in composes/extras/*/; do
+    if [ -d "$extra_dir" ]; then
+      if [ -f "${extra_dir}docker-compose.yml" ] || [ -f "${extra_dir}docker-compose.yaml" ]; then
+        if [ "$extras_found" = false ]; then
+          echo ""
+          echo "[*] Extra services (from composes/extras/):"
+          extras_found=true
+        fi
+        echo "    - $(basename "$extra_dir")"
+      fi
+    fi
+  done
+fi
 echo ""
 
 # === Docker Containers Configuration ===
