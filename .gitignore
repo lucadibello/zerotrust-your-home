@@ -3,9 +3,11 @@
 .vscode
 .tmp/
 *.tmp
+.gitmodules
 
 # custom docker-compose files
 composes/*.custom.docker-compose.yaml
+composes/extras/
 
 # additional resources (needed by custom docker-compose files)
 composes/lucadibello
