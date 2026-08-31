@@ -22,7 +22,7 @@ sudo docker volume create nextcloud_aio_mastercontainer >/dev/null 2>&1 || true
 sudo docker network create nextcloud-aio >/dev/null 2>&1 || true
 
 # Ensure Nextcloud datadir exists
-mkdir -p "${NEXTCLOUD_DATADIR:-/mnt/nas-data}" 2>/dev/null || true
+mkdir -p "${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}" 2>/dev/null || true
 mkdir -p "$PROJECT_ROOT/composes/traefik/dynamic"
 
 # Generate dynamic configuration for Traefik using template

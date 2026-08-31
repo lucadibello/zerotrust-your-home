@@ -56,7 +56,7 @@ services:
       - ./:/mnt/backup/project:ro
       
       # Optional data directories
-      - ${NEXTCLOUD_DATADIR:-/mnt/nas-data}:/mnt/backup/nextcloud:ro
+      - ${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}:/mnt/backup/nextcloud:ro
       - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/library}:/mnt/backup/immich:ro
       - ${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}:/mnt/backup/immich-go:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
