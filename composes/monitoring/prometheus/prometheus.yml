@@ -17,11 +17,16 @@ alerting:
 
 # Scrape configuration
 scrape_configs:
-  # Job for promethus itself
+  # Job for Prometheus itself
   - job_name: "prometheus"
     static_configs:
       - targets: 
         - localhost:9090
+  # Job for Alertmanager
+  - job_name: "alertmanager"
+    static_configs:
+      - targets:
+        - alertmanager:9093
   # Job for node_exporter
   - job_name: "node_exporter"
     scrape_interval: 5s

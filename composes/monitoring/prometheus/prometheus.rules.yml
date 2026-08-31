@@ -1,48 +1,214 @@
 groups:
-  - name: usage-limits
+  - name: host-system
     rules:
-      # Simple alert for instance is down
+      # Instance / Target Reachability
       - alert: InstanceDown
         expr: up == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Instance {{ $labels.instance }} down"
-          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+          summary: "Target {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} of job '{{ $labels.job }}' has been unreachable for more than 1 minute."
 
-      - alert: HighDiskSpaceUsage
-        expr: 100 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 80
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High disk space usage detected"
-          description: "Disk space usage on '/' is above 80% for the last 10 minutes."
-
-      - alert: HighCPUUsage
-        expr: 100 - (avg by(instance)(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+      # Host CPU Alerts
+      - alert: HostHighCPUUsage
+        expr: (100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High CPU usage detected"
-          description: "Average CPU usage is above 80% for the last 5 minutes."
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "Host average CPU usage is {{ $value | printf \"%.1f\" }}% (> 80%) for the last 5 minutes."
 
-      - alert: HighNetworkTraffic
-        expr: sum(rate(node_network_receive_bytes_total[5m])) > 1e+7
-        for: 1m
+      - alert: HostCriticalCPUUsage
+        expr: (100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 95
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "Host average CPU usage is {{ $value | printf \"%.1f\" }}% (> 95%) for more than 10 minutes."
+
+      - alert: HostHighLoadAverage
+        expr: (node_load15 / count without (cpu, mode) (node_cpu_seconds_total{mode="system"})) > 2
+        for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "High network traffic detected"
-          description: "The network receive traffic exceeds 10 Mbps for the last minute."
+          summary: "High 15m load average on {{ $labels.instance }}"
+          description: "System 15m load average is {{ $value | printf \"%.2f\" }}x of total CPU cores for 10 minutes."
 
-      - alert: HighCPUTemperature
-        expr: node_hwmon_temp_celsius{chip="thermal_thermal_zone0", sensor="temp0"} > 70
-        for: 1m
+      # Host Memory Alerts
+      - alert: HostHighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High CPU temperature detected"
-          description: "The CPU temperature exceeds 70 degrees Celsius for the last minute."
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Host memory usage is {{ $value | printf \"%.1f\" }}% (> 85%) for the last 5 minutes."
+
+      - alert: HostCriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory exhaustion on {{ $labels.instance }}"
+          description: "Host memory usage is {{ $value | printf \"%.1f\" }}% (> 95%), risk of Out-Of-Memory termination."
+
+      # Host Swap Alerts
+      - alert: HostHighSwapUsage
+        expr: ((1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100 > 80) and (node_memory_SwapTotal_bytes > 0)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High swap usage on {{ $labels.instance }}"
+          description: "Host swap usage is {{ $value | printf \"%.1f\" }}% (> 80%) for the last 5 minutes."
+
+      # Host Disk Space Alerts
+      - alert: HostHighDiskSpaceUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"})) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk space usage on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          description: "Disk usage on '{{ $labels.mountpoint }}' (device {{ $labels.device }}) is {{ $value | printf \"%.1f\" }}% (> 80%)."
+
+      - alert: HostCriticalDiskSpaceUsage
+        expr: ((1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"})) * 100 > 90) and (node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"} < 5 * 1024 * 1024 * 1024)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk space on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          description: "Disk usage on '{{ $labels.mountpoint }}' is above 90% and under 5GB remaining."
+
+      - alert: HostDiskFillingFast
+        expr: (predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"}[4h], 24 * 3600) < 0) and ((1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|ramfs|overlay|iso9660|squashfs"})) * 100 > 70)
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk filling fast on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          description: "Mountpoint '{{ $labels.mountpoint }}' is predicted to run out of space within 24 hours at current fill rate."
+
+      # Host Hardware & Temperature Alerts
+      - alert: HostHighCPUTemperature
+        expr: (max by(instance) (node_hwmon_temp_celsius{chip=~".*thermal.*|coretemp|k10temp|cpu_thermal"} or node_thermal_zone_temp)) > 75
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU temperature on {{ $labels.instance }}"
+          description: "CPU temperature is {{ $value | printf \"%.1f\" }}°C (> 75°C) for the last 3 minutes."
+
+      - alert: HostCriticalCPUTemperature
+        expr: (max by(instance) (node_hwmon_temp_celsius{chip=~".*thermal.*|coretemp|k10temp|cpu_thermal"} or node_thermal_zone_temp)) > 85
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical CPU temperature on {{ $labels.instance }}"
+          description: "CPU temperature is {{ $value | printf \"%.1f\" }}°C (> 85°C)! Risk of thermal throttling or shutdown."
+
+      # Host Network & System Alerts
+      - alert: HostHighNetworkTraffic
+        expr: (sum by(instance, device) (rate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|br-.*|tailscale.*"}[5m])) * 8) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network traffic on {{ $labels.instance }} ({{ $labels.device }})"
+          description: "Network receive bandwidth on {{ $labels.device }} exceeds 100 Mbps for 5 minutes."
+
+      - alert: HostClockDrift
+        expr: abs(node_timex_offset_seconds) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "System clock drift detected on {{ $labels.instance }}"
+          description: "Host system clock is off by {{ $value | printf \"%.3f\" }}s (> 50ms). Check NTP synchronization."
+
+      - alert: HostRebootDetected
+        expr: (node_time_seconds - node_boot_time_seconds) < 600
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Host reboot detected: {{ $labels.instance }}"
+          description: "{{ $labels.instance }} has rebooted within the last 10 minutes."
+
+      - alert: HostFileDescriptorsNearLimit
+        expr: (node_filefd_allocated / node_filefd_maximum) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "File descriptors near limit on {{ $labels.instance }}"
+          description: "Host file descriptor allocation is {{ $value | printf \"%.1f\" }}% (> 85%) of system limit."
+
+  - name: docker-containers
+    rules:
+      # Container OOM and Crashes
+      - alert: ContainerOOMKilled
+        expr: increase(container_oom_events_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container OOM killed: {{ $labels.name }}"
+          description: "Container '{{ $labels.name }}' experienced an Out-Of-Memory kill event."
+
+      # Container High Resource Usage
+      - alert: ContainerHighCPUUsage
+        expr: (sum by(name, instance) (rate(container_cpu_usage_seconds_total{name=~".+"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage in container {{ $labels.name }}"
+          description: "Container '{{ $labels.name }}' CPU usage is {{ $value | printf \"%.1f\" }}% (> 85%) for 5 minutes."
+
+      - alert: ContainerHighMemoryUsage
+        expr: (container_memory_working_set_bytes{name=~".+"} / container_spec_memory_limit_bytes{name=~".+"} > 0.85) and (container_spec_memory_limit_bytes{name=~".+"} > 0)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in container {{ $labels.name }}"
+          description: "Container '{{ $labels.name }}' memory working set is above 85% of its configured limit."
+
+  - name: monitoring-health
+    rules:
+      # Alertmanager & Prometheus Monitoring
+      - alert: AlertmanagerNotificationFailed
+        expr: rate(alertmanager_notifications_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alertmanager notification delivery failure"
+          description: "Alertmanager is failing to send notifications via {{ $labels.integration }} (e.g. ntfy webhook)."
+
+      - alert: PrometheusTargetScrapeFailed
+        expr: up{job=~"node_exporter|cadvisor|alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Monitoring target unreachable: {{ $labels.job }}"
+          description: "Prometheus cannot scrape target '{{ $labels.instance }}' for job '{{ $labels.job }}'."
+
+      - alert: PrometheusRuleEvaluationFailed
+        expr: increase(prometheus_rule_evaluation_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus rule evaluation failed"
+          description: "Prometheus failed to evaluate rules in group '{{ $labels.rule_group }}'."

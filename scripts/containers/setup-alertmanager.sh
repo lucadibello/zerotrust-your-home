@@ -31,9 +31,18 @@ if [ -d "$TARGET" ]; then
   rm -rf "$TARGET"
 fi
 
+# Build optional bearer auth config for ntfy if NTFY_TOKEN is configured
+auth_config=""
+if [ -n "${NTFY_TOKEN:-}" ]; then
+  auth_config="
+        http_config:
+          bearer_token: \"${NTFY_TOKEN}\""
+fi
+
 # Safely render the Alertmanager configuration with ntfy endpoint
 render_template "$TEMPLATE" "$TARGET" \
   NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
-  NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}"
+  NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
+  NTFY_AUTH_CONFIG="$auth_config"
 
 echo "[OK] AlertManager setup completed"

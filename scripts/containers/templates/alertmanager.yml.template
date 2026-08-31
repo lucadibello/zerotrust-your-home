@@ -1,14 +1,16 @@
 global:
   resolve_timeout: 5m
+
 route:
   receiver: "ntfy"
   group_by: ["alertname", "severity"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
+
 receivers:
   - name: "ntfy"
     webhook_configs:
       - url: "<NTFY_URL>/<NTFY_TOPIC>?format=alertmanager"
         send_resolved: true
-        max_alerts: 10
+        max_alerts: 10<NTFY_AUTH_CONFIG>
