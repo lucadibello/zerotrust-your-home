@@ -9,6 +9,34 @@ source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
 cd "$PROJECT_DIR" || exit 1
+ 
+FORCE_FULL=false
+ 
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --full|-f)
+      FORCE_FULL=true
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--full|-f]"
+      echo ""
+      echo "Options:"
+      echo "  --full, -f    Force a full backup (runs a full Immich export and snapshot)"
+      echo "  --help, -h    Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: $0 [--full|-f]"
+      exit 1
+      ;;
+  esac
+done
+
+if [ "$FORCE_FULL" = "true" ]; then
+  echo "[*] Full backup override enabled."
+fi
 
 RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
 if [ ! -f "$RESTIC_COMPOSE" ]; then
@@ -119,7 +147,11 @@ DB_DUMP_FAILED=false
 # Run Immich backup if enabled (requires Immich to be running)
 if [ "${ENABLE_IMMICH:-false}" = "true" ]; then
   echo "[*] Running Immich export..."
-  if ! bash "$PROJECT_DIR/scripts/backups/backup-immich.sh"; then
+  IMMICH_FLAGS=()
+  if [ "$FORCE_FULL" = "true" ]; then
+    IMMICH_FLAGS+=("--full")
+  fi
+  if ! bash "$PROJECT_DIR/scripts/backups/backup-immich.sh" ${IMMICH_FLAGS[@]+"${IMMICH_FLAGS[@]}"}; then
     echo "[WARNING] Immich export encountered errors."
     IMMICH_EXPORT_FAILED=true
   fi

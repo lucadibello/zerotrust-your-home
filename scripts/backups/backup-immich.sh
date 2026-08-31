@@ -26,6 +26,39 @@ if [ -z "$IMMICH_API_KEY" ] || [ "$IMMICH_API_KEY" = "your-api-key" ]; then
     exit 1
 fi
 
+FORCE_FULL=false
+CUSTOM_DATE_RANGE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --full|-f)
+      FORCE_FULL=true
+      shift
+      ;;
+    --from-date-range=*|--date-range=*)
+      CUSTOM_DATE_RANGE="${1#*=}"
+      shift
+      ;;
+    --from-date-range|--date-range|-d)
+      CUSTOM_DATE_RANGE="$2"
+      shift 2
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--full|-f] [--date-range <range>]"
+      echo ""
+      echo "Options:"
+      echo "  --full, -f               Force a full photo archive (all photos without date filter)"
+      echo "  --date-range, -d <range> Custom date range for export (e.g. 2026-08-01,2026-08-31)"
+      echo "  --help, -h               Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
 BACKUP_DIR="${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}"
 DAY_OF_MONTH=$(date '+%d')
 TODAY=$(date '+%Y-%m-%d')
@@ -38,10 +71,18 @@ if [ ! -d "$BACKUP_DIR" ]; then
 fi
 
 # Determine Backup Strategy (Full vs Incremental)
-if [ "$DAY_OF_MONTH" = "01" ]; then
-    echo "[*] Date is 1st of the month. Running FULL Periodic Backup..."
+if [ "$FORCE_FULL" = "true" ] || [ "$DAY_OF_MONTH" = "01" ]; then
+    if [ "$FORCE_FULL" = "true" ]; then
+        echo "[*] Full backup override requested. Running FULL Immich Backup..."
+    else
+        echo "[*] Date is 1st of the month. Running FULL Periodic Backup..."
+    fi
     TARGET_PATH="/backup/full/$(date +%Y-%m)"
     ARGS=""
+elif [ -n "$CUSTOM_DATE_RANGE" ]; then
+    echo "[*] Running custom date range backup ($CUSTOM_DATE_RANGE)..."
+    TARGET_PATH="/backup/custom/$TODAY"
+    ARGS="--from-date-range=$CUSTOM_DATE_RANGE"
 else
     echo "[*] Running INCREMENTAL Backup (Yesterday: $YESTERDAY to Today: $TODAY)..."
     TARGET_PATH="/backup/incremental/$TODAY"
