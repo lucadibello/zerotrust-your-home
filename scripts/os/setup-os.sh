@@ -160,36 +160,7 @@ else
 fi
 
 
-## -- INSTALL IMMICH-GO (ONLY IF NOT PRESENT)
-if command -v immich-go >/dev/null 2>&1; then
-  echo "[*] immich-go is already installed ($(command -v immich-go))."
-else
-  echo "[*] Installing immich-go..."
-  IMMICH_GO_VERSION="v0.31.0"
-  ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m)"
-  case "$ARCH" in
-    amd64|x86_64)
-      IMMICH_GO_ARCH="Linux_x86_64"
-      ;;
-    arm64|aarch64)
-      IMMICH_GO_ARCH="Linux_arm64"
-      ;;
-    armhf|armv7l)
-      IMMICH_GO_ARCH="Linux_armv7"
-      ;;
-    *)
-      IMMICH_GO_ARCH="Linux_x86_64"
-      ;;
-  esac
 
-  echo "[*] Downloading immich-go (${IMMICH_GO_ARCH})..."
-  curl -L -o immich-go.tar.gz "https://github.com/simulot/immich-go/releases/download/${IMMICH_GO_VERSION}/immich-go_${IMMICH_GO_ARCH}.tar.gz"
-  tar -xzf immich-go.tar.gz
-  sudo mv immich-go /usr/local/bin/immich-go
-  sudo chmod +x /usr/local/bin/immich-go
-  rm -f immich-go.tar.gz
-  echo "[*] immich-go installed successfully"
-fi
 
 ## -- START REQUIRED SERVICES
 

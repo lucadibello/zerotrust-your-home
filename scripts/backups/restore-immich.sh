@@ -63,19 +63,27 @@ fi
 echo "[*] Starting Immich restore from $RESTORE_REL_PATH..."
 echo "[*] Note: This will import photos into your current Immich instance."
 
-IMMICH_GO_BIN=$(command -v immich-go || echo "/usr/local/bin/immich-go")
-
-# Run immich-go upload
+# Run immich-go upload inside an ephemeral alpine container
 docker run --rm \
     --network immich-network \
-    -v "$IMMICH_GO_BIN":/usr/local/bin/immich-go:ro \
     -v "$BACKUP_DIR":/backup \
     alpine:latest \
-    /usr/local/bin/immich-go upload from-folder \
-    --server http://immich_server:2283 \
-    --api-key "$IMMICH_API_KEY" \
-    "/backup/$RESTORE_REL_PATH"
-
+    /bin/sh -c '
+      apk add --no-cache curl tar gzip >/dev/null 2>&1
+      ARCH="$(uname -m)"
+      case "$ARCH" in
+        x86_64) GO_ARCH="Linux_x86_64" ;;
+        aarch64|arm64) GO_ARCH="Linux_arm64" ;;
+        armv7l|armhf) GO_ARCH="Linux_armv7" ;;
+        *) GO_ARCH="Linux_x86_64" ;;
+      esac
+      curl -fsSL "https://github.com/simulot/immich-go/releases/latest/download/immich-go_${GO_ARCH}.tar.gz" | tar -xz -C /tmp
+      chmod +x /tmp/immich-go
+      /tmp/immich-go upload from-folder \
+        --server http://immich_server:2283 \
+        --api-key "'"$IMMICH_API_KEY"'" \
+        "/backup/'"$RESTORE_REL_PATH"'"
+    '
 
 if [ $? -eq 0 ]; then
     echo "[OK] Restore/Import completed successfully."

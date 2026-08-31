@@ -105,20 +105,31 @@ mkdir -p "$IMMICH_LOG_DIR" 2>/dev/null || true
 
 PREV_LOG=$(ls -t "$IMMICH_LOG_DIR"/immich-go_*.log 2>/dev/null | head -1 || true)
 
-# Run immich-go inside an alpine container attached to the immich-network
-# We mount the statically linked binary from the host
+# Run immich-go inside an ephemeral alpine container attached to the immich-network
+# Fetches the latest immich-go binary dynamically on the fly
 # Logs are exported to /var/log/immich-go/ for Loki collection
 docker run --rm \
     --network immich-network \
-    -v /usr/local/bin/immich-go:/usr/local/bin/immich-go:ro \
     -v "$BACKUP_DIR":/backup \
     -v "$IMMICH_LOG_DIR":/root/.cache/immich-go \
     alpine:latest \
-    /usr/local/bin/immich-go archive from-immich \
-    --from-server=http://immich_server:2283 \
-    --from-api-key="$IMMICH_API_KEY" \
-    --write-to-folder="/backup/$SUB_DIR" \
-    $ARGS
+    /bin/sh -c '
+      apk add --no-cache curl tar gzip >/dev/null 2>&1
+      ARCH="$(uname -m)"
+      case "$ARCH" in
+        x86_64) GO_ARCH="Linux_x86_64" ;;
+        aarch64|arm64) GO_ARCH="Linux_arm64" ;;
+        armv7l|armhf) GO_ARCH="Linux_armv7" ;;
+        *) GO_ARCH="Linux_x86_64" ;;
+      esac
+      curl -fsSL "https://github.com/simulot/immich-go/releases/latest/download/immich-go_${GO_ARCH}.tar.gz" | tar -xz -C /tmp
+      chmod +x /tmp/immich-go
+      /tmp/immich-go archive from-immich \
+        --from-server=http://immich_server:2283 \
+        --from-api-key="'"$IMMICH_API_KEY"'" \
+        --write-to-folder="/backup/'"$SUB_DIR"'" \
+        '"$ARGS"'
+    '
 IMMICH_EXIT=$?
 
 # Identify the newly created log file
