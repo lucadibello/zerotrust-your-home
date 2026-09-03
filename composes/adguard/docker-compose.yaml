@@ -14,7 +14,7 @@ services:
     networks:
       traefik-network:
       dns-network:
-        ipv4_address: 172.28.0.100
+        ipv4_address: 10.53.0.100
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.adguard.rule=Host(`adguard.${DNS_DOMAIN}`)"

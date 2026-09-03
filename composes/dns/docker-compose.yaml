@@ -15,7 +15,7 @@ services:
     restart: always
     networks:
       dns-network:
-        ipv4_address: 172.28.0.53
+        ipv4_address: 10.53.0.53
 
 networks:
   dns-network:
