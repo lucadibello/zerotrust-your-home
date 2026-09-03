@@ -19,9 +19,9 @@ fi
 # Ensure directories exist
 mkdir -p "$PROJECT_ROOT/composes/adguard/work" "$PROJECT_ROOT/composes/adguard/conf"
 
-# Create external networks with fixed subnets
-docker network create traefik-network >/dev/null 2>&1 || true
-docker network create --subnet=172.28.0.0/16 dns-network >/dev/null 2>&1 || true
+# Ensure external networks exist with correct subnets
+ensure_network "traefik-network"
+ensure_network "dns-network" "172.28.0.0/16"
 
 # Pre-configure AdGuard Home if not already configured
 ADGUARD_CONF="$PROJECT_ROOT/composes/adguard/conf/AdGuardHome.yaml"

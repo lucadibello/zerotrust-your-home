@@ -33,7 +33,6 @@ run_script() {
   echo "[OK] ${description} completed successfully"
 }
 
-
 # Define a portable in‐place sed command
 if [[ "$OSTYPE" == "darwin"* ]]; then
   SED_INPLACE="sed -i ''"
@@ -201,7 +200,7 @@ load_env() {
           export "$key"="$val"
         fi
       fi
-    done < "$env_file"
+    done <"$env_file"
 
     export PRIMARY_DNS="${PRIMARY_DNS:-192.168.0.253}"
     export SECONDARY_DNS="${SECONDARY_DNS:-1.1.1.1}"
@@ -214,7 +213,7 @@ send_ntfy() {
   local message="$2"
   local tags="${3:-floppy_disk}"
   local priority="${4:-default}"
-  
+
   if [ -n "${NTFY_TOPIC:-}" ]; then
     local ntfy_base="${NTFY_URL:-https://ntfy.home.lucadibello.ch}"
     ntfy_base="${ntfy_base%/}"
@@ -259,24 +258,24 @@ is_service_enabled() {
 
   # 2. Check legacy alias mappings for backward compatibility
   case "$service" in
-    traefik)
-      if [ -n "${ENABLE_REVERSE_PROXY+x}" ]; then
-        [ "$ENABLE_REVERSE_PROXY" = "true" ]
-        return $?
-      fi
-      ;;
-    home-assistant)
-      if [ -n "${ENABLE_HOME_AUTOMATION+x}" ]; then
-        [ "$ENABLE_HOME_AUTOMATION" = "true" ]
-        return $?
-      fi
-      ;;
-    gatus)
-      if [ -n "${ENABLE_UPTIME_KUMA+x}" ]; then
-        [ "$ENABLE_UPTIME_KUMA" = "true" ]
-        return $?
-      fi
-      ;;
+  traefik)
+    if [ -n "${ENABLE_REVERSE_PROXY+x}" ]; then
+      [ "$ENABLE_REVERSE_PROXY" = "true" ]
+      return $?
+    fi
+    ;;
+  home-assistant)
+    if [ -n "${ENABLE_HOME_AUTOMATION+x}" ]; then
+      [ "$ENABLE_HOME_AUTOMATION" = "true" ]
+      return $?
+    fi
+    ;;
+  gatus)
+    if [ -n "${ENABLE_UPTIME_KUMA+x}" ]; then
+      [ "$ENABLE_UPTIME_KUMA" = "true" ]
+      return $?
+    fi
+    ;;
   esac
 
   # 3. Default state if unset
@@ -285,12 +284,44 @@ is_service_enabled() {
   fi
 
   case "$service" in
-    traefik|tunnel|monitoring|logging|backup)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
+  traefik | tunnel | monitoring | logging | backup)
+    return 0
+    ;;
+  *)
+    return 1
+    ;;
   esac
 }
 
+# ensure_network: Ensures an external Docker network exists with a specified subnet.
+ensure_network() {
+  local net_name="$1"
+  local target_subnet="${2:-}"
+
+  if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if docker network inspect "$net_name" >/dev/null 2>&1; then
+    if [ -n "$target_subnet" ]; then
+      local current_subnet
+      current_subnet=$(docker network inspect "$net_name" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
+      if [ "$current_subnet" != "$target_subnet" ]; then
+        echo "[*] Updating Docker network '$net_name' subnet to $target_subnet (was ${current_subnet:-none})..."
+        local connected_containers
+        connected_containers=$(docker network inspect "$net_name" --format '{{range $k, $v := .Containers}}{{$k}} {{end}}' 2>/dev/null || true)
+        for c in $connected_containers; do
+          docker network disconnect -f "$net_name" "$c" 2>/dev/null || true
+        done
+        docker network rm "$net_name" 2>/dev/null || true
+        docker network create --subnet="$target_subnet" "$net_name"
+      fi
+    fi
+  else
+    if [ -n "$target_subnet" ]; then
+      docker network create --subnet="$target_subnet" "$net_name"
+    else
+      docker network create "$net_name"
+    fi
+  fi
+}

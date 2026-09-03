@@ -22,8 +22,8 @@ mkdir -p "$DNS_CONFIG_DIR" \
          "$PROJECT_ROOT/composes/dns/cache" \
          "$PROJECT_ROOT/composes/dns/records"
 
-# Create external Docker network for DNS with fixed subnet
-docker network create --subnet=172.28.0.0/16 dns-network >/dev/null 2>&1 || true
+# Ensure external Docker network for DNS has the correct subnet
+ensure_network "dns-network" "172.28.0.0/16"
 
 # Generate zone filename (e.g., "example.com" becomes "example-com")
 filename=$(echo "$DNS_DOMAIN" | sed 's/\./-/g')
