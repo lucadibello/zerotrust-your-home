@@ -10,20 +10,21 @@ source "$PROJECT_ROOT/scripts/common.sh"
 # Load environment variables
 load_env "$PROJECT_ROOT/.env"
 
-# Skip if reverse proxy is disabled
-if [ "${ENABLE_REVERSE_PROXY:-true}" != "true" ]; then
-  echo "[*] Reverse proxy (Traefik) is disabled, skipping setup..."
+# Skip if CrowdSec is not enabled
+if [ "${ENABLE_CROWDSEC:-false}" != "true" ]; then
+  echo "[*] CrowdSec is disabled, skipping setup..."
   exit 0
 fi
 
-# Ensure required directories exist
-mkdir -p "$PROJECT_ROOT/composes/traefik/dynamic" \
-         "$PROJECT_ROOT/composes/traefik/letsencrypt" \
+# Ensure directories exist
+mkdir -p "$PROJECT_ROOT/composes/crowdsec/data" \
+         "$PROJECT_ROOT/composes/crowdsec/config" \
          "$PROJECT_ROOT/composes/traefik/logs"
+
+# Ensure access.log file exists so docker doesn't mount it as a directory
 touch "$PROJECT_ROOT/composes/traefik/logs/access.log"
 
-# Create external networks if they don't already exist
+# Create external network if needed
 docker network create traefik-network >/dev/null 2>&1 || true
-docker network create nextcloud-aio >/dev/null 2>&1 || true
 
-echo "[OK] Traefik setup completed"
+echo "[OK] CrowdSec setup completed"

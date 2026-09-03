@@ -1,0 +1,10 @@
+- name: Loki
+  group: Logging
+  url: "http://loki:3100/ready"
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY] == ready"
+  alerts:
+    - type: ntfy
+      enabled: true

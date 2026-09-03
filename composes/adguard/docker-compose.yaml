@@ -1,0 +1,26 @@
+services:
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    restart: always
+    volumes:
+      - ./composes/adguard/work:/opt/adguardhome/work
+      - ./composes/adguard/conf:/opt/adguardhome/conf
+    environment:
+      - TZ=Europe/Zurich
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adguard.rule=Host(`adguard.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.adguard.entrypoints=websecure"
+      - "traefik.http.routers.adguard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.adguard.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-network"
+
+networks:
+  traefik-network:
+    external: true

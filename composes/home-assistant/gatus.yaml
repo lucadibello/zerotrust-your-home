@@ -1,0 +1,21 @@
+- name: Home Assistant
+  group: Home Automation
+  url: "http://homeassistant:8123/manifest.json"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY].name == Home Assistant"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Zigbee2MQTT
+  group: Home Automation
+  url: "http://zigbee2mqtt:8080"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY] == pat(*Zigbee2MQTT*)"
+  alerts:
+    - type: ntfy
+      enabled: true

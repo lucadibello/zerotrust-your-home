@@ -44,299 +44,110 @@ render_template "$TEMPLATE" "$TARGET" \
   NTFY_TOKEN="${NTFY_TOKEN:-}" \
   DNS_DOMAIN="${DNS_DOMAIN:-example.com}"
 
-# Dynamically build endpoints block based on enabled feature flags
+# Helper function to check if a service is enabled
+is_service_enabled() {
+  local service="$1"
+  case "$service" in
+    traefik) [ "${ENABLE_REVERSE_PROXY:-true}" = "true" ] ;;
+    dns) [ "${ENABLE_DNS:-true}" = "true" ] ;;
+    monitoring) [ "${ENABLE_MONITORING:-true}" = "true" ] ;;
+    logging) [ "${ENABLE_LOGGING:-true}" = "true" ] ;;
+    backup) [ "${ENABLE_BACKUP:-true}" = "true" ] ;;
+    tunnel) [ "${ENABLE_TUNNEL:-true}" = "true" ] ;;
+    ntfy) [ "${ENABLE_NTFY:-false}" = "true" ] ;;
+    homepage) [ "${ENABLE_HOMEPAGE:-false}" = "true" ] ;;
+    home-assistant) [ "${ENABLE_HOME_AUTOMATION:-false}" = "true" ] ;;
+    vaultwarden) [ "${ENABLE_VAULTWARDEN:-false}" = "true" ] ;;
+    nextcloud) [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] ;;
+    searxng) [ "${ENABLE_SEARXNG:-false}" = "true" ] ;;
+    portainer) [ "${ENABLE_PORTAINER:-false}" = "true" ] ;;
+    diun) [ "${ENABLE_DIUN:-false}" = "true" ] ;;
+    immich) [ "${ENABLE_IMMICH:-false}" = "true" ] ;;
+    minecraft) [ "${ENABLE_MINECRAFT:-false}" = "true" ] ;;
+    adguard) [ "${ENABLE_ADGUARD:-false}" = "true" ] ;;
+    crowdsec) [ "${ENABLE_CROWDSEC:-false}" = "true" ] ;;
+    gatus|extras) return 1 ;;
+    *)
+      local upper_flag="ENABLE_$(echo "$service" | tr '[:lower:]-' '[:upper:]_')"
+      [ "${!upper_flag:-false}" = "true" ]
+      ;;
+  esac
+}
+
+# Dynamically build endpoints block
 endpoints_block=""
 count=0
 
-# Core Infrastructure: Traefik (ENABLE_REVERSE_PROXY)
-if [ "${ENABLE_REVERSE_PROXY:-true}" = "true" ]; then
-  endpoints_block+='
-  # Traefik Ingress
-  - name: Traefik Ingress
-    group: Core Infrastructure
-    url: "http://traefik:80/ping"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == OK"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
+# Helper function to process and append a gatus fragment
+append_gatus_fragment() {
+  local fragment_file="$1"
+  local label="$2"
 
-# Core Infrastructure: Ntfy (ENABLE_NTFY)
-if [ "${ENABLE_NTFY:-false}" = "true" ]; then
-  endpoints_block+='
-  # Ntfy (Push Notifications)
-  - name: Ntfy (Push Notifications)
-    group: Core Infrastructure
-    url: "http://ntfy:80/v1/health"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].healthy == true"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
+  if [ -f "$fragment_file" ]; then
+    local temp_fragment
+    temp_fragment="$(mktemp)"
+    render_template "$fragment_file" "$temp_fragment" \
+      DNS_DOMAIN="${DNS_DOMAIN:-example.com}" \
+      NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
+      NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
+      NTFY_TOKEN="${NTFY_TOKEN:-}"
 
-# Dashboard: Homepage (ENABLE_HOMEPAGE)
-if [ "${ENABLE_HOMEPAGE:-false}" = "true" ]; then
-  endpoints_block+='
-  # Homepage Dashboard
-  - name: Homepage Dashboard
-    group: Core Infrastructure
-    url: "http://homepage:3000"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
+    local rendered_content
+    rendered_content="$(cat "$temp_fragment")"
+    rm -f "$temp_fragment"
 
-# Core Infrastructure: BIND9 DNS (ENABLE_DNS)
-if [ "${ENABLE_DNS:-true}" = "true" ]; then
-  domain_name="${DNS_DOMAIN:-example.com}"
-  endpoints_block+="
-  # BIND9 DNS
-  - name: BIND9 DNS
-    group: Core Infrastructure
-    url: \"bind9:53\"
-    dns:
-      query-name: \"${domain_name}\"
-      query-type: \"A\"
-    interval: 60s
-    conditions:
-      - \"[STATUS] == NOERROR\"
-    alerts:
-      - type: ntfy
-        enabled: true
-"
-  count=$((count + 1))
-fi
+    if [ -n "$rendered_content" ]; then
+      # Indent fragment content to match endpoints block format (2 spaces)
+      local indented_content
+      indented_content="$(echo "$rendered_content" | sed 's/^/  /')"
+      endpoints_block+=$'\n'"  # ${label}"$'\n'"${indented_content}"
+      local fragment_count
+      fragment_count=$(echo "$rendered_content" | grep -c '^\- name:' || true)
+      count=$((count + fragment_count))
+      echo "[*] Added Gatus endpoints from ${label} (${fragment_count} endpoint(s))"
+    fi
+  fi
+}
 
-# Monitoring & Observability: Prometheus, Alertmanager, Grafana (ENABLE_MONITORING)
-if [ "${ENABLE_MONITORING:-true}" = "true" ]; then
-  endpoints_block+='
-  # Monitoring: Prometheus
-  - name: Prometheus
-    group: Monitoring
-    url: "http://prometheus:9090/-/ready"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == pat(*Prometheus Server is Ready.*)"
-    alerts:
-      - type: ntfy
-        enabled: true
+# 1. Discover endpoints from core services (composes/<service>/gatus.yaml)
+for service_dir in "$PROJECT_ROOT/composes"/*/; do
+  if [ -d "$service_dir" ]; then
+    service_name=$(basename "$service_dir")
+    # Skip extras and gatus itself
+    if [ "$service_name" = "extras" ] || [ "$service_name" = "gatus" ]; then
+      continue
+    fi
 
-  # Monitoring: Alertmanager
-  - name: Alertmanager
-    group: Monitoring
-    url: "http://alertmanager:9093/-/ready"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == OK"
-    alerts:
-      - type: ntfy
-        enabled: true
+    if is_service_enabled "$service_name"; then
+      fragment=""
+      if [ -f "${service_dir}gatus.yaml" ]; then
+        fragment="${service_dir}gatus.yaml"
+      elif [ -f "${service_dir}gatus.yml" ]; then
+        fragment="${service_dir}gatus.yml"
+      fi
 
-  # Monitoring: Grafana
-  - name: Grafana
-    group: Monitoring
-    url: "http://grafana:3000/api/health"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].database == ok"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 3))
-fi
+      if [ -n "$fragment" ]; then
+        append_gatus_fragment "$fragment" "Service: ${service_name}"
+      fi
+    fi
+  fi
+done
 
-# Logging: Loki (ENABLE_LOGGING)
-if [ "${ENABLE_LOGGING:-true}" = "true" ]; then
-  endpoints_block+='
-  # Logging: Loki
-  - name: Loki
-    group: Logging
-    url: "http://loki:3100/ready"
-    interval: 30s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == ready"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
-
-# Security: Vaultwarden (ENABLE_VAULTWARDEN)
-if [ "${ENABLE_VAULTWARDEN:-false}" = "true" ]; then
-  endpoints_block+='
-  # Security: Vaultwarden
-  - name: Vaultwarden
-    group: Security
-    url: "http://vaultwarden:80/alive"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
-
-# Home Automation: Home Assistant & Zigbee2MQTT (ENABLE_HOME_AUTOMATION)
-if [ "${ENABLE_HOME_AUTOMATION:-false}" = "true" ]; then
-  endpoints_block+='
-  # Home Automation: Home Assistant
-  - name: Home Assistant
-    group: Home Automation
-    url: "http://homeassistant:8123/manifest.json"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].name == Home Assistant"
-    alerts:
-      - type: ntfy
-        enabled: true
-
-  # Home Automation: Zigbee2MQTT
-  - name: Zigbee2MQTT
-    group: Home Automation
-    url: "http://zigbee2mqtt:8080"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == pat(*Zigbee2MQTT*)"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 2))
-fi
-
-# Applications: Immich (ENABLE_IMMICH)
-if [ "${ENABLE_IMMICH:-false}" = "true" ]; then
-  endpoints_block+='
-  # Applications: Immich
-  - name: Immich
-    group: Applications
-    url: "http://immich_server:2283/api/server/ping"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].res == pong"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
-
-# Applications: Nextcloud (ENABLE_NEXTCLOUD)
-if [ "${ENABLE_NEXTCLOUD:-false}" = "true" ]; then
-  endpoints_block+='
-  # Applications: Nextcloud
-  - name: Nextcloud
-    group: Applications
-    url: "http://nextcloud-aio-apache:11000/status.php"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].installed == true"
-      - "[BODY].maintenance == false"
-      - "[BODY].needsDbUpgrade == false"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
-
-# Applications: SearXNG (ENABLE_SEARXNG)
-if [ "${ENABLE_SEARXNG:-false}" = "true" ]; then
-  endpoints_block+='
-  # Applications: SearXNG
-  - name: SearXNG
-    group: Applications
-    url: "http://searxng-app:8080/healthz"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == OK"
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
-
-# Management: Portainer (ENABLE_PORTAINER)
-if [ "${ENABLE_PORTAINER:-false}" = "true" ]; then
-  endpoints_block+='
-  # Management: Portainer
-  - name: Portainer
-    group: Management
-    url: "http://portainer:9000/api/system/status"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY].Version != \"\""
-    alerts:
-      - type: ntfy
-        enabled: true
-'
-  count=$((count + 1))
-fi
-
-# Extras: Dynamically append endpoints from composes/extras/<service>/gatus.yaml
+# 2. Discover endpoints from extra services (composes/extras/<service>/gatus.yaml)
 EXTRAS_DIR="$PROJECT_ROOT/composes/extras"
 if [ -d "$EXTRAS_DIR" ]; then
   for extra_dir in "$EXTRAS_DIR"/*/; do
     if [ -d "$extra_dir" ]; then
       service_name=$(basename "$extra_dir")
-      gatus_fragment=""
+      fragment=""
       if [ -f "${extra_dir}gatus.yaml" ]; then
-        gatus_fragment="${extra_dir}gatus.yaml"
+        fragment="${extra_dir}gatus.yaml"
       elif [ -f "${extra_dir}gatus.yml" ]; then
-        gatus_fragment="${extra_dir}gatus.yml"
+        fragment="${extra_dir}gatus.yml"
       fi
 
-      if [ -n "$gatus_fragment" ]; then
-        # Render template placeholders (e.g., <DNS_DOMAIN>) in the fragment
-        temp_fragment="$(mktemp)"
-        render_template "$gatus_fragment" "$temp_fragment" \
-          DNS_DOMAIN="${DNS_DOMAIN:-example.com}" \
-          NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
-          NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
-          NTFY_TOKEN="${NTFY_TOKEN:-}"
-
-        rendered_content="$(cat "$temp_fragment")"
-        rm -f "$temp_fragment"
-
-        if [ -n "$rendered_content" ]; then
-          # Indent fragment content to match endpoints block format (2 spaces)
-          indented_content="$(echo "$rendered_content" | sed 's/^/  /')"
-          endpoints_block+=$'\n'"  # Extra: ${service_name}"$'\n'"${indented_content}"
-          # Count the number of endpoint entries in the fragment
-          fragment_count=$(echo "$rendered_content" | grep -c '^\- name:' || true)
-          count=$((count + fragment_count))
-          echo "[*] Added Gatus endpoints from extra service: ${service_name} (${fragment_count} endpoint(s))"
-        fi
+      if [ -n "$fragment" ]; then
+        append_gatus_fragment "$fragment" "Extra: ${service_name}"
       fi
     fi
   done

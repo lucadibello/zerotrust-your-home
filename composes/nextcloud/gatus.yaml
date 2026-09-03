@@ -1,0 +1,12 @@
+- name: Nextcloud
+  group: Applications
+  url: "http://nextcloud-aio-apache:11000/status.php"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY].installed == true"
+    - "[BODY].maintenance == false"
+    - "[BODY].needsDbUpgrade == false"
+  alerts:
+    - type: ntfy
+      enabled: true

@@ -33,6 +33,8 @@ add_service() {
   # Search subfolder first, then direct file
   if [ -f "composes/$service/docker-compose.yaml" ]; then
     target="composes/$service/docker-compose.yaml"
+  elif [ -f "composes/$service/docker-compose.yml" ]; then
+    target="composes/$service/docker-compose.yml"
   elif [ -f "composes/$service/$service.docker-compose.yaml" ]; then
     target="composes/$service/$service.docker-compose.yaml"
   elif [ -f "composes/$service.docker-compose.yaml" ]; then
@@ -46,69 +48,46 @@ add_service() {
   fi
 }
 
-# Ingress Services
-# Tunnel (enabled by default, can be disabled with ENABLE_TUNNEL=false)
-if [ "${ENABLE_TUNNEL:-true}" = "true" ]; then
-  add_service "tunnel"
+# 1. Discover and add built-in services from composes/<service>/
+for service_dir in composes/*/; do
+  if [ -d "$service_dir" ]; then
+    service_name=$(basename "$service_dir")
+    # Skip extras directory
+    if [ "$service_name" = "extras" ]; then
+      continue
+    fi
+
+    if is_service_enabled "$service_name" false; then
+      add_service "$service_name"
+    fi
+  fi
+done
+
+# 2. Discover and add user-defined extra services from composes/extras/<service>/
+if [ -d "composes/extras" ]; then
+  for extra_dir in composes/extras/*/; do
+    if [ -d "$extra_dir" ]; then
+      service_name=$(basename "$extra_dir")
+      if is_service_enabled "$service_name" true; then
+        if [ -f "${extra_dir}docker-compose.yml" ]; then
+          if [[ " $FILES " != *" -f ${extra_dir}docker-compose.yml "* ]]; then
+            FILES="$FILES -f ${extra_dir}docker-compose.yml"
+          fi
+        elif [ -f "${extra_dir}docker-compose.yaml" ]; then
+          if [[ " $FILES " != *" -f ${extra_dir}docker-compose.yaml "* ]]; then
+            FILES="$FILES -f ${extra_dir}docker-compose.yaml"
+          fi
+        fi
+      fi
+    fi
+  done
 fi
 
-# Website (optional static site if present)
-if [ -d "composes/website" ] || [ -f "composes/website.docker-compose.yaml" ]; then
-  if [ "${ENABLE_WEBSITE:-true}" = "true" ]; then
-    add_service "website"
-  fi
-fi
-
-# Flag-based Services
-# Format: FLAG_NAME|SERVICE_NAME
-while read -r line; do
-  if [ -z "$line" ]; then continue; fi
-  FLAG="${line%%|*}"
-  SERVICE="${line##*|}"
-  
-  # Check if flag is true (indirect expansion)
-  VAL="${!FLAG:-false}"
-  if [ "$VAL" = "true" ]; then
-      add_service "$SERVICE"
-  fi
-done <<EOF
-ENABLE_REVERSE_PROXY|traefik
-ENABLE_DNS|dns
-ENABLE_MONITORING|monitoring
-ENABLE_LOGGING|logging
-ENABLE_BACKUP|backup
-ENABLE_HOME_AUTOMATION|home-assistant
-ENABLE_VAULTWARDEN|vaultwarden
-ENABLE_NEXTCLOUD|nextcloud
-ENABLE_PORTAINER|portainer
-ENABLE_NTFY|ntfy
-ENABLE_GATUS|gatus
-ENABLE_UPTIME_KUMA|gatus
-ENABLE_HOMEPAGE|homepage
-ENABLE_DIUN|diun
-ENABLE_IMMICH|immich
-ENABLE_SEARXNG|searxng
-ENABLE_MINECRAFT|minecraft
-EOF
-
-# Custom Files (both root composes/ and subdirectories)
+# 3. Discover optional standalone custom compose files
 for custom in composes/*.custom.docker-compose.yaml composes/*/*.custom.docker-compose.yaml; do
   if [ -e "$custom" ]; then
     FILES="$FILES -f $custom"
   fi
 done
-
-# Discover Extra Services (composes/extras/<service>/docker-compose.yml or docker-compose.yaml)
-if [ -d "composes/extras" ]; then
-  for extra_dir in composes/extras/*/; do
-    if [ -d "$extra_dir" ]; then
-      if [ -f "${extra_dir}docker-compose.yml" ]; then
-        FILES="$FILES -f ${extra_dir}docker-compose.yml"
-      elif [ -f "${extra_dir}docker-compose.yaml" ]; then
-        FILES="$FILES -f ${extra_dir}docker-compose.yaml"
-      fi
-    fi
-  done
-fi
 
 echo "$FILES"

@@ -1,0 +1,9 @@
+- name: Vaultwarden
+  group: Security
+  url: "http://vaultwarden:80/alive"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true

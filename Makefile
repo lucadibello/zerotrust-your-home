@@ -39,6 +39,8 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	$(if $(filter vaultwarden bitwarden,$(1)),composes/vaultwarden/docker-compose.yaml) \
 	$(if $(filter homepage dashboard,$(1)),composes/homepage/docker-compose.yaml) \
 	$(if $(filter diun,$(1)),composes/diun/docker-compose.yaml) \
+	$(if $(filter adguard adguardhome adguard-home,$(1)),composes/adguard/docker-compose.yaml) \
+	$(if $(filter crowdsec,$(1)),composes/crowdsec/docker-compose.yaml) \
 ))
 
 # Macro for running single-service compose commands
@@ -158,6 +160,9 @@ backup-restore: # Restore from backup
 	@bash scripts/backups/restore.sh
 
 restore: backup-restore
+
+backup-logs: # View live logs of the automated backup, prune, and check containers
+	@bash scripts/backups/logs.sh
 
 backup-cron-enable: # Enable automatic daily system backup at 00:00
 	@bash scripts/backups/setup-backup-cron.sh enable

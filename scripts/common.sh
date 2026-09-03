@@ -226,3 +226,71 @@ send_ntfy() {
     curl -s -H "Title: ${title}" -H "Tags: ${tags}" -H "Priority: ${priority}" "${auth_header[@]}" -d "${message}" "${ntfy_endpoint}" >/dev/null 2>&1 || true
   fi
 }
+
+# get_service_flag_name: Converts a service or directory name to its uppercase environment variable flag
+# e.g. "home-assistant" -> "ENABLE_HOME_ASSISTANT", "stirling-pdf" -> "ENABLE_STIRLING_PDF"
+get_service_flag_name() {
+  local service="$1"
+  local clean_name
+  clean_name=$(echo "$service" | tr '[:lower:]-' '[:upper:]_')
+  echo "ENABLE_${clean_name}"
+}
+
+# is_service_enabled: Dynamically checks if a service is enabled in the current environment
+# Usage: is_service_enabled <service_name> [is_extra]
+# Checks:
+#   1. Direct flag derived from folder name (ENABLE_<NAME>)
+#   2. Legacy alias flags (ENABLE_REVERSE_PROXY for traefik, ENABLE_HOME_AUTOMATION for home-assistant, etc.)
+#   3. Defaults:
+#      - Core infrastructure (traefik, tunnel, monitoring, logging, backup): default true
+#      - Extras (composes/extras/*): default true unless explicitly ENABLE_<NAME>=false in .env
+#      - All other optional services in composes/: default false
+is_service_enabled() {
+  local service="$1"
+  local is_extra="${2:-false}"
+  local flag_name
+  flag_name=$(get_service_flag_name "$service")
+
+  # 1. Check if the direct dynamic flag is explicitly defined in environment
+  if [ -n "${!flag_name+x}" ]; then
+    [ "${!flag_name}" = "true" ]
+    return $?
+  fi
+
+  # 2. Check legacy alias mappings for backward compatibility
+  case "$service" in
+    traefik)
+      if [ -n "${ENABLE_REVERSE_PROXY+x}" ]; then
+        [ "$ENABLE_REVERSE_PROXY" = "true" ]
+        return $?
+      fi
+      ;;
+    home-assistant)
+      if [ -n "${ENABLE_HOME_AUTOMATION+x}" ]; then
+        [ "$ENABLE_HOME_AUTOMATION" = "true" ]
+        return $?
+      fi
+      ;;
+    gatus)
+      if [ -n "${ENABLE_UPTIME_KUMA+x}" ]; then
+        [ "$ENABLE_UPTIME_KUMA" = "true" ]
+        return $?
+      fi
+      ;;
+  esac
+
+  # 3. Default state if unset
+  if [ "$is_extra" = "true" ]; then
+    return 0
+  fi
+
+  case "$service" in
+    traefik|tunnel|monitoring|logging|backup)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+

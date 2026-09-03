@@ -205,6 +205,8 @@ echo "[*] Enabled services:"
 [ "$ENABLE_IMMICH" = "true" ] && echo "    - Immich (Photo Library)"
 [ "$ENABLE_SEARXNG" = "true" ] && echo "    - SearXNG (Search Engine)"
 [ "$ENABLE_MINECRAFT" = "true" ] && echo "    - Minecraft Server"
+[ "${ENABLE_ADGUARD:-false}" = "true" ] && echo "    - AdGuard Home (DNS & DoH)"
+[ "${ENABLE_CROWDSEC:-false}" = "true" ] && echo "    - CrowdSec (Intrusion Prevention)"
 
 # Print discovered extra services
 if [ -d "composes/extras" ]; then
@@ -242,6 +244,8 @@ ordered_scripts=(
   "./scripts/containers/setup-nextcloud.sh"
   "./scripts/containers/setup-searxng.sh"
   "./scripts/containers/setup-vaultwarden.sh"
+  "./scripts/containers/setup-adguard.sh"
+  "./scripts/containers/setup-crowdsec.sh"
   "./scripts/containers/setup-gatus.sh"
   "./scripts/containers/setup-homepage.sh"
   "./scripts/containers/setup-diun.sh"

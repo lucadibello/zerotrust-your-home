@@ -1,0 +1,10 @@
+- name: Portainer
+  group: Management
+  url: "http://portainer:9000/api/system/status"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY].Version != \"\""
+  alerts:
+    - type: ntfy
+      enabled: true

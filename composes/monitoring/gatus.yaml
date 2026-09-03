@@ -1,0 +1,32 @@
+- name: Prometheus
+  group: Monitoring
+  url: "http://prometheus:9090/-/ready"
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY] == pat(*Prometheus Server is Ready.*)"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Alertmanager
+  group: Monitoring
+  url: "http://alertmanager:9093/-/ready"
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY] == OK"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Grafana
+  group: Monitoring
+  url: "http://grafana:3000/api/health"
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY].database == ok"
+  alerts:
+    - type: ntfy
+      enabled: true

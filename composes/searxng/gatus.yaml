@@ -1,0 +1,10 @@
+- name: SearXNG
+  group: Applications
+  url: "http://searxng-app:8080/healthz"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY] == OK"
+  alerts:
+    - type: ntfy
+      enabled: true

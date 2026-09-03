@@ -1,0 +1,10 @@
+- name: Immich
+  group: Applications
+  url: "http://immich_server:2283/api/server/ping"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY].res == pong"
+  alerts:
+    - type: ntfy
+      enabled: true

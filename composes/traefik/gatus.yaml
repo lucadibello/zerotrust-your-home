@@ -1,0 +1,10 @@
+- name: Traefik Ingress
+  group: Core Infrastructure
+  url: "http://traefik:80/ping"
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY] == OK"
+  alerts:
+    - type: ntfy
+      enabled: true

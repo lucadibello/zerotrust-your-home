@@ -1,0 +1,9 @@
+- name: Homepage Dashboard
+  group: Core Infrastructure
+  url: "http://homepage:3000"
+  interval: 30s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true

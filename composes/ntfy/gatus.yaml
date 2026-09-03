@@ -1,0 +1,10 @@
+- name: Ntfy (Push Notifications)
+  group: Core Infrastructure
+  url: "http://ntfy:80/v1/health"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+    - "[BODY].healthy == true"
+  alerts:
+    - type: ntfy
+      enabled: true

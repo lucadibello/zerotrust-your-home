@@ -118,6 +118,16 @@ if [ "${ENABLE_NTFY:-false}" = "true" ]; then
 "
 fi
 
+if [ "${ENABLE_ADGUARD:-false}" = "true" ]; then
+  core_entries+="    - AdGuard Home:
+        icon: adguard-home.png
+        href: https://adguard.${DOMAIN}
+        description: DNS & DoH Ad-blocking
+        server: my-docker
+        container: adguard
+"
+fi
+
 if [ -n "$core_entries" ]; then
   has_any_service=true
   cat <<EOF >> "$services_file"
@@ -159,6 +169,15 @@ if [ "${ENABLE_VAULTWARDEN:-false}" = "true" ]; then
         icon: vaultwarden.png
         href: https://vault.${DOMAIN}
         description: Password and Secrets Manager
+"
+fi
+
+if [ "${ENABLE_CROWDSEC:-false}" = "true" ]; then
+  security_entries+="    - CrowdSec:
+        icon: crowdsec.png
+        description: Intrusion Prevention & Security Engine
+        server: my-docker
+        container: crowdsec
 "
 fi
 

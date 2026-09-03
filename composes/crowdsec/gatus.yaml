@@ -1,0 +1,9 @@
+- name: CrowdSec Security Engine
+  group: Security
+  url: "http://crowdsec:8080/v1/health"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true

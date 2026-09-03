@@ -44,12 +44,18 @@ services:
       # Dynamic file configuration provider
       - "--providers.file.directory=/etc/traefik/dynamic"
       - "--providers.file.watch=true"
+      # Access logs for CrowdSec and security auditing
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.format=json"
+      - "--accesslog.bufferingsize=100"
     ports:
       - "80:80"   # HTTP
       - "443:443" # HTTPS
     volumes:
       - "./composes/traefik/letsencrypt/acme.json:/letsencrypt/acme.json"
       - "./composes/traefik/dynamic:/etc/traefik/dynamic:ro"
+      - "./composes/traefik/logs:/var/log/traefik"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
@@ -63,7 +69,6 @@ services:
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
       - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.middlewares=strip"
       - "traefik.http.middlewares.strip.stripprefix.prefixes=/traefik"
 
 networks:

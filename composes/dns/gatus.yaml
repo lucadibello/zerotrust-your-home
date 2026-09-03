@@ -1,0 +1,12 @@
+- name: BIND9 DNS
+  group: Core Infrastructure
+  url: "bind9:53"
+  dns:
+    query-name: "<DNS_DOMAIN>"
+    query-type: "A"
+  interval: 60s
+  conditions:
+    - "[STATUS] == NOERROR"
+  alerts:
+    - type: ntfy
+      enabled: true

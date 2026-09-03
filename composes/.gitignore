@@ -2,6 +2,7 @@
 traefik/letsencrypt/
 traefik/acme.json
 traefik/dynamic/
+traefik/logs/
 
 # BIND9 generated zone configs and runtime caches
 dns/config/
@@ -42,3 +43,11 @@ backup/db-dumps/
 
 # Homepage generated configuration
 homepage/config/
+
+# AdGuard Home persistent data
+adguard/work/
+adguard/conf/
+
+# CrowdSec persistent data
+crowdsec/data/
+

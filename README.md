@@ -132,6 +132,8 @@ These services can be enabled based on user requirements:
 | `ENABLE_PORTAINER`       | Portainer                              | Docker management UI         |
 | `ENABLE_GATUS`           | Gatus                                  | Service health monitoring & status page |
 | `ENABLE_DIUN`            | DIUN                                   | Docker image update notifier |
+| `ENABLE_ADGUARD`         | AdGuard Home                           | DNS-over-HTTPS ad & tracker blocker |
+| `ENABLE_CROWDSEC`        | CrowdSec                               | Intrusion prevention & security engine |
 
 ### 5.3. Additional services
 
@@ -758,6 +760,8 @@ The following table outlines the services used to build the current infrastructu
 | Immich                                        | Self-hosted photo/video library with ML                                      | Yes        | photos.your.domain      | 2283    |
 | SearXNG                                       | Privacy-focused metasearch engine                                            | Yes        | search.your.domain      | 8080    |
 | Minecraft Server                              | Game server with TCP tunnel                                                  | Yes        | -                       | 25565   |
+| AdGuard Home                                  | DNS-over-HTTPS ad, tracker & malware blocking                                | Yes        | adguard.your.domain     | 80 (int)|
+| CrowdSec                                      | Intrusion prevention and security engine                                     | Yes        | -                       | 8080(int)|
 
 ### 13.2. Docker external networks
 
@@ -807,6 +811,8 @@ The following table lists all information about the containers used by the serve
 | `searxng-app`                   | `searxng/searxng:latest`                             | `traefik-network`, `searxnet`                                           | `unless-stopped` |
 | `mc`                            | `itzg/minecraft-server`                              | `mc-network`                                                            | `always`         |
 | `mc-tcp-tunnel`                 | `cloudflare/cloudflared:latest`                      | `mc-network`                                                            | `unless-stopped` |
+| `adguard`                       | `adguard/adguardhome:latest`                         | `traefik-network`                                                       | `always`         |
+| `crowdsec`                      | `crowdsecurity/crowdsec:latest`                      | `traefik-network`                                                       | `unless-stopped` |
 
 ### 13.4. Docker containers network segmentation
 
