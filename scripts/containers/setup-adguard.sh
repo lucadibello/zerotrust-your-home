@@ -21,7 +21,7 @@ mkdir -p "$PROJECT_ROOT/composes/adguard/work" "$PROJECT_ROOT/composes/adguard/c
 
 # Ensure external networks exist with correct subnets
 ensure_network "traefik-network"
-ensure_network "dns-network" "172.28.0.0/16"
+ensure_network "dns-network" "10.53.0.0/24"
 
 # Pre-configure AdGuard Home if not already configured
 ADGUARD_CONF="$PROJECT_ROOT/composes/adguard/conf/AdGuardHome.yaml"

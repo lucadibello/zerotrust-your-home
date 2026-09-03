@@ -23,7 +23,7 @@ mkdir -p "$DNS_CONFIG_DIR" \
          "$PROJECT_ROOT/composes/dns/records"
 
 # Ensure external Docker network for DNS has the correct subnet
-ensure_network "dns-network" "172.28.0.0/16"
+ensure_network "dns-network" "10.53.0.0/24"
 
 # Generate zone filename (e.g., "example.com" becomes "example-com")
 filename=$(echo "$DNS_DOMAIN" | sed 's/\./-/g')
@@ -75,8 +75,8 @@ if [ -n "${ADGUARD_IP:-}" ]; then
   forwarders_lines="    ${ADGUARD_IP};"
   echo "[*] BIND9 forwarding recursive queries to AdGuard Home at ${ADGUARD_IP}"
 elif is_service_enabled "adguard" false; then
-  forwarders_lines="    172.28.0.100;"
-  echo "[*] BIND9 forwarding recursive queries to AdGuard Home container (172.28.0.100:53)"
+  forwarders_lines="    10.53.0.100;"
+  echo "[*] BIND9 forwarding recursive queries to AdGuard Home container (10.53.0.100:53)"
 else
   forwarders_lines="    1.1.1.1;\n    8.8.8.8;"
   echo "[*] BIND9 forwarding recursive queries to upstream public DNS (1.1.1.1, 8.8.8.8)"
