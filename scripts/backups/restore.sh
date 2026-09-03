@@ -4,24 +4,16 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Load common features and .env
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
 RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
-if [ ! -f "$RESTIC_COMPOSE" ]; then
-    RESTIC_COMPOSE="$PROJECT_DIR/composes/restic.docker-compose.yaml"
-fi
-
 COMPOSE_ARGS=$(bash "$PROJECT_DIR/scripts/get_docker_compose_files.sh")
 
-# Cleanup trap
 RESTORE_SERVICES_STOPPED=false
 RESTORE_CLEANUP_RUNNING=false
 cleanup() {
-    if [ "$RESTORE_CLEANUP_RUNNING" = "true" ]; then
-        return 0
-    fi
+    if [ "$RESTORE_CLEANUP_RUNNING" = "true" ]; then return 0; fi
     RESTORE_CLEANUP_RUNNING=true
     trap '' EXIT INT TERM
 
@@ -29,9 +21,7 @@ cleanup() {
         echo ""
         echo "[!] Interrupted during restore. Attempting to restart services..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
-        echo "[*] Services restart attempted. Please verify with 'make status'."
     fi
-
     exit 1
 }
 trap cleanup EXIT INT TERM
@@ -39,110 +29,81 @@ trap cleanup EXIT INT TERM
 echo "==========================================="
 echo "      ZeroTrust Home Restore Utility       "
 echo "==========================================="
-echo "1) System Restore (Docker Volumes & Configs)"
-echo "   - Restores Restic snapshot to /"
-echo "   - Affects all Docker volumes and Project files"
+echo "1) System Restore (Full Overwrite)"
+echo "   - Restores entire Restic snapshot to /"
 echo "2) Immich Photos Restore"
-echo "   - Restores photos from local backup"
-echo "   - Uses immich-go to upload/import"
+echo "   - Restores photos via immich-go zip archives"
 echo "3) Database Restore"
-echo "   - Restore specific SQL dumps (e.g. Immich DB)"
-echo "4) Single Service Restore (Granular)"
-echo "   - Restore ONLY a specific folder (e.g. just vaultwarden)"
-echo "   - Fast! Does not download the whole backup"
-echo "5) Nextcloud Data Info"
-echo "   - Information on restoring Nextcloud files"
+echo "   - Restore SQL dumps (PostgreSQL / Immich / Nextcloud)"
+echo "4) Single Service Restore (In-Place)"
+echo "   - Restore ONLY a specific folder directly over live data"
+echo "5) Extract to Staging (Safe File Recovery)"
+echo "   - Extract specific files/folders to a temporary folder"
+echo "   - Safest way to recover a single accidentally deleted file"
+echo "6) Rebuild Local Repository from Cloud"
+echo "   - Download entire repository to local disk (Drive Failure Scenario)"
+echo "7) Nextcloud Data Info"
 echo "q) Quit"
 echo "-------------------------------------------"
 echo -n "Select an option: "
 read OPTION
 
+get_repo_args() {
+    echo "Select Restore Source:"
+    echo "1) Local Disk (Recommended - Fast)"
+    echo "2) Cloud Storage"
+    echo -n "Select option [1]: "
+    read SOURCE_OPT
+    
+    docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
+
+    if [ "$SOURCE_OPT" = "1" ] || [ -z "$SOURCE_OPT" ]; then
+        LOCAL_REPO="/repos/local/restic"
+        if docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+          exec -T backup test -f /repos/local/config 2>/dev/null; then
+            LOCAL_REPO="/repos/local"
+        fi
+        echo "-r $LOCAL_REPO"
+    else
+        echo ""
+    fi
+}
+
 case $OPTION in
     1)
-        echo "[*] System Restore selected."
-        
-        echo "-------------------------------------------"
-        echo "Select Restore Source:"
-        echo "1) Local Disk (Recommended - Fast)"
-        echo "2) Cloud Storage"
-        echo "-------------------------------------------"
-        echo -n "Select option [1]: "
-        read SOURCE_OPT
-        
-        # Ensure backup container is running to query snapshots
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
-
-        REPO_ARGS=""
-        if [ "$SOURCE_OPT" = "1" ] || [ -z "$SOURCE_OPT" ]; then
-            LOCAL_REPO="/repos/local/restic"
-            if docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-              exec -T backup test -f /repos/local/config 2>/dev/null; then
-                LOCAL_REPO="/repos/local"
-            fi
-            echo "[*] Using Local Repository ($LOCAL_REPO)"
-            REPO_ARGS="-r $LOCAL_REPO"
-        else
-            echo "[*] Using Cloud Repository"
-        fi
-
+        REPO_ARGS=$(get_repo_args)
         echo "[*] Fetching snapshots..."
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-            exec backup restic $REPO_ARGS snapshots -H docker
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic $REPO_ARGS snapshots -H docker
         
         echo -n "Enter backup ID to restore: "
         read ID
-        
-        if [ -z "$ID" ]; then
-            echo "No ID entered. Aborting."
-            exit 1
-        fi
+        if [ -z "$ID" ]; then exit 1; fi
 
         echo "[!] WARNING: This will STOP all services and OVERWRITE Docker volumes."
         echo -n "Are you sure? [y/N]: "
         read CONFIRM
-        if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then
-            echo "Aborted."
-            exit 0
-        fi
+        if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then exit 0; fi
 
         echo "[*] Stopping service containers..."
         RESTORE_SERVICES_STOPPED=true
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
         
-        # Start only the backup container to perform the restore
-        echo "[*] Ensuring restic backup container is active for restore..."
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
-
         echo "[*] Restoring Snapshot $ID..."
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS restore $ID -H docker --exclude backingFsBlockDev --target / 
             
         echo "[*] Restarting containers..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
         RESTORE_SERVICES_STOPPED=false
-        echo "[OK] System Restore completed."
-        send_ntfy "System Restore Completed" "Snapshot $ID system restore completed successfully!" "white_check_mark,arrows_counterclockwise" "high"
+
+        for handler in "$PROJECT_DIR/scripts/backups/services"/*/handler.sh; do
+            if [ -f "$handler" ]; then bash "$handler" "post-restore" || true; fi
+        done
         ;;
     
     2)
-        echo "-------------------------------------------"
-        echo "Immich Restore Options"
-        echo "-------------------------------------------"
-        echo "1) Portable Restore (from immich-go backups)"
-        echo "   - Uses zip files exported by immich-go"
-        echo "   - Re-uploads images (slower, but cleaner)"
-        echo "2) Full System Restore"
-        echo "   - Use '1) System Restore' in main menu"
-        echo "   - Restores raw files + DB dump (exact state recovery)"
-        echo "   - Much faster for full recovery"
-        echo "-------------------------------------------"
-        echo -n "Select an option: "
-        read IMMICH_OPT
-        if [ "$IMMICH_OPT" = "1" ]; then
-             bash "$SCRIPT_DIR/restore-immich.sh"
-        else
-             echo "Please use Option 1 in the main menu for Full System Restore."
-        fi
+        bash "$SCRIPT_DIR/restore-immich.sh"
         ;;
     
     3)
@@ -150,97 +111,70 @@ case $OPTION in
         ;;
 
     4)
-        echo "-------------------------------------------"
-        echo "Single Service / Granular Restore"
-        echo "-------------------------------------------"
-        
-        echo "Select Restore Source:"
-        echo "1) Local Disk (Recommended - Fast)"
-        echo "2) Cloud Storage"
-        echo -n "Select option [1]: "
-        read SOURCE_OPT
-        
-        # Ensure backup container is running to query snapshots
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
-
-        REPO_ARGS=""
-        if [ "$SOURCE_OPT" = "1" ] || [ -z "$SOURCE_OPT" ]; then
-            LOCAL_REPO="/repos/local/restic"
-            if docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-              exec -T backup test -f /repos/local/config 2>/dev/null; then
-                LOCAL_REPO="/repos/local"
-            fi
-            echo "[*] Using Local Repository ($LOCAL_REPO)"
-            REPO_ARGS="-r $LOCAL_REPO"
-        else
-            echo "[*] Using Cloud Repository"
-        fi
-
-        echo "[*] Fetching snapshots..."
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-            exec backup restic $REPO_ARGS snapshots -H docker
-        
-        echo -n "Enter backup ID to browse: "
+        REPO_ARGS=$(get_repo_args)
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic $REPO_ARGS snapshots -H docker
+        echo -n "Enter backup ID: "
         read ID
+        if [ -z "$ID" ]; then exit 1; fi
         
-        if [ -z "$ID" ]; then
-            echo "No ID entered. Aborting."
-            exit 1
-        fi
-
-        echo "[*] Listing directories in snapshot $ID..."
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-            exec backup restic $REPO_ARGS ls $ID /mnt/backup | grep "^d" | awk '{print $NF}'
-            
-        echo ""
-        echo "Enter the full path of the folder to restore (from list above)."
-        echo "Example: /mnt/backup/docker/vaultwarden_data"
-        echo -n "Path to restore: "
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic $REPO_ARGS ls $ID /mnt/backup | grep "^d" | awk '{print $NF}'
+        echo -n "Path to restore (e.g. /mnt/backup/docker/vaultwarden_data): "
         read TARGET_PATH
-        
-        if [ -z "$TARGET_PATH" ]; then
-            echo "No path entered. Aborting."
-            exit 1
-        fi
+        if [ -z "$TARGET_PATH" ]; then exit 1; fi
 
-        echo "[!] Restoring ONLY: $TARGET_PATH"
-        echo "[!] This will restore it to the original location on this host."
+        echo "[!] Restoring ONLY: $TARGET_PATH OVERWRITING live data!"
         echo -n "Are you sure? [y/N]: "
         read CONFIRM
-        if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then
-            echo "Aborted."
-            exit 0
-        fi
+        if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then exit 0; fi
 
-        echo "[*] Restoring..."
-        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS restore $ID --include "$TARGET_PATH" --target /
             
-        if [ $? -eq 0 ]; then
-            echo "[OK] Service restore completed successfully."
-            send_ntfy "Service Restore Completed" "Restored $TARGET_PATH from snapshot $ID successfully." "white_check_mark,arrows_counterclockwise" "default"
-        else
-            echo "[ERROR] Restore failed."
-            send_ntfy "Service Restore Failed" "Failed to restore $TARGET_PATH from snapshot $ID." "warning,x,arrows_counterclockwise" "high"
-        fi
+        for handler in "$PROJECT_DIR/scripts/backups/services"/*/handler.sh; do
+            if [ -f "$handler" ]; then bash "$handler" "post-restore" || true; fi
+        done
         ;;
 
     5)
         echo "-------------------------------------------"
-        echo "Nextcloud Data Restore Info"
+        echo "Extract to Staging (Safe File Recovery)"
         echo "-------------------------------------------"
+        REPO_ARGS=$(get_repo_args)
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic $REPO_ARGS snapshots -H docker
+        echo -n "Enter backup ID: "
+        read ID
+        if [ -z "$ID" ]; then exit 1; fi
+        
+        echo -n "Path to extract (e.g. /mnt/backup/docker/vaultwarden_data/config.json): "
+        read TARGET_PATH
+        if [ -z "$TARGET_PATH" ]; then exit 1; fi
+
+        STAGING_DIR="$PROJECT_DIR/composes/backup/staging-restore"
+        mkdir -p "$STAGING_DIR"
+        
+        echo "[*] Extracting $TARGET_PATH to $STAGING_DIR..."
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
+        docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" \
+            exec backup restic $REPO_ARGS restore $ID --include "$TARGET_PATH" --target /mnt/backup/project/composes/backup/staging-restore
+            
+        echo "[OK] Extracted successfully!"
+        echo "You can find your files safely extracted on the host machine at:"
+        echo "$STAGING_DIR$TARGET_PATH"
+        echo ""
+        echo "Copy them manually to where you need them."
+        ;;
+
+    6)
+        bash "$SCRIPT_DIR/rebuild-local-repo.sh"
+        ;;
+
+    7)
         echo "Nextcloud data (files) are backed up by Restic from ${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}."
-        echo "You can restore them using System Restore (Option 1)."
-        echo ""
-        echo "If you need to manually restore ONLY the Nextcloud data directory:"
-        echo "1. Ensure Nextcloud container is stopped."
-        echo "2. Run: docker compose -f composes/backup/docker-compose.yaml exec backup restic restore <snapshot-id> --include /mnt/backup/nextcloud --target /"
-        echo ""
-        echo "After restoring data and config, run '3) Database Restore' to restore the Nextcloud DB."
+        echo "You can restore them using System Restore (Option 1) or Extract to Staging (Option 5)."
         ;;
         
     q|Q)
-        echo "Exiting."
         exit 0
         ;;
         
@@ -250,5 +184,4 @@ case $OPTION in
         ;;
 esac
 
-# Unset cleanup trap on normal exit
 trap - EXIT INT TERM

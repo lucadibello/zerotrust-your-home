@@ -1,0 +1,8 @@
+services:
+  backup:
+    volumes:
+      - /var/lib/docker/volumes:/mnt/backup/docker:rw
+      - ./:/mnt/backup/project:rw
+      - ${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}:/mnt/backup/nextcloud:rw
+      - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/immich}:/mnt/backup/immich:rw
+      - ${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}:/mnt/backup/immich-go:rw

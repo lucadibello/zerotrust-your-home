@@ -1,77 +1,60 @@
 services:
-  # Main Restic service for Backup/Restore/Prune/Check
-  # Uses instrumentisto/restic and sleeps indefinitely to allow 'exec' commands
   backup:
-    image: instrumentisto/restic:latest
-    hostname: docker
+    image: mazzolino/restic:latest
     container_name: restic-backup
     restart: unless-stopped
-    # Infinite loop to keep container running for 'exec' commands
-    entrypoint: /bin/sh -c 'while true; do sleep 3600; done'
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
     networks:
       - traefik-network
     environment:
-      RUN_ON_STARTUP: "true" # Backup on startup
-      BACKUP_CRON: "0 0 * * *" # Backup every day at 00:00
-      
-      # Restic repository configuration
-      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
-      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
-      
-      # Timezone
       TZ: Europe/Zurich
-      
-      # Additional environment variables for specific backends (e.g. Rclone)
-      RCLONE_CONFIG_PASS: ${RCLONE_CONFIG_PASS:-}
+      RUN_ON_STARTUP: "false"
+      BACKUP_CRON: "0 0 * * *"
+      PRUNE_CRON: "0 3 * * 0"
 
-      # Database dump settings (for pre-backup export)
+      # Native Restic variables targeting the Local disk repository
+      RESTIC_REPOSITORY: /repos/local/restic
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
+      RESTIC_BACKUP_SOURCES: /mnt/backup
+      RESTIC_BACKUP_ARGS: "--exclude='*.tmp' --exclude-file=/tmp/excludes.txt"
+      RESTIC_FORGET_ARGS: ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
+
+      # The cloud repo to copy to post-backup
+      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+
+      # Pass through environment variables for handlers
       ENABLE_IMMICH: ${ENABLE_IMMICH:-false}
       IMMICH_DB_USERNAME: ${IMMICH_DB_USERNAME:-postgres}
       IMMICH_DB_DATABASE_NAME: ${IMMICH_DB_DATABASE_NAME:-immich}
+      IMMICH_API_KEY: ${IMMICH_API_KEY:-}
+      ENABLE_NEXTCLOUD: ${ENABLE_NEXTCLOUD:-false}
+      ENABLE_VAULTWARDEN: ${ENABLE_VAULTWARDEN:-false}
+      ENABLE_HOME_AUTOMATION: ${ENABLE_HOME_AUTOMATION:-false}
 
-      # Ntfy notifications
       NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
       NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
-      NTFY_TOKEN: ${NTFY_TOKEN:-}
 
-      # Pre-backup commands: clean volumes + dump databases
+      # Hooks execute the orchestrated phases from the repository
       PRE_COMMANDS: |-
-        docker volume prune -f
-        echo "[*] Dumping databases before backup..."
-        mkdir -p /mnt/backup/project/composes/backup/db-dumps
-        if [ "$ENABLE_IMMICH" = "true" ] && docker ps -q -f name=immich_postgres | grep -q .; then
-          echo "[*] Dumping Immich database..."
-          docker exec -t immich_postgres pg_dump -c -U "$IMMICH_DB_USERNAME" "$IMMICH_DB_DATABASE_NAME" | gzip > /mnt/backup/project/composes/backup/db-dumps/immich_db_dump.sql.gz
-          echo "[OK] Immich database dumped."
-        fi
-        echo "[OK] Pre-backup tasks completed."
-
-      # Notification scripts using ntfy
+        apk add --no-cache bash curl gzip
+        bash /mnt/backup/project/scripts/backups/container-pre-backup.sh
       POST_COMMANDS_SUCCESS: |-
-        curl -s -H "Title: Backup Successful" -H "Tags: white_check_mark,floppy_disk" -d "Docker volumes backup completed successfully!" "${NTFY_URL:-https://ntfy.home.lucadibello.ch}/${NTFY_TOPIC:-lucadibello-homelab-status}"
+        bash /mnt/backup/project/scripts/backups/container-post-backup.sh success
       POST_COMMANDS_FAILURE: |-
-        curl -s -H "Title: Backup Failed" -H "Priority: high" -H "Tags: warning,x,floppy_disk" -d "An error occurred during Docker volumes backup! Check Restic logs for details." "${NTFY_URL:-https://ntfy.home.lucadibello.ch}/${NTFY_TOPIC:-lucadibello-homelab-status}"
+        bash /mnt/backup/project/scripts/backups/container-post-backup.sh failure
       POST_COMMANDS_INCOMPLETE: |-
-        curl -s -H "Title: Backup Incomplete" -H "Priority: high" -H "Tags: warning,floppy_disk" -d "The docker volumes backup was not completed successfully! Check Restic logs for details." "${NTFY_URL:-https://ntfy.home.lucadibello.ch}/${NTFY_TOPIC:-lucadibello-homelab-status}"
+        bash /mnt/backup/project/scripts/backups/container-post-backup.sh incomplete
 
     volumes:
-      # Rclone configuration (Read-Write to allow token refreshes)
       - ./config/rclone:/root/.config/rclone
-      
-      # Backup sources
       - /var/lib/docker/volumes:/mnt/backup/docker:ro
       - ./:/mnt/backup/project:ro
-      
-      # Optional data directories
       - ${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}:/mnt/backup/nextcloud:ro
       - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/immich}:/mnt/backup/immich:ro
       - ${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}:/mnt/backup/immich-go:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
-      
-      # Docker socket
       - /var/run/docker.sock:/var/run/docker.sock
 
 networks:

@@ -5,29 +5,27 @@ trap "exit" INT
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Load common features and .env
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
-FORCE_FULL=false
+export FORCE_FULL=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --full|-f)
-      FORCE_FULL=true
+      export FORCE_FULL=true
       shift
       ;;
     --help|-h)
       echo "Usage: $0 [--full|-f]"
       echo ""
       echo "Options:"
-      echo "  --full, -f    Force a full export (full Immich photo export + DB dumps)"
+      echo "  --full, -f    Force a full export (full photo export + DB dumps)"
       echo "  --help, -h    Show this help message"
       exit 0
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--full|-f]"
       exit 1
       ;;
   esac
@@ -35,25 +33,25 @@ done
 
 EXPORT_STATUS=0
 
-# Run Immich backup if enabled (requires Immich to be running)
-if [ "${ENABLE_IMMICH:-false}" = "true" ]; then
-    echo "[*] Running Immich export..."
-    IMMICH_FLAGS=()
-    if [ "$FORCE_FULL" = "true" ]; then
-        IMMICH_FLAGS+=("--full")
+COMPOSE_ARGS=$(bash "$PROJECT_DIR/scripts/get_docker_compose_files.sh")
+HANDLERS=()
+for handler in "$PROJECT_DIR/scripts/backups/services"/*/handler.sh; do
+    if [ -f "$handler" ]; then
+        svc="$(basename "$(dirname "$handler")")"
+        FLAG="ENABLE_$(echo "$svc" | tr '[:lower:]-' '[:upper:]_')"
+        if [ "${!FLAG:-false}" = "true" ] || [[ "$COMPOSE_ARGS" == *"composes/$svc/"* ]] || [[ "$COMPOSE_ARGS" == *"composes/$svc.docker-compose.yaml"* ]]; then
+            HANDLERS+=("$handler")
+        fi
     fi
-    if ! bash "$PROJECT_DIR/scripts/backups/backup-immich.sh" ${IMMICH_FLAGS[@]+"${IMMICH_FLAGS[@]}"}; then
-        echo "[WARNING] Immich photo export failed."
+done
+
+for handler in "${HANDLERS[@]}"; do
+    echo "[*] [dump] $(basename "$(dirname "$handler")")..."
+    if ! bash "$handler" "dump"; then
+        echo "[WARNING] Handler $handler failed in dump phase."
         EXPORT_STATUS=1
     fi
-fi
-
-# Dump databases (requires containers to be running)
-echo "[*] Dumping databases..."
-if ! bash "$PROJECT_DIR/scripts/backups/dump-databases.sh"; then
-    echo "[ERROR] Database dumps failed."
-    EXPORT_STATUS=1
-fi
+done
 
 if [ $EXPORT_STATUS -eq 0 ]; then
     echo "[OK] Backup data exported successfully."

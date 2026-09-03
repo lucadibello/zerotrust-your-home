@@ -1,0 +1,4 @@
+/mnt/backup/docker/monitoring_prometheus_data/_data/chunks_head/*
+/mnt/backup/docker/monitoring_prometheus_data/_data/wal/*
+/mnt/backup/docker/logging_loki_data/_data/chunks/*
+/mnt/backup/docker/logging_loki_data/_data/wal/*
