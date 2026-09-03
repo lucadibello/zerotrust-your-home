@@ -75,17 +75,14 @@ services:
 
       POST_COMMANDS_SUCCESS: |-
         apk add --no-cache curl
-        if [[ "${CLOUD_RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
-            export RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}"
-            restic -r "${CLOUD_RESTIC_REPOSITORY}" forget --prune ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
-        fi
-        curl -s -H "Title: Prune Successful" -H "Tags: broom,white_check_mark" -d "Local and Cloud repositories pruned successfully." "${NTFY_URL%/}/${NTFY_TOPIC}"
+        bash /mnt/backup/project/scripts/backups/container-post-prune.sh success
       POST_COMMANDS_FAILURE: |-
         apk add --no-cache curl
-        curl -s -H "Title: Prune Failed" -H "Priority: high" -H "Tags: broom,warning" -d "Automated prune failed!" "${NTFY_URL%/}/${NTFY_TOPIC}"
+        bash /mnt/backup/project/scripts/backups/container-post-prune.sh failure
 
     volumes:
       - ./config/rclone:/root/.config/rclone
+      - ./:/mnt/backup/project:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
 
   check:
@@ -112,17 +109,14 @@ services:
 
       POST_COMMANDS_SUCCESS: |-
         apk add --no-cache curl
-        if [[ "${CLOUD_RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
-            export RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}"
-            restic -r "${CLOUD_RESTIC_REPOSITORY}" check --read-data-subset=10%
-        fi
-        curl -s -H "Title: Integrity Check Passed" -H "Tags: magnifying_glass,white_check_mark" -d "10% cryptographic verification of all Local and Cloud packs succeeded." "${NTFY_URL%/}/${NTFY_TOPIC}"
+        bash /mnt/backup/project/scripts/backups/container-post-check.sh success
       POST_COMMANDS_FAILURE: |-
         apk add --no-cache curl
-        curl -s -H "Title: Backup Integrity Compromised!" -H "Priority: urgent" -H "Tags: skull,warning" -d "Repository check failed! Disk rot or corruption detected in snapshots." "${NTFY_URL%/}/${NTFY_TOPIC}"
+        bash /mnt/backup/project/scripts/backups/container-post-check.sh failure
 
     volumes:
       - ./config/rclone:/root/.config/rclone
+      - ./:/mnt/backup/project:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
 
 networks:
