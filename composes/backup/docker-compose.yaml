@@ -12,19 +12,14 @@ services:
       TZ: Europe/Zurich
       RUN_ON_STARTUP: "false"
       BACKUP_CRON: "0 0 * * *"
-      PRUNE_CRON: "0 3 * * 0"
 
-      # Native Restic variables targeting the Local disk repository
       RESTIC_REPOSITORY: /repos/local/restic
       RESTIC_PASSWORD: ${RESTIC_PASSWORD}
       RESTIC_BACKUP_SOURCES: /mnt/backup
       RESTIC_BACKUP_ARGS: "--exclude='*.tmp' --exclude-file=/tmp/excludes.txt"
-      RESTIC_FORGET_ARGS: ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
 
-      # The cloud repo to copy to post-backup
       CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
 
-      # Pass through environment variables for handlers
       ENABLE_IMMICH: ${ENABLE_IMMICH:-false}
       IMMICH_DB_USERNAME: ${IMMICH_DB_USERNAME:-postgres}
       IMMICH_DB_DATABASE_NAME: ${IMMICH_DB_DATABASE_NAME:-immich}
@@ -36,7 +31,6 @@ services:
       NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
       NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
 
-      # Hooks execute the orchestrated phases from the repository
       PRE_COMMANDS: |-
         apk add --no-cache bash curl gzip
         bash /mnt/backup/project/scripts/backups/container-pre-backup.sh
@@ -56,6 +50,80 @@ services:
       - ${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}:/mnt/backup/immich-go:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
       - /var/run/docker.sock:/var/run/docker.sock
+
+  prune:
+    image: mazzolino/restic:latest
+    container_name: restic-prune
+    restart: unless-stopped
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - traefik-network
+    environment:
+      TZ: Europe/Zurich
+      RUN_ON_STARTUP: "false"
+      PRUNE_CRON: "0 3 * * 0" # Runs Sunday at 03:00
+
+      RESTIC_REPOSITORY: /repos/local/restic
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
+      RESTIC_FORGET_ARGS: ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
+
+      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
+      NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
+
+      POST_COMMANDS_SUCCESS: |-
+        apk add --no-cache curl
+        if [[ "${CLOUD_RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
+            export RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}"
+            restic -r "${CLOUD_RESTIC_REPOSITORY}" forget --prune ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
+        fi
+        curl -s -H "Title: Prune Successful" -H "Tags: broom,white_check_mark" -d "Local and Cloud repositories pruned successfully." "${NTFY_URL%/}/${NTFY_TOPIC}"
+      POST_COMMANDS_FAILURE: |-
+        apk add --no-cache curl
+        curl -s -H "Title: Prune Failed" -H "Priority: high" -H "Tags: broom,warning" -d "Automated prune failed!" "${NTFY_URL%/}/${NTFY_TOPIC}"
+
+    volumes:
+      - ./config/rclone:/root/.config/rclone
+      - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
+
+  check:
+    image: mazzolino/restic:latest
+    container_name: restic-check
+    restart: unless-stopped
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - traefik-network
+    environment:
+      TZ: Europe/Zurich
+      RUN_ON_STARTUP: "false"
+      CHECK_CRON: "0 4 * * 3" # Runs Wednesday at 04:00
+
+      RESTIC_REPOSITORY: /repos/local/restic
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
+      RESTIC_CHECK_ARGS: "--read-data-subset=10%"
+
+      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
+      NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
+
+      POST_COMMANDS_SUCCESS: |-
+        apk add --no-cache curl
+        if [[ "${CLOUD_RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
+            export RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}"
+            restic -r "${CLOUD_RESTIC_REPOSITORY}" check --read-data-subset=10%
+        fi
+        curl -s -H "Title: Integrity Check Passed" -H "Tags: magnifying_glass,white_check_mark" -d "10% cryptographic verification of all Local and Cloud packs succeeded." "${NTFY_URL%/}/${NTFY_TOPIC}"
+      POST_COMMANDS_FAILURE: |-
+        apk add --no-cache curl
+        curl -s -H "Title: Backup Integrity Compromised!" -H "Priority: urgent" -H "Tags: skull,warning" -d "Repository check failed! Disk rot or corruption detected in snapshots." "${NTFY_URL%/}/${NTFY_TOPIC}"
+
+    volumes:
+      - ./config/rclone:/root/.config/rclone
+      - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
 
 networks:
   traefik-network:
