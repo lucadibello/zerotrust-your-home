@@ -4,7 +4,7 @@ services:
     container_name: crowdsec
     restart: unless-stopped
     environment:
-      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/linux
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/sshd crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/linux
       - TZ=Europe/Zurich
     volumes:
       - ./composes/crowdsec/config/acquis.yaml:/etc/crowdsec/acquis.yaml:ro

@@ -188,25 +188,16 @@ mkdir -p ./.tmp || true
 # === Print enabled services ===
 echo ""
 echo "[*] Enabled services:"
-[ "${ENABLE_TUNNEL:-true}" = "true" ] && echo "    - Cloudflare Tunnel (Remote Access)"
-[ "$ENABLE_MONITORING" = "true" ] && echo "    - Monitoring (Prometheus, Grafana, Alertmanager)"
-[ "$ENABLE_LOGGING" = "true" ] && echo "    - Logging (Loki, Promtail)"
-[ "$ENABLE_BACKUP" = "true" ] && echo "    - Backup (Restic)"
-[ "$ENABLE_DNS" = "true" ] && echo "    - DNS (BIND9)"
-[ "$ENABLE_REVERSE_PROXY" = "true" ] && echo "    - Reverse Proxy (Traefik)"
-[ "$ENABLE_HOME_AUTOMATION" = "true" ] && echo "    - Home Automation (Home Assistant, Zigbee2MQTT, Mosquitto)"
-[ "$ENABLE_VAULTWARDEN" = "true" ] && echo "    - Vaultwarden (Password Manager)"
-[ "$ENABLE_NEXTCLOUD" = "true" ] && echo "    - Nextcloud (Cloud Storage)"
-[ "$ENABLE_PORTAINER" = "true" ] && echo "    - Portainer (Docker UI)"
-[ "${ENABLE_NTFY:-false}" = "true" ] && echo "    - Push Notifications (ntfy)"
-[ "${ENABLE_GATUS:-${ENABLE_UPTIME_KUMA:-false}}" = "true" ] && echo "    - Health Monitoring (Gatus)"
-[ "${ENABLE_HOMEPAGE:-false}" = "true" ] && echo "    - Dashboard (Homepage)"
-[ "${ENABLE_DIUN:-false}" = "true" ] && echo "    - DIUN (Image Update Notifier)"
-[ "$ENABLE_IMMICH" = "true" ] && echo "    - Immich (Photo Library)"
-[ "$ENABLE_SEARXNG" = "true" ] && echo "    - SearXNG (Search Engine)"
-[ "$ENABLE_MINECRAFT" = "true" ] && echo "    - Minecraft Server"
-[ "${ENABLE_ADGUARD:-false}" = "true" ] && echo "    - AdGuard Home (DNS & DoH)"
-[ "${ENABLE_CROWDSEC:-false}" = "true" ] && echo "    - CrowdSec (Intrusion Prevention)"
+for service_dir in composes/*/; do
+  if [ -d "$service_dir" ]; then
+    service_name=$(basename "$service_dir")
+    if [ "$service_name" != "extras" ] && [ "$service_name" != "gatus" ]; then
+      if is_service_enabled "$service_name" false; then
+        echo "    - ${service_name}"
+      fi
+    fi
+  fi
+done
 
 # Print discovered extra services
 if [ -d "composes/extras" ]; then
@@ -214,12 +205,15 @@ if [ -d "composes/extras" ]; then
   for extra_dir in composes/extras/*/; do
     if [ -d "$extra_dir" ]; then
       if [ -f "${extra_dir}docker-compose.yml" ] || [ -f "${extra_dir}docker-compose.yaml" ]; then
-        if [ "$extras_found" = false ]; then
-          echo ""
-          echo "[*] Extra services (from composes/extras/):"
-          extras_found=true
+        service_name=$(basename "$extra_dir")
+        if is_service_enabled "$service_name" true; then
+          if [ "$extras_found" = false ]; then
+            echo ""
+            echo "[*] Extra services (from composes/extras/):"
+            extras_found=true
+          fi
+          echo "    - ${service_name}"
         fi
-        echo "    - $(basename "$extra_dir")"
       fi
     fi
   done
@@ -234,6 +228,7 @@ ordered_scripts=(
   "./scripts/containers/setup-traefik.sh"
   "./scripts/containers/setup-letsencrypt.sh"
   "./scripts/containers/setup-tunnel.sh"
+  "./scripts/containers/setup-adguard.sh"
   "./scripts/containers/post-setup-bind9.sh"
   "./scripts/containers/setup-ntfy.sh"
   "./scripts/containers/setup-prometheus.sh"
@@ -244,7 +239,6 @@ ordered_scripts=(
   "./scripts/containers/setup-nextcloud.sh"
   "./scripts/containers/setup-searxng.sh"
   "./scripts/containers/setup-vaultwarden.sh"
-  "./scripts/containers/setup-adguard.sh"
   "./scripts/containers/setup-crowdsec.sh"
   "./scripts/containers/setup-gatus.sh"
   "./scripts/containers/setup-homepage.sh"

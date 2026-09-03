@@ -44,36 +44,6 @@ render_template "$TEMPLATE" "$TARGET" \
   NTFY_TOKEN="${NTFY_TOKEN:-}" \
   DNS_DOMAIN="${DNS_DOMAIN:-example.com}"
 
-# Helper function to check if a service is enabled
-is_service_enabled() {
-  local service="$1"
-  case "$service" in
-    traefik) [ "${ENABLE_REVERSE_PROXY:-true}" = "true" ] ;;
-    dns) [ "${ENABLE_DNS:-true}" = "true" ] ;;
-    monitoring) [ "${ENABLE_MONITORING:-true}" = "true" ] ;;
-    logging) [ "${ENABLE_LOGGING:-true}" = "true" ] ;;
-    backup) [ "${ENABLE_BACKUP:-true}" = "true" ] ;;
-    tunnel) [ "${ENABLE_TUNNEL:-true}" = "true" ] ;;
-    ntfy) [ "${ENABLE_NTFY:-false}" = "true" ] ;;
-    homepage) [ "${ENABLE_HOMEPAGE:-false}" = "true" ] ;;
-    home-assistant) [ "${ENABLE_HOME_AUTOMATION:-false}" = "true" ] ;;
-    vaultwarden) [ "${ENABLE_VAULTWARDEN:-false}" = "true" ] ;;
-    nextcloud) [ "${ENABLE_NEXTCLOUD:-false}" = "true" ] ;;
-    searxng) [ "${ENABLE_SEARXNG:-false}" = "true" ] ;;
-    portainer) [ "${ENABLE_PORTAINER:-false}" = "true" ] ;;
-    diun) [ "${ENABLE_DIUN:-false}" = "true" ] ;;
-    immich) [ "${ENABLE_IMMICH:-false}" = "true" ] ;;
-    minecraft) [ "${ENABLE_MINECRAFT:-false}" = "true" ] ;;
-    adguard) [ "${ENABLE_ADGUARD:-false}" = "true" ] ;;
-    crowdsec) [ "${ENABLE_CROWDSEC:-false}" = "true" ] ;;
-    gatus|extras) return 1 ;;
-    *)
-      local upper_flag="ENABLE_$(echo "$service" | tr '[:lower:]-' '[:upper:]_')"
-      [ "${!upper_flag:-false}" = "true" ]
-      ;;
-  esac
-}
-
 # Dynamically build endpoints block
 endpoints_block=""
 count=0
@@ -118,7 +88,7 @@ for service_dir in "$PROJECT_ROOT/composes"/*/; do
       continue
     fi
 
-    if is_service_enabled "$service_name"; then
+    if is_service_enabled "$service_name" false; then
       fragment=""
       if [ -f "${service_dir}gatus.yaml" ]; then
         fragment="${service_dir}gatus.yaml"

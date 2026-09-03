@@ -1,7 +1,8 @@
 # Traefik ACME certificates and storage
 traefik/letsencrypt/
 traefik/acme.json
-traefik/dynamic/
+traefik/dynamic/*
+!traefik/dynamic/security.yml
 traefik/logs/
 
 # BIND9 generated zone configs and runtime caches

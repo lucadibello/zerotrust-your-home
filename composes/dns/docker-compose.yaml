@@ -14,7 +14,8 @@ services:
       - ./composes/dns/records:/var/lib/bind
     restart: always
     networks:
-      - dns-network
+      dns-network:
+        ipv4_address: 172.28.0.53
 
 networks:
   dns-network:

@@ -19,7 +19,37 @@ fi
 # Ensure directories exist
 mkdir -p "$PROJECT_ROOT/composes/adguard/work" "$PROJECT_ROOT/composes/adguard/conf"
 
-# Create external network if needed
+# Create external networks with fixed subnets
 docker network create traefik-network >/dev/null 2>&1 || true
+docker network create --subnet=172.28.0.0/16 dns-network >/dev/null 2>&1 || true
+
+# Pre-configure AdGuard Home if not already configured
+ADGUARD_CONF="$PROJECT_ROOT/composes/adguard/conf/AdGuardHome.yaml"
+if [ ! -f "$ADGUARD_CONF" ]; then
+  cat <<'EOF' > "$ADGUARD_CONF"
+schema_version: 29
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  upstream_dns:
+    - https://dns.cloudflare.com/dns-query
+    - https://dns.quad9.net/dns-query
+  bootstrap_dns:
+    - 9.9.9.9
+    - 1.1.1.1
+  blocking_mode: default
+  ratelimit: 0
+  filtering_enabled: true
+http:
+  address: 0.0.0.0:80
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+    id: 1
+EOF
+  echo "[*] Initialized pre-configured AdGuard Home configuration (AdGuardHome.yaml)"
+fi
 
 echo "[OK] AdGuard Home setup completed"

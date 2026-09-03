@@ -18,11 +18,17 @@ fi
 
 # Ensure directories exist
 mkdir -p "$PROJECT_ROOT/composes/crowdsec/data" \
-         "$PROJECT_ROOT/composes/crowdsec/config" \
-         "$PROJECT_ROOT/composes/traefik/logs"
+  "$PROJECT_ROOT/composes/crowdsec/config" \
+  "$PROJECT_ROOT/composes/traefik/logs"
 
 # Ensure access.log file exists so docker doesn't mount it as a directory
 touch "$PROJECT_ROOT/composes/traefik/logs/access.log"
+
+# create files if missing
+if [ -w "/var/log" ] 2>/dev/null; then
+  [ ! -e "/var/log/auth.log" ] && touch /var/log/auth.log 2>/dev/null || true
+  [ ! -e "/var/log/syslog" ] && touch /var/log/syslog 2>/dev/null || true
+fi
 
 # Create external network if needed
 docker network create traefik-network >/dev/null 2>&1 || true

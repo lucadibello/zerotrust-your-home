@@ -22,8 +22,8 @@ mkdir -p "$DNS_CONFIG_DIR" \
          "$PROJECT_ROOT/composes/dns/cache" \
          "$PROJECT_ROOT/composes/dns/records"
 
-# Create external Docker network for DNS
-docker network create dns-network >/dev/null 2>&1 || true
+# Create external Docker network for DNS with fixed subnet
+docker network create --subnet=172.28.0.0/16 dns-network >/dev/null 2>&1 || true
 
 # Generate zone filename (e.g., "example.com" becomes "example-com")
 filename=$(echo "$DNS_DOMAIN" | sed 's/\./-/g')
@@ -69,13 +69,27 @@ if [ -n "$local_subnets" ]; then
 fi
 acl_block+="};\n"
 
-# 3. Render named.conf from template
+# 3. Determine Upstream Forwarders (Chain of Resolution: BIND9 -> AdGuard -> Upstream DNS)
+forwarders_lines=""
+if [ -n "${ADGUARD_IP:-}" ]; then
+  forwarders_lines="    ${ADGUARD_IP};"
+  echo "[*] BIND9 forwarding recursive queries to AdGuard Home at ${ADGUARD_IP}"
+elif is_service_enabled "adguard" false; then
+  forwarders_lines="    172.28.0.100;"
+  echo "[*] BIND9 forwarding recursive queries to AdGuard Home container (172.28.0.100:53)"
+else
+  forwarders_lines="    1.1.1.1;\n    8.8.8.8;"
+  echo "[*] BIND9 forwarding recursive queries to upstream public DNS (1.1.1.1, 8.8.8.8)"
+fi
+
+# 4. Render named.conf from template
 NAMED_TEMPLATE="$PROJECT_ROOT/scripts/containers/templates/named.conf.template"
 NAMED_TARGET="$DNS_CONFIG_DIR/named.conf"
 
 render_template "$NAMED_TEMPLATE" "$NAMED_TARGET" \
   DOMAIN="$DNS_DOMAIN" \
-  FILENAME="$filename"
+  FILENAME="$filename" \
+  FORWARDERS="$forwarders_lines"
 
 # 4. Prepend ACL block to named.conf
 temp_named="$NAMED_TARGET.tmp"

@@ -1,7 +1,6 @@
 options {
   forwarders {
-    1.1.1.1;
-    8.8.8.8;
+<FORWARDERS>
   };
   allow-query { internal; };
   dnssec-validation auto;
