@@ -4,7 +4,8 @@
   interval: 60s
   conditions:
     - "[STATUS] == 200"
-    - "[BODY] == *cs_*"
+    - "[BODY] == pat(*cs_*)"
   alerts:
     - type: ntfy
       enabled: true
+

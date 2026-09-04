@@ -40,6 +40,17 @@ mkdir -p "$PROJECT_ROOT/composes/crowdsec/data" \
 # Ensure access.log file exists so docker doesn't mount it as a directory
 touch "$PROJECT_ROOT/composes/traefik/logs/access.log"
 
+# Ensure CrowdSec Prometheus metrics configuration exists
+if [ ! -f "$PROJECT_ROOT/composes/crowdsec/config/config.yaml.local" ]; then
+  cat << 'EOF' > "$PROJECT_ROOT/composes/crowdsec/config/config.yaml.local"
+prometheus:
+  enabled: true
+  level: full
+  listen_addr: 0.0.0.0
+  listen_port: 6060
+EOF
+fi
+
 # Create host log files if writable and missing
 if [ -w "/var/log" ] 2>/dev/null; then
   [ ! -e "/var/log/auth.log" ] && touch /var/log/auth.log 2>/dev/null || true
