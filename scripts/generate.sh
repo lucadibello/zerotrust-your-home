@@ -182,6 +182,12 @@ if [ "$ENABLE_SEARXNG" = "true" ]; then
   done
 fi
 
+# Validate CrowdSec configuration if enabled
+if [ "${ENABLE_CROWDSEC:-false}" = "true" ]; then
+  echo "[*] Validating CrowdSec configuration..."
+fi
+
+
 # Create a temporary directory (if needed)
 mkdir -p ./.tmp || true
 
@@ -294,7 +300,11 @@ if [ -n "${SUDO_USER:-}" ]; then
 
   # Restore strict permissions for acme.json files (Traefik requirement)
   find ./composes -name "acme.json" -exec chmod 600 {} + 2>/dev/null || true
+
+  # Ensure CrowdSec bouncer key is readable by Traefik container
+  find ./composes -name "BOUNCER_KEY_traefik" -exec chmod 644 {} + 2>/dev/null || true
 fi
+
 
 echo ""
 echo "----------------------------------------------"

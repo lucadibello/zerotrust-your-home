@@ -1,0 +1,22 @@
+http:
+  middlewares:
+    crowdsec-bouncer:
+      plugin:
+        bouncer:
+          enabled: <BOUNCER_ENABLED>
+          crowdsecMode: stream
+          crowdsecLapiScheme: http
+          crowdsecLapiHost: crowdsec:8080
+          crowdsecLapiPath: /
+          crowdsecLapiKeyFile: /etc/traefik/crowdsec/BOUNCER_KEY_traefik
+          forwardedHeadersTrustedIps:
+            - 127.0.0.1/32
+            - 10.0.0.0/8
+            - 172.16.0.0/12
+            - 192.168.0.0/16
+          crowdsecAppsecEnabled: <APPSEC_ENABLED>
+          crowdsecAppsecHost: crowdsec:7422
+          crowdsecAppsecPath: /
+          crowdsecAppsecFailureBlock: <APPSEC_FAILURE_BLOCK>
+          crowdsecAppsecUnreachableBlock: <APPSEC_UNREACHABLE_BLOCK>
+          crowdsecAppsecBodyLimit: 10485760

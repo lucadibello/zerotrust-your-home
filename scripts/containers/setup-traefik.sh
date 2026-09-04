@@ -19,8 +19,15 @@ fi
 # Ensure required directories exist
 mkdir -p "$PROJECT_ROOT/composes/traefik/dynamic" \
          "$PROJECT_ROOT/composes/traefik/letsencrypt" \
-         "$PROJECT_ROOT/composes/traefik/logs"
+         "$PROJECT_ROOT/composes/traefik/logs" \
+         "$PROJECT_ROOT/composes/traefik/crowdsec"
 touch "$PROJECT_ROOT/composes/traefik/logs/access.log"
+
+# Ensure crowdsec bouncer key file exists so volume mount never fails
+if [ ! -f "$PROJECT_ROOT/composes/traefik/crowdsec/BOUNCER_KEY_traefik" ]; then
+  touch "$PROJECT_ROOT/composes/traefik/crowdsec/BOUNCER_KEY_traefik"
+fi
+
 
 # Create external networks if they don't already exist
 docker network create traefik-network >/dev/null 2>&1 || true
