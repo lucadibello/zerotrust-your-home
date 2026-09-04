@@ -21,3 +21,6 @@ composes/uptime-kuma/kuma.db
 
 # Secrets / Certificates
 composes/letsencrypt/acme.json
+composes/traefik/letsencrypt/acme.json
+composes/traefik/crowdsec/BOUNCER_KEY_traefik
+
