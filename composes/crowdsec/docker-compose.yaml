@@ -9,6 +9,7 @@ services:
       - TZ=Europe/Zurich
     volumes:
       - ./composes/crowdsec/config/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ./composes/crowdsec/config/config.yaml.local:/etc/crowdsec/config.yaml.local:ro
       - ./composes/crowdsec/data:/var/lib/crowdsec/data
       - ./composes/traefik/logs:/var/log/traefik:ro
       - /var/log/auth.log:/var/log/auth.log:ro

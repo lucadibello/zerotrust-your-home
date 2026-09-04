@@ -38,3 +38,10 @@ scrape_configs:
     static_configs:
       - targets: 
         - cadvisor:8080
+  # Job for CrowdSec
+  - job_name: "crowdsec"
+    scrape_interval: 10s
+    static_configs:
+      - targets:
+        - crowdsec:6060
+
