@@ -30,7 +30,7 @@ services:
       - "--entrypoints.web.forwardedHeaders.trustedIPs=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
       - "--entrypoints.websecure.forwardedHeaders.trustedIPs=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
       # Baseline uniform security middleware applied to ALL services on websecure entrypoint
-      - "--entrypoints.websecure.http.middlewares=security-headers@file,security-ratelimit@file,security-inflight@file"
+      - "--entrypoints.websecure.http.middlewares=crowdsec-bouncer@file,security-headers@file,security-ratelimit@file,security-inflight@file"
       # Transport timeouts (20m max upload duration for large videos, 180s idle timeout to prevent starvation)
       - "--entrypoints.web.transport.respondingTimeouts.readTimeout=1200s"
       - "--entrypoints.web.transport.respondingTimeouts.writeTimeout=1200s"
@@ -49,6 +49,9 @@ services:
       # Dynamic file configuration provider
       - "--providers.file.directory=/etc/traefik/dynamic"
       - "--providers.file.watch=true"
+      # CrowdSec Bouncer Traefik Plugin (remediation & WAF)
+      - "--experimental.plugins.bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      - "--experimental.plugins.bouncer.version=v1.4.5"
       # Access logs for CrowdSec and security auditing
       - "--accesslog=true"
       - "--accesslog.filepath=/var/log/traefik/access.log"
@@ -61,6 +64,7 @@ services:
       - "./composes/traefik/letsencrypt/acme.json:/letsencrypt/acme.json"
       - "./composes/traefik/dynamic:/etc/traefik/dynamic:ro"
       - "./composes/traefik/logs:/var/log/traefik"
+      - "./composes/traefik/crowdsec:/etc/traefik/crowdsec:ro"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}

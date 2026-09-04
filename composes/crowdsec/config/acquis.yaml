@@ -8,3 +8,12 @@ filenames:
   - /var/log/syslog
 labels:
   type: syslog
+---
+source: appsec
+listen_addr: 0.0.0.0:7422
+path: /
+appsec_configs:
+  - crowdsecurity/appsec-default
+labels:
+  type: appsec
+
