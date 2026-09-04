@@ -1,9 +1,11 @@
-- name: AdGuard Home DoH
+- name: AdGuard Home
   group: Core Infrastructure
-  url: "http://adguard:80/dns-query"
+  url: "http://adguard:80/control/status"
   interval: 30s
   conditions:
-    - "[STATUS] == 400 || [STATUS] == 200"
+    - "[STATUS] == 200"
+    - "[BODY].running == true"
+    - "[BODY].protection_enabled == true"
   alerts:
     - type: ntfy
       enabled: true
