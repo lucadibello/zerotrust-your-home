@@ -11,6 +11,9 @@ services:
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
+    ports:
+      - "${IP_ADDRESS:-0.0.0.0}:${ADGUARD_DNS_PORT:-53}:53/tcp"
+      - "${IP_ADDRESS:-0.0.0.0}:${ADGUARD_DNS_PORT:-53}:53/udp"
     networks:
       traefik-network:
       dns-network:

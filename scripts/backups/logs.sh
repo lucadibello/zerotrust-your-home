@@ -15,4 +15,4 @@ echo "==========================================="
 echo "Fetching the last 100 lines of logs from the backup daemons..."
 echo ""
 
-docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" logs --tail=100 -f backup prune check
+docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" logs -t --tail=100 -f backup prune check

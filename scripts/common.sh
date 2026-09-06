@@ -4,16 +4,53 @@
 # Use HEADLESS_MODE if exported by caller (default is false)
 HEADLESS_MODE=${HEADLESS_MODE:-false}
 
+# log: Outputs a message prefixed with a timestamp [YYYY-MM-DD HH:MM:SS]
+log() {
+  local timestamp
+  timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+  echo "[$timestamp] $*"
+}
+
+log_info() {
+  local msg="$*"
+  [[ "$msg" =~ ^\[\*\][[:space:]]*(.*)$ ]] && msg="${BASH_REMATCH[1]}"
+  log "[*] $msg"
+}
+
+log_success() {
+  local msg="$*"
+  [[ "$msg" =~ ^\[OK\][[:space:]]*(.*)$ ]] && msg="${BASH_REMATCH[1]}"
+  log "[OK] $msg"
+}
+
+log_warn() {
+  local msg="$*"
+  [[ "$msg" =~ ^\[(WARNING|WARN)\][[:space:]]*(.*)$ ]] && msg="${BASH_REMATCH[2]}"
+  log "[WARNING] $msg"
+}
+
+log_error() {
+  local msg="$*"
+  [[ "$msg" =~ ^\[ERROR\][[:space:]]*(.*)$ ]] && msg="${BASH_REMATCH[1]}"
+  log "[ERROR] $msg"
+}
+
+log_alert() {
+  local msg="$*"
+  [[ "$msg" =~ ^\[\!\][[:space:]]*(.*)$ ]] && msg="${BASH_REMATCH[1]}"
+  log "[!] $msg"
+}
+
 # confirm: Prompts the user for confirmation unless running in headless mode.
 confirm() {
   local message="$1"
   if [ "$HEADLESS_MODE" = true ]; then
-    echo "[*] $message (auto-confirmed)"
+    log "[*] $message (auto-confirmed)"
   else
     read -p "$message (y/n): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo "[!] Aborting..."
+      log "[!] Aborting..."
       exit 1
     fi
   fi
@@ -24,13 +61,13 @@ run_script() {
   local script_path="$1"
   local description="$2"
   shift 2 2>/dev/null || true
-  echo "[*] ${description}..."
+  log "[*] ${description}..."
   sudo bash "$script_path" "$@"
   if [ $? -ne 0 ]; then
-    echo "[!] Error occurred during ${description}. Aborting..."
+    log "[!] Error occurred during ${description}. Aborting..."
     exit 1
   fi
-  echo "[OK] ${description} completed successfully"
+  log "[OK] ${description} completed successfully"
 }
 
 # Define a portable in‐place sed command

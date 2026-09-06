@@ -19,6 +19,7 @@ services:
       RESTIC_BACKUP_ARGS: "--exclude='*.tmp' --exclude-file=/tmp/excludes.txt"
 
       CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      RCLONE_CONFIG: /root/.config/rclone/rclone.conf
 
       ENABLE_IMMICH: ${ENABLE_IMMICH:-false}
       IMMICH_DB_USERNAME: ${IMMICH_DB_USERNAME:-postgres}
@@ -43,8 +44,10 @@ services:
 
     volumes:
       - ./config/rclone:/root/.config/rclone
-      - /var/lib/docker/volumes:/mnt/backup/docker:ro
+      - ./config/rclone:/config/rclone
       - ./:/mnt/backup/project:ro
+      - ./composes/backup/db-dumps:/mnt/backup/project/composes/backup/db-dumps:rw
+      - /var/lib/docker/volumes:/mnt/backup/docker:ro
       - ${NEXTCLOUD_DATADIR:-/mnt/nas-data/nextcloud}:/mnt/backup/nextcloud:ro
       - ${IMMICH_UPLOAD_LOCATION:-/mnt/nas-data/immich}:/mnt/backup/immich:ro
       - ${IMMICH_BACKUP_LOCATION:-/mnt/nextcloud-backups/immich}:/mnt/backup/immich-go:ro
@@ -70,18 +73,20 @@ services:
       RESTIC_FORGET_ARGS: ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
 
       CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      RCLONE_CONFIG: /root/.config/rclone/rclone.conf
       NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
       NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
 
       POST_COMMANDS_SUCCESS: |-
-        apk add --no-cache curl
+        apk add --no-cache bash curl
         bash /mnt/backup/project/scripts/backups/container-post-prune.sh success
       POST_COMMANDS_FAILURE: |-
-        apk add --no-cache curl
+        apk add --no-cache bash curl
         bash /mnt/backup/project/scripts/backups/container-post-prune.sh failure
 
     volumes:
       - ./config/rclone:/root/.config/rclone
+      - ./config/rclone:/config/rclone
       - ./:/mnt/backup/project:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
 
@@ -104,18 +109,20 @@ services:
       RESTIC_CHECK_ARGS: "--read-data-subset=10%"
 
       CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      RCLONE_CONFIG: /root/.config/rclone/rclone.conf
       NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
       NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
 
       POST_COMMANDS_SUCCESS: |-
-        apk add --no-cache curl
+        apk add --no-cache bash curl
         bash /mnt/backup/project/scripts/backups/container-post-check.sh success
       POST_COMMANDS_FAILURE: |-
-        apk add --no-cache curl
+        apk add --no-cache bash curl
         bash /mnt/backup/project/scripts/backups/container-post-check.sh failure
 
     volumes:
       - ./config/rclone:/root/.config/rclone
+      - ./config/rclone:/config/rclone
       - ./:/mnt/backup/project:ro
       - ${LOCAL_BACKUP_DIR:-/mnt/backups}:/repos/local
 

@@ -7,6 +7,10 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
 
 echo "==========================================="
@@ -21,7 +25,7 @@ echo "Cloud Repo: ${CLOUD_RESTIC_REPOSITORY}"
 echo "-------------------------------------------"
 
 if [ -z "${CLOUD_RESTIC_REPOSITORY:-}" ]; then
-    echo "[!] CLOUD_RESTIC_REPOSITORY is not defined in .env!"
+    log "[!] CLOUD_RESTIC_REPOSITORY is not defined in .env!"
     exit 1
 fi
 
@@ -34,12 +38,12 @@ fi
 
 docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1 || true
 
-echo "[*] Initializing Local Repository if missing..."
+log "[*] Initializing Local Repository if missing..."
 docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
     exec backup restic -r /repos/local/restic init || true
 
-echo "[*] Starting restic copy (Cloud -> Local)..."
-echo "[*] This may take a long time depending on your internet connection."
+log "[*] Starting restic copy (Cloud -> Local)..."
+log "[*] This may take a long time depending on your internet connection."
 
 # Perform copy from cloud to local
 # Since we pull from Cloud, we pass RESTIC_FROM_PASSWORD for the cloud repo if needed.
@@ -47,4 +51,4 @@ docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_
     exec -e RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD}" \
     backup restic -r /repos/local/restic copy --from-repo "${CLOUD_RESTIC_REPOSITORY}"
 
-echo "[OK] Local repository rebuilt successfully!"
+log "[OK] Local repository rebuilt successfully!"

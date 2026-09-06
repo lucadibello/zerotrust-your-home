@@ -7,6 +7,10 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
 COMPOSE_ARGS=$(bash "$PROJECT_DIR/scripts/get_docker_compose_files.sh")
 
@@ -19,7 +23,7 @@ cleanup() {
 
     if [ "$RESTORE_SERVICES_STOPPED" = "true" ]; then
         echo ""
-        echo "[!] Interrupted during restore. Attempting to restart services..."
+        log "[!] Interrupted during restore. Attempting to restart services..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start 2>/dev/null || true
     fi
     exit 1
@@ -72,34 +76,35 @@ get_repo_args() {
 case $OPTION in
     1)
         REPO_ARGS=$(get_repo_args)
-        echo "[*] Fetching snapshots..."
+        log "[*] Fetching snapshots..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" exec backup restic $REPO_ARGS snapshots -H docker
         
         echo -n "Enter backup ID to restore: "
         read ID
         if [ -z "$ID" ]; then exit 1; fi
 
-        echo "[!] WARNING: This will STOP all services and OVERWRITE Docker volumes."
+        log "[!] WARNING: This will STOP all services and OVERWRITE Docker volumes."
         echo -n "Are you sure? [y/N]: "
         read CONFIRM
         if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then exit 0; fi
 
-        echo "[*] Stopping service containers..."
+        log "[*] Stopping service containers..."
         RESTORE_SERVICES_STOPPED=true
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" stop
         
-        echo "[*] Restoring Snapshot $ID..."
+        log "[*] Restoring Snapshot $ID..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS restore $ID -H docker --exclude backingFsBlockDev --target / 
             
-        echo "[*] Restarting containers..."
+        log "[*] Restarting containers..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" $COMPOSE_ARGS --env-file "$PROJECT_DIR/.env" start
         RESTORE_SERVICES_STOPPED=false
 
         for handler in "$PROJECT_DIR/scripts/backups/services"/*/handler.sh; do
             if [ -f "$handler" ]; then bash "$handler" "post-restore" || true; fi
         done
+        log "[OK] System Restore completed."
         ;;
     
     2)
@@ -122,7 +127,7 @@ case $OPTION in
         read TARGET_PATH
         if [ -z "$TARGET_PATH" ]; then exit 1; fi
 
-        echo "[!] Restoring ONLY: $TARGET_PATH OVERWRITING live data!"
+        log "[!] Restoring ONLY: $TARGET_PATH OVERWRITING live data!"
         echo -n "Are you sure? [y/N]: "
         read CONFIRM
         if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then exit 0; fi
@@ -134,6 +139,7 @@ case $OPTION in
         for handler in "$PROJECT_DIR/scripts/backups/services"/*/handler.sh; do
             if [ -f "$handler" ]; then bash "$handler" "post-restore" || true; fi
         done
+        log "[OK] Single service restore completed."
         ;;
 
     5)
@@ -153,12 +159,12 @@ case $OPTION in
         STAGING_DIR="$PROJECT_DIR/composes/backup/staging-restore"
         mkdir -p "$STAGING_DIR"
         
-        echo "[*] Extracting $TARGET_PATH to $STAGING_DIR..."
+        log "[*] Extracting $TARGET_PATH to $STAGING_DIR..."
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" up -d backup >/dev/null 2>&1
         docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" \
             exec backup restic $REPO_ARGS restore $ID --include "$TARGET_PATH" --target /mnt/backup/project/composes/backup/staging-restore
             
-        echo "[OK] Extracted successfully!"
+        log "[OK] Extracted successfully!"
         echo "You can find your files safely extracted on the host machine at:"
         echo "$STAGING_DIR$TARGET_PATH"
         echo ""

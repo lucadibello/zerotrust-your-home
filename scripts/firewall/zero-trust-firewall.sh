@@ -249,6 +249,14 @@ else
     add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
       -p tcp -m tcp --dport 53 \
       -j ACCEPT || true
+    if [ -n "${ADGUARD_DNS_PORT:-}" ] && [ "${ADGUARD_DNS_PORT}" != "53" ]; then
+      add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+        -p udp -m udp --dport "$ADGUARD_DNS_PORT" \
+        -j ACCEPT || true
+      add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+        -p tcp -m tcp --dport "$ADGUARD_DNS_PORT" \
+        -j ACCEPT || true
+    fi
 
     # HTTP + HTTPS
     add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \

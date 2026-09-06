@@ -16,6 +16,10 @@ else
     exit 1
 fi
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 if [ "$ENABLE_IMMICH" != "true" ]; then
     echo "Immich is not enabled. Cannot restore photos."
     exit 1
@@ -60,8 +64,8 @@ if [ ! -d "$BACKUP_DIR/$RESTORE_REL_PATH" ]; then
     exit 1
 fi
 
-echo "[*] Starting Immich restore from $RESTORE_REL_PATH..."
-echo "[*] Note: This will import photos into your current Immich instance."
+log "[*] Starting Immich restore from $RESTORE_REL_PATH..."
+log "[*] Note: This will import photos into your current Immich instance."
 
 # Run immich-go upload inside an ephemeral alpine container
 docker run --rm \
@@ -86,8 +90,8 @@ docker run --rm \
     '
 
 if [ $? -eq 0 ]; then
-    echo "[OK] Restore/Import completed successfully."
+    log "[OK] Restore/Import completed successfully."
 else
-    echo "[ERROR] Restore/Import failed."
+    log "[ERROR] Restore/Import failed."
     exit 1
 fi

@@ -8,15 +8,24 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 DUMP_DIR="$PROJECT_DIR/composes/backup/db-dumps"
 
 IMMICH_GO_VERSION="v0.32.0"
 IMMICH_GO_BIN="$PROJECT_DIR/scripts/backups/services/immich/bin/immich-go"
 
 download_immich_go() {
-    mkdir -p "$(dirname "$IMMICH_GO_BIN")"
+    local bin_dir="$(dirname "$IMMICH_GO_BIN")"
+    if [ ! -w "$bin_dir" ] 2>/dev/null; then
+        IMMICH_GO_BIN="/tmp/bin/immich-go"
+        bin_dir="/tmp/bin"
+    fi
+    mkdir -p "$bin_dir"
     if [ ! -x "$IMMICH_GO_BIN" ] || ! "$IMMICH_GO_BIN" --version 2>&1 | grep -q "${IMMICH_GO_VERSION#v}"; then
-        echo "[*] Downloading immich-go $IMMICH_GO_VERSION..."
+        log "[*] Downloading immich-go $IMMICH_GO_VERSION..."
         ARCH="$(uname -m)"
         case "$ARCH" in
             x86_64) GO_ARCH="Linux_x86_64" ;;
@@ -25,7 +34,7 @@ download_immich_go() {
             *) GO_ARCH="Linux_x86_64" ;;
         esac
         # Download in alpine container or using curl directly if available
-        docker run --rm -v "$(dirname "$IMMICH_GO_BIN"):/workspace" alpine sh -c "
+        docker run --rm -v "$bin_dir:/workspace" alpine sh -c "
             apk add --no-cache curl tar gzip && \
             curl -fsSL https://github.com/simulot/immich-go/releases/download/${IMMICH_GO_VERSION}/immich-go_${GO_ARCH}.tar.gz | tar -xz -C /workspace && \
             chmod +x /workspace/immich-go
@@ -38,22 +47,22 @@ case "$PHASE" in
         # Nothing specific needed before backup for immich
         ;;
     dump)
-        echo "[*] Dumping Immich database..."
+        log "[*] Dumping Immich database..."
         mkdir -p "$DUMP_DIR"
         if docker ps -q -f name=immich_postgres 2>/dev/null | grep -q .; then
             if docker exec -i immich_postgres pg_dump -c -U "${IMMICH_DB_USERNAME:-postgres}" "${IMMICH_DB_DATABASE_NAME:-immich}" | gzip > "$DUMP_DIR/immich_db_dump.sql.gz"; then
-                echo "[OK] Immich database dumped successfully."
+                log "[OK] Immich database dumped successfully."
             else
-                echo "[ERROR] Immich database dump failed."
+                log "[ERROR] Immich database dump failed."
                 exit 1
             fi
         else
-            echo "[WARNING] Immich database container (immich_postgres) is not running. Skipping dump."
+            log "[WARNING] Immich database container (immich_postgres) is not running. Skipping dump."
         fi
 
         # Photo export
         if [ -z "${IMMICH_API_KEY:-}" ] || [ "$IMMICH_API_KEY" = "your-api-key" ]; then
-            echo "[WARNING] IMMICH_API_KEY is not set. Skipping photo export."
+            log "[WARNING] IMMICH_API_KEY is not set. Skipping photo export."
             exit 0
         fi
 
@@ -76,7 +85,7 @@ case "$PHASE" in
         mkdir -p "$BACKUP_DIR"
         
         if [ -z "$(docker ps -q -f name=immich_server 2>/dev/null)" ]; then
-            echo "[ERROR] Immich server is not running. Skipping export."
+            log "[ERROR] Immich server is not running. Skipping export."
             exit 1
         fi
         
@@ -101,13 +110,13 @@ case "$PHASE" in
         LATEST_LOG=$(ls -t "$IMMICH_LOG_DIR"/immich-go_*.log 2>/dev/null | head -1 || true)
         if [ -n "$LATEST_LOG" ] && [ -f "$LATEST_LOG" ]; then
             if grep -qE "ERR |level=error|Unauthorized|Invalid credentials|connection refused|failed to connect" "$LATEST_LOG" 2>/dev/null; then
-                echo "[ERROR] Immich backup failed according to log $LATEST_LOG."
+                log "[ERROR] Immich backup failed according to log $LATEST_LOG."
                 exit 1
             fi
         fi
         
         if [ $IMMICH_EXIT -ne 0 ]; then
-            echo "[ERROR] immich-go exit code $IMMICH_EXIT"
+            log "[ERROR] immich-go exit code $IMMICH_EXIT"
             exit 1
         fi
         ;;
@@ -119,10 +128,10 @@ case "$PHASE" in
         if [ -n "${RESTORE_TARGET_PATH:-}" ] && [[ ! "$RESTORE_TARGET_PATH" == *"immich"* ]] && [[ ! "$RESTORE_TARGET_PATH" == *"project"* ]]; then
             exit 0
         fi
-        echo "[*] Restoring Immich database..."
+        log "[*] Restoring Immich database..."
         if [ -f "$DUMP_DIR/immich_db_dump.sql.gz" ] && docker ps -q -f name=immich_postgres 2>/dev/null | grep -q .; then
             zcat "$DUMP_DIR/immich_db_dump.sql.gz" | docker exec -i immich_postgres psql -U "${IMMICH_DB_USERNAME:-postgres}" -d "${IMMICH_DB_DATABASE_NAME:-immich}"
-            echo "[OK] Immich database restored."
+            log "[OK] Immich database restored."
         fi
         ;;
 esac

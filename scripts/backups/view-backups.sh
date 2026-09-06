@@ -9,6 +9,10 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
 if [ ! -f "$RESTIC_COMPOSE" ]; then
     RESTIC_COMPOSE="$PROJECT_DIR/composes/restic.docker-compose.yaml"
@@ -26,7 +30,7 @@ fi
 
 docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
   exec -T backup restic -r "$LOCAL_REPO" snapshots -H docker || {
-    echo "  [!] Could not read local repository at $LOCAL_REPO"
+    log "[!] Could not read local repository at $LOCAL_REPO"
     echo "      Check that LOCAL_BACKUP_DIR in .env matches your host path and RESTIC_PASSWORD is correct."
 }
 
@@ -42,6 +46,6 @@ if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" 
 else
     docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
       exec -T backup restic snapshots -H docker || {
-        echo "  [!] Could not read cloud repository."
+        log "[!] Could not read cloud repository."
     }
 fi

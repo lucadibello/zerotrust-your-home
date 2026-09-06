@@ -8,6 +8,10 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$PROJECT_DIR/scripts/common.sh"
 load_env "$PROJECT_DIR/.env"
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 export FORCE_FULL=false
 
 while [[ $# -gt 0 ]]; do
@@ -46,17 +50,17 @@ for handler in "$PROJECT_DIR/scripts/backups/services"/*/handler.sh; do
 done
 
 for handler in "${HANDLERS[@]}"; do
-    echo "[*] [dump] $(basename "$(dirname "$handler")")..."
+    log "[*] [dump] $(basename "$(dirname "$handler")")..."
     if ! bash "$handler" "dump"; then
-        echo "[WARNING] Handler $handler failed in dump phase."
+        log "[WARNING] Handler $handler failed in dump phase."
         EXPORT_STATUS=1
     fi
 done
 
 if [ $EXPORT_STATUS -eq 0 ]; then
-    echo "[OK] Backup data exported successfully."
+    log "[OK] Backup data exported successfully."
 else
-    echo "[WARNING] Backup data export finished with errors."
+    log "[WARNING] Backup data export finished with errors."
     send_ntfy "Backup Export Warning" "Data export (photos/databases) completed with errors. Check logs." "warning,floppy_disk" "high"
 fi
 

@@ -12,6 +12,10 @@ elif [ -f .env ]; then
     load_env .env
 fi
 
+if ! command -v log >/dev/null 2>&1; then
+    log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+fi
+
 RESTIC_COMPOSE="$PROJECT_DIR/composes/backup/docker-compose.yaml"
 
 echo "------------------------------------------------"
@@ -45,7 +49,7 @@ if [ "$DB_SOURCE_OPT" = "2" ]; then
         REPO_ARGS="-r $LOCAL_REPO"
     fi
 
-    echo "[*] Fetching snapshots..."
+    log "[*] Fetching snapshots..."
     docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
         exec backup restic $REPO_ARGS snapshots -H docker
     
@@ -58,7 +62,7 @@ if [ "$DB_SOURCE_OPT" = "2" ]; then
     fi
     
     TMP_RESTORE_DIR=$(mktemp -d)
-    echo "[*] Extracting database dumps from snapshot $ID to temporary directory..."
+    log "[*] Extracting database dumps from snapshot $ID to temporary directory..."
     docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" -f "$PROJECT_DIR/composes/backup/docker-compose.restore.yaml" --env-file "$PROJECT_DIR/.env" \
         exec backup restic $REPO_ARGS restore $ID --include /mnt/backup/project/composes/backup/db-dumps --target /tmp/restic-db-restore
         
@@ -173,7 +177,7 @@ CMD="docker exec -i $DB_PASS_ENV $CONTAINER_NAME psql"
 if [ -n "$DB_USER" ]; then CMD="$CMD -U $DB_USER"; fi
 if [ -n "$DB_NAME" ]; then CMD="$CMD -d $DB_NAME"; fi
 
-echo "[*] Restoring $FILENAME to container $CONTAINER_NAME..."
+log "[*] Restoring $FILENAME to container $CONTAINER_NAME..."
 
 confirm() {
     read -p "$1 [y/N]: " response
@@ -183,15 +187,15 @@ confirm() {
 if confirm "Are you sure? This may overwrite existing database data."; then
     gzip -dc "$SELECTED_FILE" | eval "$CMD"
     if [ $? -eq 0 ]; then
-        echo "[OK] Database restore completed."
+        log "[OK] Database restore completed."
     else
-        echo "[ERROR] Database restore failed."
+        log "[ERROR] Database restore failed."
     fi
 else
     echo "Aborted."
 fi
 
 if [ -n "$TMP_RESTORE_DIR" ]; then 
-    echo "[*] Cleaning up temporary extracted files..."
+    log "[*] Cleaning up temporary extracted files..."
     rm -rf "$TMP_RESTORE_DIR"
 fi
