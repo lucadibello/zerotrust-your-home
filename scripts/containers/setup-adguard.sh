@@ -26,13 +26,14 @@ ensure_network "dns-network" "10.53.0.0/24"
 # Pre-configure AdGuard Home if not already configured
 ADGUARD_CONF="$PROJECT_ROOT/composes/adguard/conf/AdGuardHome.yaml"
 if [ ! -f "$ADGUARD_CONF" ]; then
-  cat <<'EOF' > "$ADGUARD_CONF"
+  cat <<'EOF' >"$ADGUARD_CONF"
 schema_version: 29
 dns:
   bind_hosts:
     - 0.0.0.0
   port: 53
   upstream_dns:
+    - [/home.lucadibello.ch/]192.168.0.253
     - https://dns.cloudflare.com/dns-query
     - https://dns.quad9.net/dns-query
   bootstrap_dns:
@@ -41,6 +42,12 @@ dns:
   blocking_mode: default
   ratelimit: 0
   filtering_enabled: true
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
 http:
   address: 0.0.0.0:80
 filters:
