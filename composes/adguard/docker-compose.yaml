@@ -14,6 +14,8 @@ services:
     ports:
       - "${IP_ADDRESS:-0.0.0.0}:${ADGUARD_DNS_PORT:-53}:53/tcp"
       - "${IP_ADDRESS:-0.0.0.0}:${ADGUARD_DNS_PORT:-53}:53/udp"
+      - "${IP_ADDRESS:-0.0.0.0}:853:853/tcp"
+      - "${IP_ADDRESS:-0.0.0.0}:853:853/udp"
     networks:
       traefik-network:
       dns-network:
@@ -23,7 +25,9 @@ services:
       - "traefik.http.routers.adguard.rule=Host(`adguard.${DNS_DOMAIN}`)"
       - "traefik.http.routers.adguard.entrypoints=websecure"
       - "traefik.http.routers.adguard.tls.certresolver=letsencrypt"
-      - "traefik.http.services.adguard.loadbalancer.server.port=80"
+      - "traefik.http.services.adguard.loadbalancer.server.port=443"
+      - "traefik.http.services.adguard.loadbalancer.server.scheme=https"
+      - "traefik.http.services.adguard.loadbalancer.serversTransport=adguard-transport@file"
       - "traefik.docker.network=traefik-network"
 
 networks:

@@ -52,4 +52,9 @@ EOF
   echo "[*] Initialized pre-configured AdGuard Home configuration (AdGuardHome.yaml)"
 fi
 
+# Automatically sync valid TLS certificates from Traefik
+if [ -f "$PROJECT_ROOT/scripts/containers/sync-adguard-certs.sh" ]; then
+  bash "$PROJECT_ROOT/scripts/containers/sync-adguard-certs.sh" || true
+fi
+
 echo "[OK] AdGuard Home setup completed"

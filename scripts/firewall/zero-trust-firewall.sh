@@ -258,6 +258,14 @@ else
         -j ACCEPT || true
     fi
 
+    # DNS-over-TLS & DNS-over-QUIC (TCP + UDP)
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p tcp -m tcp --dport 853 \
+      -j ACCEPT || true
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p udp -m udp --dport 853 \
+      -j ACCEPT || true
+
     # HTTP + HTTPS
     add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
       -p tcp -m tcp --dport 80 \
@@ -270,6 +278,8 @@ else
     # Remove existing local service rules if they exist
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT 2>/dev/null || true
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 853 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT 2>/dev/null || true
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT 2>/dev/null || true
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT 2>/dev/null || true
   fi
