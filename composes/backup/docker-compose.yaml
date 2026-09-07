@@ -18,7 +18,7 @@ services:
       RESTIC_BACKUP_SOURCES: /mnt/backup
       RESTIC_BACKUP_ARGS: "--exclude='*.tmp' --exclude-file=/tmp/excludes.txt"
 
-      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repos/local/restic}
       RCLONE_CONFIG: /root/.config/rclone/rclone.conf
 
       ENABLE_IMMICH: ${ENABLE_IMMICH:-false}
@@ -72,7 +72,7 @@ services:
       RESTIC_PASSWORD: ${RESTIC_PASSWORD}
       RESTIC_FORGET_ARGS: ${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}
 
-      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repos/local/restic}
       RCLONE_CONFIG: /root/.config/rclone/rclone.conf
       NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
       NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
@@ -108,7 +108,7 @@ services:
       RESTIC_PASSWORD: ${RESTIC_PASSWORD}
       RESTIC_CHECK_ARGS: "--read-data-subset=10%"
 
-      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY}
+      CLOUD_RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-/repos/local/restic}
       RCLONE_CONFIG: /root/.config/rclone/rclone.conf
       NTFY_URL: ${NTFY_URL:-https://ntfy.home.lucadibello.ch}
       NTFY_TOPIC: ${NTFY_TOPIC:-lucadibello-homelab-status}
