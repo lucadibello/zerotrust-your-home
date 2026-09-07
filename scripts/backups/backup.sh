@@ -42,9 +42,15 @@ docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_
 tmp_log=$(mktemp)
 trap 'rm -f "$tmp_log"' EXIT
 
+HOST_LOG="/var/log/zerotrust-backup.log"
+TEE_TARGETS=("$tmp_log")
+if [ -w "$HOST_LOG" ] || { [ ! -f "$HOST_LOG" ] && [ -w "$(dirname "$HOST_LOG" 2>/dev/null)" ]; }; then
+    TEE_TARGETS+=("$HOST_LOG")
+fi
+
 # Execute the backup script inside the mazzolino/restic container
 # This will execute PRE_COMMANDS, restic backup, and POST_COMMANDS automatically.
-if docker exec ${FORCE_FULL_ENV:-} restic-backup /bin/sh -c "backup" 2>&1 | tee "$tmp_log"; then
+if docker exec ${FORCE_FULL_ENV:-} restic-backup /bin/sh -c "backup" 2>&1 | tee -a "${TEE_TARGETS[@]}"; then
     log "[OK] Manual backup completed successfully."
 else
     exit_code=$?

@@ -71,17 +71,17 @@ scrape_configs:
           firewall_action:
           src_ip:
 
-# Backup export logs
+# Backup logs
 - job_name: backup
   static_configs:
   - targets:
       - localhost
     labels:
       job: backup
-      __path__: /var/log/zerotrust-backup-export.log
+      __path__: /var/log/zerotrust-backup*.log
   pipeline_stages:
   - regex:
-      expression: '\[(?P<status>OK|ERROR|\*)\]'
+      expression: '\[(?P<status>OK|ERROR|WARNING|\*|\!)\]'
   - labels:
       status:
 
@@ -106,6 +106,8 @@ scrape_configs:
       refresh_interval: "5s"
   relabel_configs:
     - source_labels: ['__meta_docker_container_name']
+      regex: '/?(.*)'
+      replacement: '$1'
       target_label: "container_name"
     - source_labels: ['__meta_docker_container_id']
       target_label: "container_id"
