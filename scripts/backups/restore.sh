@@ -69,7 +69,12 @@ get_repo_args() {
         fi
         echo "-r $LOCAL_REPO"
     else
-        echo ""
+        CLOUD_REPO="${CLOUD_RESTIC_REPOSITORY:-${RESTIC_REPOSITORY:-}}"
+        if [ -z "$CLOUD_REPO" ] || [ "$CLOUD_REPO" = "/repos/local/restic" ]; then
+            log "[!] Cloud repository is not configured in .env!" >&2
+            exit 1
+        fi
+        echo "-r $CLOUD_REPO"
     fi
 }
 

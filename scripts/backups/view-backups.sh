@@ -41,11 +41,13 @@ if [[ "${RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
     IS_RCLONE=true
 fi
 
-if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
+if [ "$IS_RCLONE" != "true" ]; then
+    echo "  (Cloud repository not configured. Set RESTIC_REPOSITORY to an rclone remote in .env to enable.)"
+elif [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
     echo "  (Cloud repository skipped: Rclone is not configured. Run 'make backup-configure' to set up.)"
 else
     docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-      exec -T backup restic snapshots -H docker || {
+      exec -T backup restic -r "$RESTIC_REPOSITORY" snapshots -H docker || {
         log "[!] Could not read cloud repository."
     }
 fi

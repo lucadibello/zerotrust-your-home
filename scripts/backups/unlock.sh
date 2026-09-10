@@ -37,12 +37,14 @@ if [[ "${RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
     IS_RCLONE=true
 fi
 
-if [ "$IS_RCLONE" = "true" ] && [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
+if [ "$IS_RCLONE" != "true" ]; then
+    log "[*] Cloud unlock skipped: Cloud repository is not configured."
+elif [ ! -f "$PROJECT_DIR/config/rclone/rclone.conf" ]; then
     log "[*] Cloud unlock skipped: Rclone is not configured."
 else
-    log "[*] Removing stale locks (Cloud)..."
+    log "[*] Removing stale locks (Cloud: $RESTIC_REPOSITORY)..."
     docker compose --project-name zerotrust-your-home --project-directory "$PROJECT_DIR" -f "$RESTIC_COMPOSE" --env-file "$PROJECT_DIR/.env" \
-      exec -T backup restic unlock
+      exec -T backup restic -r "$RESTIC_REPOSITORY" unlock
     CLOUD_EXIT=$?
 fi
 

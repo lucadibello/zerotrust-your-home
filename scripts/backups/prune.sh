@@ -23,8 +23,9 @@ if docker exec restic-prune /bin/sh -c "prune"; then
 else
     PRUNE_ARGS="${RESTIC_FORGET_ARGS:---keep-last 3 --keep-daily 3 --keep-weekly 2 --keep-monthly 1}"
     docker exec restic-prune restic -r /repos/local/restic forget --prune $PRUNE_ARGS
-    if [[ "${CLOUD_RESTIC_REPOSITORY:-}" =~ ^rclone: ]]; then
+    CLOUD_REPO="${CLOUD_RESTIC_REPOSITORY:-${RESTIC_REPOSITORY:-}}"
+    if [[ "$CLOUD_REPO" =~ ^rclone: ]]; then
         export RESTIC_FROM_PASSWORD="${RESTIC_PASSWORD:-}"
-        docker exec -e RESTIC_FROM_PASSWORD="$RESTIC_FROM_PASSWORD" restic-prune restic -r "$CLOUD_RESTIC_REPOSITORY" forget --prune $PRUNE_ARGS
+        docker exec -e RESTIC_FROM_PASSWORD="$RESTIC_FROM_PASSWORD" restic-prune restic -r "$CLOUD_REPO" forget --prune $PRUNE_ARGS
     fi
 fi
