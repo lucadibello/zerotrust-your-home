@@ -245,6 +245,48 @@ ${app_entries}
 EOF
 fi
 
+# --- Media & Entertainment ---
+media_entries=""
+if is_service_enabled "media" false; then
+  media_entries+="    - Jellyfin:
+        icon: jellyfin.png
+        href: https://jellyfin.${DOMAIN}
+        description: Media Streaming Server
+    - Jellyseerr:
+        icon: jellyseerr.png
+        href: https://jellyseerr.${DOMAIN}
+        description: Media Requests & Discovery
+    - Radarr:
+        icon: radarr.png
+        href: https://radarr.${DOMAIN}
+        description: Movies Collection Manager
+    - Sonarr:
+        icon: sonarr.png
+        href: https://sonarr.${DOMAIN}
+        description: TV Shows Collection Manager
+    - Prowlarr:
+        icon: prowlarr.png
+        href: https://prowlarr.${DOMAIN}
+        description: Torrent & Usenet Indexer Manager
+    - qBittorrent:
+        icon: qbittorrent.png
+        href: https://qbittorrent.${DOMAIN}
+        description: Torrent Download Client
+    - Bazarr:
+        icon: bazarr.png
+        href: https://bazarr.${DOMAIN}
+        description: Subtitles Manager
+"
+fi
+
+if [ -n "$media_entries" ]; then
+  has_any_service=true
+  cat <<EOF >> "$services_file"
+- Media:
+${media_entries}
+EOF
+fi
+
 # --- Management ---
 mgmt_entries=""
 if [ "${ENABLE_PORTAINER:-false}" = "true" ]; then

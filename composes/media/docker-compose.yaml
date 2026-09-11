@@ -1,0 +1,213 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./composes/media/config/jellyfin:/config
+      - ./composes/media/cache/jellyfin:/cache
+      - ${MEDIA_DIR:-/mnt/media}:/media:ro
+    devices:
+      - ${JELLYFIN_RENDER_DEVICE:-/dev/null}:/dev/dri/renderD128
+    ports:
+      - "8096:8096"
+      - "7359:7359/udp"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "traefik.docker.network=traefik-network"
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./composes/media/config/jellyseerr:/app/config
+    ports:
+      - "5055:5055"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${DNS_DOMAIN}`) || Host(`requests.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.jellyseerr.entrypoints=websecure"
+      - "traefik.http.routers.jellyseerr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
+      - "traefik.docker.network=traefik-network"
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    environment:
+      - PUID=${MEDIA_PUID:-1000}
+      - PGID=${MEDIA_PGID:-1000}
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./composes/media/config/radarr:/config
+      - ${MEDIA_DIR:-/mnt/media}:/media
+      - ${DOWNLOADS_DIR:-/mnt/downloads}:/downloads
+    ports:
+      - "7878:7878"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.radarr.entrypoints=websecure"
+      - "traefik.http.routers.radarr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+      - "traefik.docker.network=traefik-network"
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=${MEDIA_PUID:-1000}
+      - PGID=${MEDIA_PGID:-1000}
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./composes/media/config/sonarr:/config
+      - ${MEDIA_DIR:-/mnt/media}:/media
+      - ${DOWNLOADS_DIR:-/mnt/downloads}:/downloads
+    ports:
+      - "8989:8989"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.sonarr.entrypoints=websecure"
+      - "traefik.http.routers.sonarr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+      - "traefik.docker.network=traefik-network"
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=${MEDIA_PUID:-1000}
+      - PGID=${MEDIA_PGID:-1000}
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./composes/media/config/prowlarr:/config
+    ports:
+      - "9696:9696"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.prowlarr.entrypoints=websecure"
+      - "traefik.http.routers.prowlarr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
+      - "traefik.docker.network=traefik-network"
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    environment:
+      - PUID=${MEDIA_PUID:-1000}
+      - PGID=${MEDIA_PGID:-1000}
+      - TZ=${TZ:-Europe/Zurich}
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=6881
+    volumes:
+      - ./composes/media/config/qbittorrent:/config
+      - ${DOWNLOADS_DIR:-/mnt/downloads}:/downloads
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.${DNS_DOMAIN}`) || Host(`torrents.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.qbittorrent.entrypoints=websecure"
+      - "traefik.http.routers.qbittorrent.tls.certresolver=letsencrypt"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-network"
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    environment:
+      - PUID=${MEDIA_PUID:-1000}
+      - PGID=${MEDIA_PGID:-1000}
+      - TZ=${TZ:-Europe/Zurich}
+    volumes:
+      - ./composes/media/config/bazarr:/config
+      - ${MEDIA_DIR:-/mnt/media}:/media
+    ports:
+      - "6767:6767"
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bazarr.rule=Host(`bazarr.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.bazarr.entrypoints=websecure"
+      - "traefik.http.routers.bazarr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
+      - "traefik.docker.network=traefik-network"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ:-Europe/Zurich}
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - media-network
+
+networks:
+  traefik-network:
+    external: true
+  media-network:
+    name: media-network

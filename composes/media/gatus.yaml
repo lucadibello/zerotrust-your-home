@@ -1,0 +1,69 @@
+- name: Jellyfin
+  group: Media
+  url: "http://jellyfin:8096/health"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Jellyseerr
+  group: Media
+  url: "http://jellyseerr:5055/api/v1/status"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Radarr
+  group: Media
+  url: "http://radarr:7878/ping"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Sonarr
+  group: Media
+  url: "http://sonarr:8989/ping"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Prowlarr
+  group: Media
+  url: "http://prowlarr:9696/ping"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: Bazarr
+  group: Media
+  url: "http://bazarr:6767/ping"
+  interval: 60s
+  conditions:
+    - "[STATUS] == 200"
+  alerts:
+    - type: ntfy
+      enabled: true
+
+- name: qBittorrent
+  group: Media
+  url: "http://qbittorrent:8080/"
+  interval: 60s
+  conditions:
+    - "[STATUS] < 500"
+  alerts:
+    - type: ntfy
+      enabled: true
