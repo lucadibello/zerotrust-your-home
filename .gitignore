@@ -24,3 +24,10 @@ composes/letsencrypt/acme.json
 composes/traefik/letsencrypt/acme.json
 composes/traefik/crowdsec/BOUNCER_KEY_traefik
 
+# Media stack runtime data
+composes/media/config/*
+!composes/media/config/.gitkeep
+composes/media/cache/*
+!composes/media/cache/.gitkeep
+
+

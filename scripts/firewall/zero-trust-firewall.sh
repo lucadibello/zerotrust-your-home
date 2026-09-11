@@ -20,6 +20,13 @@ else
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/../common.sh" ]; then
+  source "$SCRIPT_DIR/../common.sh"
+elif [ -f "./scripts/common.sh" ]; then
+  source "./scripts/common.sh"
+fi
+
 # Validate required variables
 if [ -z "$LOCAL_NETWORK" ]; then
   echo "[!] Required variable LOCAL_NETWORK must be set in .env"
@@ -273,6 +280,19 @@ else
     add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
       -p tcp -m tcp --dport 443 \
       -j ACCEPT || true
+
+    # Media & Torrent services (if ENABLE_MEDIA=true or ENABLE_JELLYFIN=true)
+    if is_service_enabled "media" false; then
+      add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+        -p udp -m udp --dport 7359 \
+        -j ACCEPT || true
+      add_rule_if_missing DOCKER-USER -i $IF \
+        -p tcp -m tcp --dport 6881 \
+        -j ACCEPT || true
+      add_rule_if_missing DOCKER-USER -i $IF \
+        -p udp -m udp --dport 6881 \
+        -j ACCEPT || true
+    fi
   else
     echo "  [*] Local service access disabled, removing any existing rules..."
     # Remove existing local service rules if they exist
@@ -282,6 +302,10 @@ else
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT 2>/dev/null || true
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT 2>/dev/null || true
     sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 8096 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 7359 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -p tcp -m tcp --dport 6881 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -p udp -m udp --dport 6881 -j ACCEPT 2>/dev/null || true
   fi
 
   # Block all other traffic from docker-user chain

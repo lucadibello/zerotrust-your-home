@@ -12,7 +12,6 @@ services:
     devices:
       - ${JELLYFIN_RENDER_DEVICE:-/dev/null}:/dev/dri/renderD128
     ports:
-      - "8096:8096"
       - "7359:7359/udp"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
@@ -37,8 +36,6 @@ services:
       - TZ=${TZ:-Europe/Zurich}
     volumes:
       - ./composes/media/config/jellyseerr:/app/config
-    ports:
-      - "5055:5055"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
@@ -65,8 +62,6 @@ services:
       - ./composes/media/config/radarr:/config
       - ${MEDIA_DIR:-/mnt/media}:/media
       - ${DOWNLOADS_DIR:-/mnt/downloads}:/downloads
-    ports:
-      - "7878:7878"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
@@ -93,8 +88,6 @@ services:
       - ./composes/media/config/sonarr:/config
       - ${MEDIA_DIR:-/mnt/media}:/media
       - ${DOWNLOADS_DIR:-/mnt/downloads}:/downloads
-    ports:
-      - "8989:8989"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
@@ -119,8 +112,6 @@ services:
       - TZ=${TZ:-Europe/Zurich}
     volumes:
       - ./composes/media/config/prowlarr:/config
-    ports:
-      - "9696:9696"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
@@ -149,7 +140,6 @@ services:
       - ./composes/media/config/qbittorrent:/config
       - ${DOWNLOADS_DIR:-/mnt/downloads}:/downloads
     ports:
-      - "8080:8080"
       - "6881:6881"
       - "6881:6881/udp"
     dns:
@@ -177,8 +167,6 @@ services:
     volumes:
       - ./composes/media/config/bazarr:/config
       - ${MEDIA_DIR:-/mnt/media}:/media
-    ports:
-      - "6767:6767"
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}

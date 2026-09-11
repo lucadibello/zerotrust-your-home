@@ -43,10 +43,24 @@ ensure_network "traefik-network"
 ensure_network "media-network"
 
 # Hardware transcoding check
-RENDER_DEV="${JELLYFIN_RENDER_DEVICE:-/dev/dri/renderD128}"
+RENDER_DEV="${JELLYFIN_RENDER_DEVICE:-/dev/null}"
 if [ "$RENDER_DEV" != "/dev/null" ] && [ ! -e "$RENDER_DEV" ]; then
   log_warn "Jellyfin GPU device '${RENDER_DEV}' was not found on host."
-  log_warn "If this machine does not have an Intel/AMD GPU or PCIe passthrough, set JELLYFIN_RENDER_DEVICE=/dev/null in .env."
+  
+  VIRT_TYPE="none"
+  if command -v detect_virtualization >/dev/null 2>&1; then
+    VIRT_TYPE=$(detect_virtualization)
+  fi
+  
+  if [ "$VIRT_TYPE" = "kvm" ] || [ "$VIRT_TYPE" = "qemu" ]; then
+    log_info "Detected ${VIRT_TYPE} virtual machine without a passed-through GPU."
+  fi
+
+  if [ -f "$PROJECT_ROOT/.env" ] && grep -q "^JELLYFIN_RENDER_DEVICE=" "$PROJECT_ROOT/.env"; then
+    log_info "Auto-adjusting JELLYFIN_RENDER_DEVICE=/dev/null in .env to prevent container startup failure."
+    $SED_INPLACE 's|^JELLYFIN_RENDER_DEVICE=.*|JELLYFIN_RENDER_DEVICE=/dev/null|' "$PROJECT_ROOT/.env"
+  fi
+  log_info "Jellyfin will use CPU software transcoding."
 fi
 
 echo "[OK] Media stack setup completed"
