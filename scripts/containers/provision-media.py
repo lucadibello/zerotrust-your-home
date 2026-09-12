@@ -432,8 +432,14 @@ def setup_radarr(api_key, qbt_user="admin", qbt_pass=""):
     # 1. Root folder
     root_folders = request_json("http://radarr:7878/api/v3/rootfolder", headers=headers)
     has_movies_root = False
+    invalid_root_folder_ids = []
     if isinstance(root_folders, list):
-        has_movies_root = any(rf.get("path") == "/media/movies" for rf in root_folders)
+        for rf in root_folders:
+            rf_path = (rf.get("path") or "").rstrip("/")
+            if rf_path == "/media/movies":
+                has_movies_root = True
+            elif rf_path == "/downloads" or rf_path.startswith("/downloads"):
+                invalid_root_folder_ids.append(rf.get("id"))
 
     if not has_movies_root:
         log("[*] Adding /media/movies root folder to Radarr...")
@@ -444,47 +450,88 @@ def setup_radarr(api_key, qbt_user="admin", qbt_pass=""):
             headers=headers,
         )
 
+    # 1b. Fix any existing movies mistakenly mapped to /downloads
+    movies = request_json("http://radarr:7878/api/v3/movie", headers=headers)
+    if isinstance(movies, list):
+        for m in movies:
+            m_path = m.get("path") or ""
+            m_root = m.get("rootFolderPath") or ""
+            if m_path.startswith("/downloads") or m_root.startswith("/downloads"):
+                folder_name = os.path.basename(m_path.rstrip("/")) or m.get("title", "Unknown")
+                new_path = f"/media/movies/{folder_name}"
+                log(f"[*] Relocating movie '{m.get('title')}' root folder from '{m_path}' to '{new_path}'...")
+                m["path"] = new_path
+                m["rootFolderPath"] = "/media/movies"
+                request_json(
+                    f"http://radarr:7878/api/v3/movie/{m.get('id')}?moveFiles=false",
+                    method="PUT",
+                    data=m,
+                    headers=headers,
+                )
+
+    # 1c. Remove invalid /downloads root folder(s)
+    for rf_id in invalid_root_folder_ids:
+        if rf_id:
+            log(f"[*] Removing invalid root folder ID {rf_id} (/downloads) from Radarr...")
+            request_json(
+                f"http://radarr:7878/api/v3/rootfolder/{rf_id}",
+                method="DELETE",
+                headers=headers,
+            )
+
     # 2. qBittorrent download client
     clients = request_json("http://radarr:7878/api/v3/downloadclient", headers=headers)
-    has_qbt = False
+    qbt_client = None
     if isinstance(clients, list):
-        has_qbt = any(c.get("name") == "qBittorrent" for c in clients)
+        for c in clients:
+            if c.get("name") == "qBittorrent" or c.get("implementation") == "QBittorrent":
+                qbt_client = c
+                break
 
-    if not has_qbt:
+    if not qbt_client:
         log("[*] Adding qBittorrent download client to Radarr...")
         schema = request_json(
             "http://radarr:7878/api/v3/downloadclient/schema", headers=headers
         )
-        qbt_schema = None
         if isinstance(schema, list):
             for s in schema:
                 if s.get("implementation") == "QBittorrent":
-                    qbt_schema = s
+                    qbt_client = dict(s)
                     break
 
-        if qbt_schema:
-            qbt_schema["name"] = "qBittorrent"
-            qbt_schema["enable"] = True
-            for field in qbt_schema.get("fields", []):
-                fname = field.get("name")
-                if fname == "host":
-                    field["value"] = "qbittorrent"
-                elif fname == "port":
-                    field["value"] = 8080
-                elif fname == "useSsl":
-                    field["value"] = False
-                elif fname == "username":
-                    field["value"] = qbt_user
-                elif fname == "password":
-                    field["value"] = qbt_pass
-                elif fname == "movieCategory":
-                    field["value"] = "radarr"
-                elif fname == "initialState":
-                    field["value"] = 0
+    if qbt_client:
+        qbt_client["name"] = "qBittorrent"
+        qbt_client["enable"] = True
+        for field in qbt_client.get("fields", []):
+            fname = field.get("name")
+            if fname == "host":
+                field["value"] = "qbittorrent"
+            elif fname == "port":
+                field["value"] = 8080
+            elif fname == "useSsl":
+                field["value"] = False
+            elif fname == "username":
+                field["value"] = qbt_user
+            elif fname == "password":
+                field["value"] = qbt_pass
+            elif fname == "movieCategory":
+                field["value"] = "radarr"
+            elif fname == "initialState":
+                field["value"] = 0
+
+        client_id = qbt_client.get("id")
+        if client_id:
             request_json(
-                "http://radarr:7878/api/v3/downloadclient",
+                f"http://radarr:7878/api/v3/downloadclient/{client_id}?forceSave=true",
+                method="PUT",
+                data=qbt_client,
+                headers=headers,
+            )
+        else:
+            request_json(
+                "http://radarr:7878/api/v3/downloadclient?forceSave=true",
                 method="POST",
-                data=qbt_schema,
+                data=qbt_client,
                 headers=headers,
             )
 
@@ -513,8 +560,14 @@ def setup_sonarr(api_key, qbt_user="admin", qbt_pass=""):
     # 1. Root folder
     root_folders = request_json("http://sonarr:8989/api/v3/rootfolder", headers=headers)
     has_tv_root = False
+    invalid_root_folder_ids = []
     if isinstance(root_folders, list):
-        has_tv_root = any(rf.get("path") == "/media/tv" for rf in root_folders)
+        for rf in root_folders:
+            rf_path = (rf.get("path") or "").rstrip("/")
+            if rf_path == "/media/tv":
+                has_tv_root = True
+            elif rf_path == "/downloads" or rf_path.startswith("/downloads"):
+                invalid_root_folder_ids.append(rf.get("id"))
 
     if not has_tv_root:
         log("[*] Adding /media/tv root folder to Sonarr...")
@@ -525,47 +578,88 @@ def setup_sonarr(api_key, qbt_user="admin", qbt_pass=""):
             headers=headers,
         )
 
+    # 1b. Fix any existing series mistakenly mapped to /downloads
+    series = request_json("http://sonarr:8989/api/v3/series", headers=headers)
+    if isinstance(series, list):
+        for s in series:
+            s_path = s.get("path") or ""
+            s_root = s.get("rootFolderPath") or ""
+            if s_path.startswith("/downloads") or s_root.startswith("/downloads"):
+                folder_name = os.path.basename(s_path.rstrip("/")) or s.get("title", "Unknown")
+                new_path = f"/media/tv/{folder_name}"
+                log(f"[*] Relocating series '{s.get('title')}' root folder from '{s_path}' to '{new_path}'...")
+                s["path"] = new_path
+                s["rootFolderPath"] = "/media/tv"
+                request_json(
+                    f"http://sonarr:8989/api/v3/series/{s.get('id')}?moveFiles=false",
+                    method="PUT",
+                    data=s,
+                    headers=headers,
+                )
+
+    # 1c. Remove invalid /downloads root folder(s)
+    for rf_id in invalid_root_folder_ids:
+        if rf_id:
+            log(f"[*] Removing invalid root folder ID {rf_id} (/downloads) from Sonarr...")
+            request_json(
+                f"http://sonarr:8989/api/v3/rootfolder/{rf_id}",
+                method="DELETE",
+                headers=headers,
+            )
+
     # 2. qBittorrent download client
     clients = request_json("http://sonarr:8989/api/v3/downloadclient", headers=headers)
-    has_qbt = False
+    qbt_client = None
     if isinstance(clients, list):
-        has_qbt = any(c.get("name") == "qBittorrent" for c in clients)
+        for c in clients:
+            if c.get("name") == "qBittorrent" or c.get("implementation") == "QBittorrent":
+                qbt_client = c
+                break
 
-    if not has_qbt:
+    if not qbt_client:
         log("[*] Adding qBittorrent download client to Sonarr...")
         schema = request_json(
             "http://sonarr:8989/api/v3/downloadclient/schema", headers=headers
         )
-        qbt_schema = None
         if isinstance(schema, list):
             for s in schema:
                 if s.get("implementation") == "QBittorrent":
-                    qbt_schema = s
+                    qbt_client = dict(s)
                     break
 
-        if qbt_schema:
-            qbt_schema["name"] = "qBittorrent"
-            qbt_schema["enable"] = True
-            for field in qbt_schema.get("fields", []):
-                fname = field.get("name")
-                if fname == "host":
-                    field["value"] = "qbittorrent"
-                elif fname == "port":
-                    field["value"] = 8080
-                elif fname == "useSsl":
-                    field["value"] = False
-                elif fname == "username":
-                    field["value"] = qbt_user
-                elif fname == "password":
-                    field["value"] = qbt_pass
-                elif fname == "tvCategory":
-                    field["value"] = "sonarr"
-                elif fname == "initialState":
-                    field["value"] = 0
+    if qbt_client:
+        qbt_client["name"] = "qBittorrent"
+        qbt_client["enable"] = True
+        for field in qbt_client.get("fields", []):
+            fname = field.get("name")
+            if fname == "host":
+                field["value"] = "qbittorrent"
+            elif fname == "port":
+                field["value"] = 8080
+            elif fname == "useSsl":
+                field["value"] = False
+            elif fname == "username":
+                field["value"] = qbt_user
+            elif fname == "password":
+                field["value"] = qbt_pass
+            elif fname == "tvCategory":
+                field["value"] = "sonarr"
+            elif fname == "initialState":
+                field["value"] = 0
+
+        client_id = qbt_client.get("id")
+        if client_id:
             request_json(
-                "http://sonarr:8989/api/v3/downloadclient",
+                f"http://sonarr:8989/api/v3/downloadclient/{client_id}?forceSave=true",
+                method="PUT",
+                data=qbt_client,
+                headers=headers,
+            )
+        else:
+            request_json(
+                "http://sonarr:8989/api/v3/downloadclient?forceSave=true",
                 method="POST",
-                data=qbt_schema,
+                data=qbt_client,
                 headers=headers,
             )
 
@@ -587,15 +681,46 @@ def setup_sonarr(api_key, qbt_user="admin", qbt_pass=""):
     log_ok("Sonarr configured successfully.")
 
 
+def get_or_create_prowlarr_tag(api_key, tag_label):
+    headers = {"X-Api-Key": api_key}
+    tags = request_json("http://prowlarr:9696/api/v1/tag", headers=headers)
+    if isinstance(tags, list):
+        for t in tags:
+            if t.get("label", "").lower() == tag_label.lower():
+                return t.get("id")
+    created = request_json(
+        "http://prowlarr:9696/api/v1/tag",
+        method="POST",
+        data={"label": tag_label},
+        headers=headers,
+    )
+    if isinstance(created, dict) and created.get("id"):
+        return created.get("id")
+    return None
+
+
 def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
     log("[*] Configuring Prowlarr...")
     headers = {"X-Api-Key": prowlarr_key}
+
+    flare_tag_id = get_or_create_prowlarr_tag(prowlarr_key, "flaresolverr")
 
     # 1. FlareSolverr proxy
     proxies = request_json("http://prowlarr:9696/api/v1/indexerproxy", headers=headers)
     has_flare = False
     if isinstance(proxies, list):
-        has_flare = any(p.get("name") == "FlareSolverr" for p in proxies)
+        for p in proxies:
+            if p.get("name") == "FlareSolverr" or p.get("implementation") == "FlareSolverr":
+                has_flare = True
+                if flare_tag_id and flare_tag_id not in p.get("tags", []):
+                    p["tags"] = list(set(p.get("tags", []) + [flare_tag_id]))
+                    request_json(
+                        f"http://prowlarr:9696/api/v1/indexerproxy/{p['id']}?forceSave=true",
+                        method="PUT",
+                        data=p,
+                        headers=headers,
+                    )
+                break
 
     if not has_flare:
         log("[*] Adding FlareSolverr proxy to Prowlarr...")
@@ -612,17 +737,77 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
         if flare_schema:
             flare_schema["name"] = "FlareSolverr"
             flare_schema["enable"] = True
+            if flare_tag_id:
+                flare_schema["tags"] = [flare_tag_id]
             for field in flare_schema.get("fields", []):
                 if field.get("name") == "host":
                     field["value"] = "http://flaresolverr:8191"
             request_json(
-                "http://prowlarr:9696/api/v1/indexerproxy",
+                "http://prowlarr:9696/api/v1/indexerproxy?forceSave=true",
                 method="POST",
                 data=flare_schema,
                 headers=headers,
             )
 
-    # 2. Application sync (Radarr & Sonarr)
+    # 2. Add default public indexers
+    existing_indexers = request_json("http://prowlarr:9696/api/v1/indexer", headers=headers)
+    existing_names = set()
+    if isinstance(existing_indexers, list):
+        for idx in existing_indexers:
+            name = (idx.get("name") or "").lower()
+            def_name = (idx.get("definitionName") or "").lower()
+            existing_names.add(name)
+            existing_names.add(def_name)
+
+    indexer_schemas = request_json(
+        "http://prowlarr:9696/api/v1/indexer/schema", headers=headers
+    )
+
+    # Public indexers to configure
+    target_indexers = [
+        {"id": "1337x", "names": ["1337x"], "use_flare": True},
+        {"id": "yts", "names": ["yts"], "use_flare": False},
+        {"id": "thepiratebay", "names": ["thepiratebay", "the pirate bay", "piratebay"], "use_flare": False},
+        {"id": "eztv", "names": ["eztv"], "use_flare": False},
+        {"id": "limetorrents", "names": ["limetorrents", "lime torrents"], "use_flare": False},
+        {"id": "torrentgalaxy", "names": ["torrentgalaxy", "torrent galaxy", "tgx"], "use_flare": True},
+    ]
+
+    if isinstance(indexer_schemas, list):
+        for target in target_indexers:
+            already_added = any(n in existing_names for n in target["names"])
+            if already_added:
+                continue
+
+            matched_schema = None
+            for s in indexer_schemas:
+                s_def = (s.get("definitionName") or "").lower()
+                s_name = (s.get("name") or "").lower()
+                if any(n in s_def or n == s_name for n in target["names"]):
+                    matched_schema = s
+                    break
+
+            if matched_schema:
+                idx_data = dict(matched_schema)
+                idx_data["enable"] = True
+                idx_data["appProfileId"] = 1
+                if target["use_flare"] and flare_tag_id:
+                    idx_data["tags"] = [flare_tag_id]
+                idx_name = matched_schema.get("name")
+                log(f"[*] Adding indexer '{idx_name}' to Prowlarr...")
+                res = request_json(
+                    "http://prowlarr:9696/api/v1/indexer?forceSave=true",
+                    method="POST",
+                    data=idx_data,
+                    headers=headers,
+                )
+                if isinstance(res, dict) and not res.get("_error"):
+                    log_ok(f"Added indexer '{idx_name}'.")
+                else:
+                    err_msg = res.get("body") if isinstance(res, dict) else res
+                    log_warn(f"Could not add indexer '{idx_name}': {err_msg}")
+
+    # 3. Application sync (Radarr & Sonarr)
     apps = request_json("http://prowlarr:9696/api/v1/applications", headers=headers)
     app_names = [a.get("name") for a in apps] if isinstance(apps, list) else []
 
@@ -646,7 +831,7 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
                     elif fname == "apiKey":
                         field["value"] = radarr_key
                 request_json(
-                    "http://prowlarr:9696/api/v1/applications",
+                    "http://prowlarr:9696/api/v1/applications?forceSave=true",
                     method="POST",
                     data=r_app,
                     headers=headers,
@@ -669,12 +854,22 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
                     elif fname == "apiKey":
                         field["value"] = sonarr_key
                 request_json(
-                    "http://prowlarr:9696/api/v1/applications",
+                    "http://prowlarr:9696/api/v1/applications?forceSave=true",
                     method="POST",
                     data=s_app,
                     headers=headers,
                 )
                 break
+
+    # 4. Trigger sync to push indexers to Radarr & Sonarr
+    log("[*] Syncing indexers to Radarr and Sonarr via Prowlarr ApplicationSync...")
+    request_json(
+        "http://prowlarr:9696/api/v1/command",
+        method="POST",
+        data={"name": "ApplicationSync"},
+        headers=headers,
+    )
+    time.sleep(2)
 
     log_ok("Prowlarr configured successfully.")
 
@@ -885,6 +1080,23 @@ def main():
             else bazarr_status.get("bazarr_version")
         )
         log_ok(f"Bazarr connected (version: {bv})")
+
+    # Step 7: Trigger search for missing media in Radarr and Sonarr
+    log("[*] Triggering automatic search for missing monitored movies in Radarr...")
+    request_json(
+        "http://radarr:7878/api/v3/command",
+        method="POST",
+        data={"name": "MissingMoviesSearch"},
+        headers={"X-Api-Key": radarr_key},
+    )
+
+    log("[*] Triggering automatic search for missing monitored episodes in Sonarr...")
+    request_json(
+        "http://sonarr:8989/api/v3/command",
+        method="POST",
+        data={"name": "MissingEpisodeSearch"},
+        headers={"X-Api-Key": sonarr_key},
+    )
 
     log_ok("Media stack configuration completed.")
 
