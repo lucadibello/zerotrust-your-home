@@ -27,8 +27,8 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       # Trust internal / proxy forwarded headers (Cloudflare Tunnel & private LAN/Docker subnets)
-      - "--entrypoints.web.forwardedHeaders.trustedIPs=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-      - "--entrypoints.websecure.forwardedHeaders.trustedIPs=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      - "--entrypoints.web.forwardedHeaders.trustedIPs=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,${LOCAL_NETWORK:-192.168.0.0/24}"
+      - "--entrypoints.websecure.forwardedHeaders.trustedIPs=127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,${LOCAL_NETWORK:-192.168.0.0/24}"
       # Baseline uniform security middleware applied to ALL services on websecure entrypoint
       - "--entrypoints.websecure.http.middlewares=crowdsec-bouncer@file,security-headers@file,security-ratelimit@file,security-inflight@file"
       # Transport timeouts (20m max upload duration for large videos, 180s idle timeout to prevent starvation)

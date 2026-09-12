@@ -13,7 +13,7 @@ http:
             - 127.0.0.1/32
             - 10.0.0.0/8
             - 172.16.0.0/12
-            - 192.168.0.0/16
+            - <LOCAL_NETWORK>
           crowdsecAppsecEnabled: <APPSEC_ENABLED>
           crowdsecAppsecHost: crowdsec:7422
           crowdsecAppsecPath: /

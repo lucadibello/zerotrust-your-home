@@ -72,7 +72,7 @@ http:
   trusted_proxies:
     - 172.16.0.0/12
     - 10.0.0.0/8
-    - 192.168.0.0/16
+    - ${LOCAL_NETWORK:-192.168.0.0/24}
 EOF
 fi
 

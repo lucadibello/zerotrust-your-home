@@ -28,7 +28,8 @@ if [ "${ENABLE_CROWDSEC:-false}" != "true" ]; then
     BOUNCER_ENABLED="false" \
     APPSEC_ENABLED="false" \
     APPSEC_FAILURE_BLOCK="false" \
-    APPSEC_UNREACHABLE_BLOCK="false"
+    APPSEC_UNREACHABLE_BLOCK="false" \
+    LOCAL_NETWORK="${LOCAL_NETWORK:-192.168.0.0/24}"
   exit 0
 fi
 
@@ -88,7 +89,8 @@ render_template "$TEMPLATE" "$TARGET" \
   BOUNCER_ENABLED="true" \
   APPSEC_ENABLED="true" \
   APPSEC_FAILURE_BLOCK="true" \
-  APPSEC_UNREACHABLE_BLOCK="true"
+  APPSEC_UNREACHABLE_BLOCK="true" \
+  LOCAL_NETWORK="${LOCAL_NETWORK:-192.168.0.0/24}"
 
 # Create external network if needed
 docker network create traefik-network >/dev/null 2>&1 || true
