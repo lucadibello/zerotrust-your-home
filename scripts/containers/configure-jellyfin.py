@@ -30,6 +30,14 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
     if not db_path:
         return False
 
+    if os.path.exists(db_path):
+        if not os.access(db_path, os.W_OK) or not os.access(os.path.dirname(db_path), os.W_OK):
+            print(
+                f"[*] Jellyfin database at {db_path} is owned by container (root); skipping host-level pre-configuration (media-provisioner container will sync it).",
+                file=sys.stderr,
+            )
+            return True
+
     try:
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
@@ -45,6 +53,9 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
         users = cur.fetchall()
 
         password_hash = hash_jellyfin_password(password)
+
+        cur.execute("PRAGMA table_info(Users)")
+        user_cols = {col[1] for col in cur.fetchall()}
 
         cur.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
@@ -63,17 +74,29 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
                     target_id = u[0]
                     break
 
-            if target_id:
-                cur.execute(
-                    "UPDATE Users SET Password = ?, EasyPassword = NULL, MustUpdatePassword = 0, InvalidLoginAttemptCount = 0 WHERE Id = ?",
-                    (password_hash, target_id),
-                )
-            else:
+            update_clauses = ["Password = ?"]
+            params = [password_hash]
+
+            if not target_id:
                 target_id = users[0][0]
-                cur.execute(
-                    "UPDATE Users SET Username = ?, NormalizedUsername = ?, Password = ?, EasyPassword = NULL, MustUpdatePassword = 0, InvalidLoginAttemptCount = 0 WHERE Id = ?",
-                    (username, username.upper(), password_hash, target_id),
-                )
+                update_clauses.append("Username = ?")
+                params.append(username)
+                if "NormalizedUsername" in user_cols:
+                    update_clauses.append("NormalizedUsername = ?")
+                    params.append(username.upper())
+
+            if "EasyPassword" in user_cols:
+                update_clauses.append("EasyPassword = NULL")
+            if "MustUpdatePassword" in user_cols:
+                update_clauses.append("MustUpdatePassword = 0")
+            if "InvalidLoginAttemptCount" in user_cols:
+                update_clauses.append("InvalidLoginAttemptCount = 0")
+
+            params.append(target_id)
+            cur.execute(
+                f"UPDATE Users SET {', '.join(update_clauses)} WHERE Id = ?",
+                params,
+            )
 
             if has_permissions:
                 cur.execute(
@@ -103,30 +126,37 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
             return True
         else:
             new_id = str(uuid.uuid4())
+            candidate_fields = {
+                "Id": new_id,
+                "Username": username,
+                "NormalizedUsername": username.upper(),
+                "Password": password_hash,
+                "MustUpdatePassword": 0,
+                "InvalidLoginAttemptCount": 0,
+                "MaxActiveSessions": 0,
+                "SubtitleMode": 0,
+                "PlayDefaultAudioTrack": 1,
+                "DisplayMissingEpisodes": 0,
+                "DisplayCollectionsView": 1,
+                "EnableLocalPassword": 1,
+                "HidePlayedInLatest": 0,
+                "RememberAudioSelections": 1,
+                "RememberSubtitleSelections": 1,
+                "EnableNextEpisodeAutoPlay": 1,
+                "EnableAutoLogin": 0,
+                "EnableUserPreferenceAccess": 1,
+                "SyncPlayAccess": 0,
+                "AuthenticationProviderId": "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider",
+                "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
+                "RowVersion": 1,
+                "InternalId": 1,
+            }
+            insert_cols = [c for c in candidate_fields if c in user_cols]
+            placeholders = ", ".join(["?"] * len(insert_cols))
+            col_names = ", ".join(insert_cols)
             cur.execute(
-                """
-                INSERT INTO Users (
-                    Id, Username, NormalizedUsername, Password,
-                    MustUpdatePassword, InvalidLoginAttemptCount, MaxActiveSessions,
-                    SubtitleMode, PlayDefaultAudioTrack, DisplayMissingEpisodes,
-                    DisplayCollectionsView, EnableLocalPassword, HidePlayedInLatest,
-                    RememberAudioSelections, RememberSubtitleSelections,
-                    EnableNextEpisodeAutoPlay, EnableAutoLogin, EnableUserPreferenceAccess,
-                    SyncPlayAccess, AuthenticationProviderId, PasswordResetProviderId,
-                    RowVersion, InternalId
-                ) VALUES (
-                    ?, ?, ?, ?,
-                    0, 0, 0,
-                    0, 1, 0,
-                    1, 1, 0,
-                    1, 1,
-                    1, 0, 1,
-                    0, 'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider',
-                    'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider',
-                    1, 1
-                )
-                """,
-                (new_id, username, username.upper(), password_hash),
+                f"INSERT INTO Users ({col_names}) VALUES ({placeholders})",
+                [candidate_fields[c] for c in insert_cols],
             )
             if has_permissions:
                 admin_permissions = [
@@ -146,6 +176,15 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
             conn.commit()
             conn.close()
             return True
+    except sqlite3.OperationalError as e:
+        if "readonly" in str(e).lower():
+            print(
+                f"[*] Jellyfin database at {db_path} is owned by container (root); skipping host-level pre-configuration (media-provisioner container will sync it).",
+                file=sys.stderr,
+            )
+            return True
+        print(f"[-] Error syncing Jellyfin database: {e}", file=sys.stderr)
+        return False
     except Exception as e:
         print(f"[-] Error syncing Jellyfin database: {e}", file=sys.stderr)
         return False
