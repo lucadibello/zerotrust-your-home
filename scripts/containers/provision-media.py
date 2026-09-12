@@ -125,22 +125,33 @@ def setup_jellyfin(admin_user, admin_password):
         'MediaBrowser Client="ZeroTrustHome", Device="provisioner", '
         'DeviceId="provisioner-media", Version="1.0.0"'
     )
+    auth_headers = {
+        "Authorization": auth_header,
+        "X-Emby-Authorization": auth_header,
+    }
     auth_resp = request_json(
         "http://jellyfin:8096/Users/AuthenticateByName",
         method="POST",
         data={"Username": admin_user, "Pw": admin_password},
-        headers={"X-Emby-Authorization": auth_header},
+        headers=auth_headers,
     )
 
     if auth_resp.get("_error"):
-        log_err(f"Jellyfin authentication failed: {auth_resp}")
+        log_err(
+            f"Jellyfin authentication failed for user '{admin_user}': {auth_resp.get('body', auth_resp)}"
+        )
+        log_warn(
+            "Verify JELLYFIN_ADMIN_USER and JELLYFIN_ADMIN_PASSWORD in .env match your Jellyfin administrator credentials."
+        )
         return None, None
 
     token = auth_resp.get("AccessToken")
     server_id = auth_resp.get("ServerId") or public_info.get("Id")
 
+    session_auth_header = f'{auth_header}, Token="{token}"'
     session_headers = {
-        "X-Emby-Authorization": auth_header,
+        "Authorization": session_auth_header,
+        "X-Emby-Authorization": session_auth_header,
         "X-Emby-Token": token,
     }
 
@@ -645,7 +656,12 @@ def main():
         headers={"X-Api-Key": bazarr_key, "X-API-KEY": bazarr_key},
     )
     if not bazarr_status.get("_error"):
-        log_ok(f"Bazarr connected (version: {bazarr_status.get('bazarr_version')})")
+        bv = (
+            bazarr_status.get("data", {}).get("bazarr_version")
+            if isinstance(bazarr_status, dict) and "data" in bazarr_status
+            else bazarr_status.get("bazarr_version")
+        )
+        log_ok(f"Bazarr connected (version: {bv})")
 
     log_ok("Media stack configuration completed.")
 
