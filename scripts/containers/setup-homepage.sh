@@ -252,9 +252,9 @@ if is_service_enabled "media" false; then
         icon: jellyfin.png
         href: https://jellyfin.${DOMAIN}
         description: Media Streaming Server
-    - Jellyseerr:
-        icon: jellyseerr.png
-        href: https://jellyseerr.${DOMAIN}
+    - Seerr:
+        icon: seerr.png
+        href: https://seerr.${DOMAIN}
         description: Media Requests & Discovery
     - Radarr:
         icon: radarr.png

@@ -25,15 +25,16 @@ services:
       - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
       - "traefik.docker.network=traefik-network"
 
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true
     restart: unless-stopped
     environment:
       - LOG_LEVEL=info
       - TZ=${TZ:-Europe/Zurich}
     volumes:
-      - ./composes/media/config/jellyseerr:/app/config
+      - ./composes/media/config/seerr:/app/config
     dns:
       - ${PRIMARY_DNS:-192.168.0.253}
       - ${SECONDARY_DNS:-1.1.1.1}
@@ -42,10 +43,10 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jellyseerr.rule=Host(`jellyseerr.${DNS_DOMAIN}`) || Host(`requests.${DNS_DOMAIN}`)"
-      - "traefik.http.routers.jellyseerr.entrypoints=websecure"
-      - "traefik.http.routers.jellyseerr.tls.certresolver=letsencrypt"
-      - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
+      - "traefik.http.routers.seerr.rule=Host(`seerr.${DNS_DOMAIN}`))"
+      - "traefik.http.routers.seerr.entrypoints=websecure"
+      - "traefik.http.routers.seerr.tls.certresolver=letsencrypt"
+      - "traefik.http.services.seerr.loadbalancer.server.port=5055"
       - "traefik.docker.network=traefik-network"
 
   radarr:

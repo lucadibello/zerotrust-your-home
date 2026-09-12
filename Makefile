@@ -20,7 +20,7 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	composes/$(1).docker-compose.yaml \
 	composes/extras/$(1)/docker-compose.yml \
 	composes/extras/$(1)/docker-compose.yaml \
-	$(if $(filter media jellyfin jellyseerr radarr sonarr prowlarr qbittorrent bazarr flaresolverr,$(1)),composes/media/docker-compose.yaml) \
+	$(if $(filter media jellyfin seerr jellyseerr radarr sonarr prowlarr qbittorrent bazarr flaresolverr,$(1)),composes/media/docker-compose.yaml) \
 	$(if $(filter home homeassistant hass,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter home-assistant,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter prometheus grafana alertmanager,$(1)),composes/monitoring/docker-compose.yaml) \

@@ -8,9 +8,9 @@
     - type: ntfy
       enabled: true
 
-- name: Jellyseerr
+- name: Seerr
   group: Media
-  url: "http://jellyseerr:5055/api/v1/status"
+  url: "http://seerr:5055/api/v1/status"
   interval: 60s
   conditions:
     - "[STATUS] == 200"
