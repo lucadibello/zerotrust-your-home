@@ -128,6 +128,10 @@ if [ ! -f "$RADARR_CONF" ]; then
   <AnalyticsEnabled>False</AnalyticsEnabled>
 </Config>
 EOF
+else
+  if grep -q "<ApiKey>" "$RADARR_CONF"; then
+    $SED_INPLACE "s|<ApiKey>.*</ApiKey>|<ApiKey>${RADARR_API_KEY}</ApiKey>|" "$RADARR_CONF"
+  fi
 fi
 
 # Pre-configure Sonarr config.xml
@@ -148,6 +152,10 @@ if [ ! -f "$SONARR_CONF" ]; then
   <AnalyticsEnabled>False</AnalyticsEnabled>
 </Config>
 EOF
+else
+  if grep -q "<ApiKey>" "$SONARR_CONF"; then
+    $SED_INPLACE "s|<ApiKey>.*</ApiKey>|<ApiKey>${SONARR_API_KEY}</ApiKey>|" "$SONARR_CONF"
+  fi
 fi
 
 # Pre-configure Prowlarr config.xml
@@ -168,6 +176,10 @@ if [ ! -f "$PROWLARR_CONF" ]; then
   <AnalyticsEnabled>False</AnalyticsEnabled>
 </Config>
 EOF
+else
+  if grep -q "<ApiKey>" "$PROWLARR_CONF"; then
+    $SED_INPLACE "s|<ApiKey>.*</ApiKey>|<ApiKey>${PROWLARR_API_KEY}</ApiKey>|" "$PROWLARR_CONF"
+  fi
 fi
 
 # Pre-configure Bazarr config.yaml
@@ -175,7 +187,6 @@ BAZARR_CONF="$MEDIA_CONFIG_DIR/bazarr/config/config.yaml"
 if [ ! -f "$BAZARR_CONF" ]; then
   cat <<EOF >"$BAZARR_CONF"
 general:
-  apikey: "${BAZARR_API_KEY}"
   use_radarr: true
   use_sonarr: true
   path_mappings_movie: []
@@ -194,6 +205,7 @@ sonarr:
   ssl: false
 auth:
   type: "None"
+  apikey: "${BAZARR_API_KEY}"
 EOF
 fi
 

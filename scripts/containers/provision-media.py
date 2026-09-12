@@ -66,6 +66,43 @@ def wait_for_service(name, check_fn, max_seconds=90, interval=3):
     return False
 
 
+def read_xml_key(config_path, tag="ApiKey"):
+    if not os.path.exists(config_path):
+        return None
+    try:
+        import xml.etree.ElementTree as ET
+
+        tree = ET.parse(config_path)
+        elem = tree.getroot().find(tag)
+        if elem is not None and elem.text:
+            return elem.text.strip()
+    except Exception:
+        pass
+    return None
+
+
+def read_bazarr_key(config_path):
+    if not os.path.exists(config_path):
+        return None
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            in_auth = False
+            for line in f:
+                stripped = line.strip()
+                if stripped == "auth:":
+                    in_auth = True
+                    continue
+                if in_auth and stripped.startswith("apikey:"):
+                    val = stripped.split(":", 1)[1].strip().strip("'\"")
+                    if val:
+                        return val
+                elif in_auth and not line.startswith(" ") and not line.startswith("\t"):
+                    in_auth = False
+    except Exception:
+        pass
+    return None
+
+
 def setup_jellyfin(admin_user, admin_password):
     log("[*] Configuring Jellyfin...")
     public_info = request_json("http://jellyfin:8096/System/Info/Public")
@@ -321,7 +358,7 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
     headers = {"X-Api-Key": prowlarr_key}
 
     # 1. FlareSolverr proxy
-    proxies = request_json("http://prowlarr:9696/api/v3/indexerproxy", headers=headers)
+    proxies = request_json("http://prowlarr:9696/api/v1/indexerproxy", headers=headers)
     has_flare = False
     if isinstance(proxies, list):
         has_flare = any(p.get("name") == "FlareSolverr" for p in proxies)
@@ -329,7 +366,7 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
     if not has_flare:
         log("[*] Adding FlareSolverr proxy to Prowlarr...")
         schema = request_json(
-            "http://prowlarr:9696/api/v3/indexerproxy/schema", headers=headers
+            "http://prowlarr:9696/api/v1/indexerproxy/schema", headers=headers
         )
         flare_schema = None
         if isinstance(schema, list):
@@ -345,18 +382,18 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
                 if field.get("name") == "host":
                     field["value"] = "http://flaresolverr:8191"
             request_json(
-                "http://prowlarr:9696/api/v3/indexerproxy",
+                "http://prowlarr:9696/api/v1/indexerproxy",
                 method="POST",
                 data=flare_schema,
                 headers=headers,
             )
 
     # 2. Application sync (Radarr & Sonarr)
-    apps = request_json("http://prowlarr:9696/api/v3/applications", headers=headers)
+    apps = request_json("http://prowlarr:9696/api/v1/applications", headers=headers)
     app_names = [a.get("name") for a in apps] if isinstance(apps, list) else []
 
     app_schema = request_json(
-        "http://prowlarr:9696/api/v3/applications/schema", headers=headers
+        "http://prowlarr:9696/api/v1/applications/schema", headers=headers
     )
 
     if "Radarr" not in app_names and isinstance(app_schema, list):
@@ -375,7 +412,7 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
                     elif fname == "apiKey":
                         field["value"] = radarr_key
                 request_json(
-                    "http://prowlarr:9696/api/v3/applications",
+                    "http://prowlarr:9696/api/v1/applications",
                     method="POST",
                     data=r_app,
                     headers=headers,
@@ -398,7 +435,7 @@ def setup_prowlarr(prowlarr_key, radarr_key, sonarr_key):
                     elif fname == "apiKey":
                         field["value"] = sonarr_key
                 request_json(
-                    "http://prowlarr:9696/api/v3/applications",
+                    "http://prowlarr:9696/api/v1/applications",
                     method="POST",
                     data=s_app,
                     headers=headers,
@@ -488,41 +525,71 @@ def setup_seerr(
 def main():
     log("[*] Starting media stack auto-provisioning...")
 
-    radarr_key = os.getenv("RADARR_API_KEY", "")
-    sonarr_key = os.getenv("SONARR_API_KEY", "")
-    prowlarr_key = os.getenv("PROWLARR_API_KEY", "")
-    bazarr_key = os.getenv("BAZARR_API_KEY", "")
+    config_dir = os.getenv("CONFIG_DIR", "/config")
+    radarr_key = (
+        read_xml_key(os.path.join(config_dir, "radarr", "config.xml"))
+        or os.getenv("RADARR_API_KEY", "")
+    )
+    sonarr_key = (
+        read_xml_key(os.path.join(config_dir, "sonarr", "config.xml"))
+        or os.getenv("SONARR_API_KEY", "")
+    )
+    prowlarr_key = (
+        read_xml_key(os.path.join(config_dir, "prowlarr", "config.xml"))
+        or os.getenv("PROWLARR_API_KEY", "")
+    )
+    bazarr_key = (
+        read_bazarr_key(os.path.join(config_dir, "bazarr", "config", "config.yaml"))
+        or os.getenv("BAZARR_API_KEY", "")
+    )
     admin_user = os.getenv("JELLYFIN_ADMIN_USER", "admin")
     admin_pass = os.getenv("JELLYFIN_ADMIN_PASSWORD", "")
     qbt_user = os.getenv("QBITTORRENT_WEBUI_USERNAME", "admin")
     qbt_pass = os.getenv("QBITTORRENT_WEBUI_PASSWORD", "")
     dns_domain = os.getenv("DNS_DOMAIN", "home.lucadibello.ch")
-    config_dir = os.getenv("CONFIG_DIR", "/config")
 
     # Step 1: Wait for services to respond
     wait_for_service(
         "FlareSolverr",
         lambda: not request_json("http://flaresolverr:8191/").get("_error"),
     )
-    wait_for_service(
-        "Radarr",
-        lambda: not request_json(
-            "http://radarr:7878/api/v3/system/status", headers={"X-Api-Key": radarr_key}
-        ).get("_error"),
-    )
-    wait_for_service(
-        "Sonarr",
-        lambda: not request_json(
-            "http://sonarr:8989/api/v3/system/status", headers={"X-Api-Key": sonarr_key}
-        ).get("_error"),
-    )
-    wait_for_service(
-        "Prowlarr",
-        lambda: not request_json(
-            "http://prowlarr:9696/api/v3/system/status",
+
+    def check_radarr():
+        ping = request_json("http://radarr:7878/ping")
+        if isinstance(ping, dict) and ping.get("status") == "OK":
+            return True
+        status = request_json(
+            "http://radarr:7878/api/v3/system/status",
+            headers={"X-Api-Key": radarr_key},
+        )
+        return not status.get("_error")
+
+    wait_for_service("Radarr", check_radarr)
+
+    def check_sonarr():
+        ping = request_json("http://sonarr:8989/ping")
+        if isinstance(ping, dict) and ping.get("status") == "OK":
+            return True
+        status = request_json(
+            "http://sonarr:8989/api/v3/system/status",
+            headers={"X-Api-Key": sonarr_key},
+        )
+        return not status.get("_error")
+
+    wait_for_service("Sonarr", check_sonarr)
+
+    def check_prowlarr():
+        ping = request_json("http://prowlarr:9696/ping")
+        if isinstance(ping, dict) and ping.get("status") == "OK":
+            return True
+        status = request_json(
+            "http://prowlarr:9696/api/v1/system/status",
             headers={"X-Api-Key": prowlarr_key},
-        ).get("_error"),
-    )
+        )
+        return not status.get("_error")
+
+    wait_for_service("Prowlarr", check_prowlarr)
+
     wait_for_service(
         "Jellyfin",
         lambda: not request_json("http://jellyfin:8096/System/Info/Public").get(
@@ -539,12 +606,19 @@ def main():
         return False
 
     wait_for_service("qBittorrent", check_qbt)
-    wait_for_service(
-        "Bazarr",
-        lambda: not request_json(
-            "http://bazarr:6767/api/system/status", headers={"X-Api-Key": bazarr_key}
-        ).get("_error"),
-    )
+
+    def check_bazarr():
+        ping = request_json("http://bazarr:6767/api/system/ping")
+        if isinstance(ping, dict) and ping.get("status") == "OK":
+            return True
+        status = request_json(
+            f"http://bazarr:6767/api/system/status?apikey={bazarr_key}",
+            headers={"X-Api-Key": bazarr_key, "X-API-KEY": bazarr_key},
+        )
+        return not status.get("_error")
+
+    wait_for_service("Bazarr", check_bazarr)
+
     wait_for_service(
         "Seerr",
         lambda: not request_json("http://seerr:5055/api/v1/status").get("_error"),
@@ -567,7 +641,8 @@ def main():
 
     log("[*] Testing Bazarr status...")
     bazarr_status = request_json(
-        f"http://bazarr:6767/api/system/status?apikey={bazarr_key}"
+        f"http://bazarr:6767/api/system/status?apikey={bazarr_key}",
+        headers={"X-Api-Key": bazarr_key, "X-API-KEY": bazarr_key},
     )
     if not bazarr_status.get("_error"):
         log_ok(f"Bazarr connected (version: {bazarr_status.get('bazarr_version')})")
