@@ -194,4 +194,4 @@ networks:
   traefik-network:
     external: true
   media-network:
-    name: media-network
+    external: true
