@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # Configure and link media services: Jellyfin, Radarr, Sonarr, Prowlarr, Seerr, Bazarr
 
+import hashlib
 import json
 import os
+import sqlite3
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 
 
 def log(msg):
@@ -107,6 +110,8 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
     db_paths = [
         os.path.join(config_dir, "jellyfin", "data", "jellyfin.db"),
         os.path.join(config_dir, "jellyfin", "jellyfin.db"),
+        os.path.join(config_dir, "data", "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin.db"),
     ]
     db_path = None
     for p in db_paths:
@@ -118,10 +123,6 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
         return False
 
     try:
-        import hashlib
-        import sqlite3
-        import uuid
-
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
 
@@ -138,6 +139,16 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
         salt = os.urandom(16)
         key = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 210000, 64)
         password_hash = f"$PBKDF2-SHA512$iterations=210000${salt.hex().upper()}${key.hex().upper()}"
+
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
+        )
+        has_permissions = cur.fetchone() is not None
+        has_row_version = False
+        if has_permissions:
+            cur.execute("PRAGMA table_info(Permissions)")
+            cols = [col[1] for col in cur.fetchall()]
+            has_row_version = "RowVersion" in cols
 
         if users:
             target_id = None
@@ -157,12 +168,36 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
                     "UPDATE Users SET Username = ?, NormalizedUsername = ?, Password = ?, EasyPassword = NULL, MustUpdatePassword = 0, InvalidLoginAttemptCount = 0 WHERE Id = ?",
                     (username, username.upper(), password_hash, target_id),
                 )
+
+            if has_permissions:
+                cur.execute(
+                    "SELECT Id FROM Permissions WHERE UserId = ? AND Kind = 0",
+                    (target_id,),
+                )
+                perm = cur.fetchone()
+                if perm:
+                    cur.execute(
+                        "UPDATE Permissions SET Value = 1 WHERE Id = ?",
+                        (perm[0],),
+                    )
+                else:
+                    if has_row_version:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (0, 1, ?, 1)",
+                            (target_id,),
+                        )
+                    else:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (0, 1, ?)",
+                            (target_id,),
+                        )
+
             conn.commit()
             conn.close()
             log("[*] Synchronized Jellyfin admin credentials in SQLite database.")
             return True
         else:
-            new_id = str(uuid.uuid4()).replace("-", "")
+            new_id = str(uuid.uuid4())
             cur.execute(
                 """
                 INSERT INTO Users (
@@ -188,14 +223,21 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
                 """,
                 (new_id, username, username.upper(), password_hash),
             )
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
-            )
-            if cur.fetchone():
-                cur.execute(
-                    "INSERT INTO Permissions (Kind, Value, UserId) VALUES (0, 1, ?)",
-                    (new_id,),
-                )
+            if has_permissions:
+                admin_permissions = [
+                    0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23
+                ]
+                for p_kind in admin_permissions:
+                    if has_row_version:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, 1, ?, 1)",
+                            (p_kind, new_id),
+                        )
+                    else:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, 1, ?)",
+                            (p_kind, new_id),
+                        )
             conn.commit()
             conn.close()
             log("[*] Initialized Jellyfin admin user in SQLite database.")
@@ -212,18 +254,6 @@ def setup_jellyfin(config_dir, admin_user, admin_password):
         log_err(f"Failed to query Jellyfin info: {public_info}")
         return None, None
 
-    is_wizard_done = public_info.get("StartupWizardCompleted", False)
-    if not is_wizard_done:
-        log("[*] Completing Jellyfin initial startup wizard...")
-        request_json("http://jellyfin:8096/Startup/User")
-        request_json(
-            "http://jellyfin:8096/Startup/User",
-            method="POST",
-            data={"Name": admin_user, "Password": admin_password},
-        )
-        request_json("http://jellyfin:8096/Startup/Complete", method="POST")
-        time.sleep(2)
-
     auth_header = (
         'MediaBrowser Client="ZeroTrustHome", Device="provisioner", '
         'DeviceId="provisioner-media", Version="1.0.0"'
@@ -232,6 +262,24 @@ def setup_jellyfin(config_dir, admin_user, admin_password):
         "Authorization": auth_header,
         "X-Emby-Authorization": auth_header,
     }
+
+    is_wizard_done = public_info.get("StartupWizardCompleted", False)
+    if not is_wizard_done:
+        log("[*] Completing Jellyfin initial startup wizard...")
+        request_json("http://jellyfin:8096/Startup/User", headers=auth_headers)
+        request_json(
+            "http://jellyfin:8096/Startup/User",
+            method="POST",
+            data={"Name": admin_user, "Password": admin_password},
+            headers=auth_headers,
+        )
+        request_json(
+            "http://jellyfin:8096/Startup/Complete",
+            method="POST",
+            headers=auth_headers,
+        )
+        time.sleep(2)
+
     auth_resp = request_json(
         "http://jellyfin:8096/Users/AuthenticateByName",
         method="POST",
@@ -242,6 +290,11 @@ def setup_jellyfin(config_dir, admin_user, admin_password):
     if auth_resp.get("_error"):
         log("[*] Syncing Jellyfin admin credentials directly with database...")
         sync_jellyfin_admin_credentials(config_dir, admin_user, admin_password)
+        request_json(
+            "http://jellyfin:8096/Startup/Complete",
+            method="POST",
+            headers=auth_headers,
+        )
         time.sleep(1)
         auth_resp = request_json(
             "http://jellyfin:8096/Users/AuthenticateByName",

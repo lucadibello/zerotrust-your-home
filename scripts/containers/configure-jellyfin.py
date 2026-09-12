@@ -18,6 +18,8 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
     db_paths = [
         os.path.join(config_dir, "data", "jellyfin.db"),
         os.path.join(config_dir, "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin", "data", "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin", "jellyfin.db"),
     ]
     db_path = None
     for p in db_paths:
@@ -44,6 +46,16 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
 
         password_hash = hash_jellyfin_password(password)
 
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
+        )
+        has_permissions = cur.fetchone() is not None
+        has_row_version = False
+        if has_permissions:
+            cur.execute("PRAGMA table_info(Permissions)")
+            cols = [col[1] for col in cur.fetchall()]
+            has_row_version = "RowVersion" in cols
+
         if users:
             target_id = None
             for u in users:
@@ -62,11 +74,35 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
                     "UPDATE Users SET Username = ?, NormalizedUsername = ?, Password = ?, EasyPassword = NULL, MustUpdatePassword = 0, InvalidLoginAttemptCount = 0 WHERE Id = ?",
                     (username, username.upper(), password_hash, target_id),
                 )
+
+            if has_permissions:
+                cur.execute(
+                    "SELECT Id FROM Permissions WHERE UserId = ? AND Kind = 0",
+                    (target_id,),
+                )
+                perm = cur.fetchone()
+                if perm:
+                    cur.execute(
+                        "UPDATE Permissions SET Value = 1 WHERE Id = ?",
+                        (perm[0],),
+                    )
+                else:
+                    if has_row_version:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (0, 1, ?, 1)",
+                            (target_id,),
+                        )
+                    else:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (0, 1, ?)",
+                            (target_id,),
+                        )
+
             conn.commit()
             conn.close()
             return True
         else:
-            new_id = str(uuid.uuid4()).replace("-", "")
+            new_id = str(uuid.uuid4())
             cur.execute(
                 """
                 INSERT INTO Users (
@@ -92,14 +128,21 @@ def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
                 """,
                 (new_id, username, username.upper(), password_hash),
             )
-            cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
-            )
-            if cur.fetchone():
-                cur.execute(
-                    "INSERT INTO Permissions (Kind, Value, UserId) VALUES (0, 1, ?)",
-                    (new_id,),
-                )
+            if has_permissions:
+                admin_permissions = [
+                    0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23
+                ]
+                for p_kind in admin_permissions:
+                    if has_row_version:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, 1, ?, 1)",
+                            (p_kind, new_id),
+                        )
+                    else:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, 1, ?)",
+                            (p_kind, new_id),
+                        )
             conn.commit()
             conn.close()
             return True
