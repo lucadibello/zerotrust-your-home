@@ -136,9 +136,12 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
         cur.execute("SELECT Id, Username, Password FROM Users")
         users = cur.fetchall()
 
-        salt = os.urandom(16)
-        key = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 210000, 64)
-        password_hash = f"$PBKDF2-SHA512$iterations=210000${salt.hex().upper()}${key.hex().upper()}"
+        if password:
+            salt = os.urandom(16)
+            key = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 210000, 64)
+            password_hash = f"$PBKDF2-SHA512$iterations=210000${salt.hex().upper()}${key.hex().upper()}"
+        else:
+            password_hash = None
 
         cur.execute("PRAGMA table_info(Users)")
         user_cols = {col[1] for col in cur.fetchall()}
@@ -153,24 +156,57 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
             cols = [col[1] for col in cur.fetchall()]
             has_row_version = "RowVersion" in cols
 
+        admin_permissions = {
+            0: 1,   # IsAdministrator
+            1: 0,   # IsHidden
+            2: 0,   # IsDisabled (unlock account if locked out)
+            3: 1,   # EnableContentDeletion
+            4: 1,   # EnableContentDownloading
+            5: 1,   # EnableSyncTranscoding
+            6: 1,   # EnableMediaPlayback
+            7: 1,   # EnableAudioPlaybackTranscoding
+            8: 1,   # EnableVideoPlaybackTranscoding
+            9: 1,   # EnablePlaybackRemuxing
+            11: 1,  # EnableLiveTvManagement
+            12: 1,  # EnableLiveTvAccess
+            13: 1,  # EnableMediaConversion
+            14: 1,  # EnableAllChannels
+            15: 1,  # EnableAllFolders
+            16: 1,  # EnableAllDevices
+            17: 1,  # EnableSharedDeviceControl
+            18: 1,  # EnableRemoteAccess (allow Docker container access)
+            19: 1,  # EnableRemoteControlOfOtherUsers
+            21: 1,  # EnableSubtitleManagement
+            22: 1,  # EnableChannelOrganization
+            23: 1,  # EnableUserPreferenceAccess
+        }
+
         if users:
             target_id = None
             for u in users:
-                if u[1].lower() == username.lower():
+                if u[1] and u[1].lower() == username.lower():
                     target_id = u[0]
                     break
 
-            update_clauses = ["Password = ?"]
-            params = [password_hash]
-
             if not target_id:
                 target_id = users[0][0]
-                update_clauses.append("Username = ?")
-                params.append(username)
-                if "NormalizedUsername" in user_cols:
-                    update_clauses.append("NormalizedUsername = ?")
-                    params.append(username.upper())
 
+            update_clauses = ["Password = ?", "Username = ?"]
+            params = [password_hash, username]
+
+            if "NormalizedUsername" in user_cols:
+                update_clauses.append("NormalizedUsername = ?")
+                params.append(username.upper())
+            if "AuthenticationProviderId" in user_cols:
+                update_clauses.append(
+                    "AuthenticationProviderId = 'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider'"
+                )
+            if "PasswordResetProviderId" in user_cols:
+                update_clauses.append(
+                    "PasswordResetProviderId = 'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider'"
+                )
+            if "EnableLocalPassword" in user_cols:
+                update_clauses.append("EnableLocalPassword = 1")
             if "EasyPassword" in user_cols:
                 update_clauses.append("EasyPassword = NULL")
             if "MustUpdatePassword" in user_cols:
@@ -185,27 +221,28 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
             )
 
             if has_permissions:
-                cur.execute(
-                    "SELECT Id FROM Permissions WHERE UserId = ? AND Kind = 0",
-                    (target_id,),
-                )
-                perm = cur.fetchone()
-                if perm:
+                for p_kind, p_val in admin_permissions.items():
                     cur.execute(
-                        "UPDATE Permissions SET Value = 1 WHERE Id = ?",
-                        (perm[0],),
+                        "SELECT Id FROM Permissions WHERE UserId = ? AND Kind = ?",
+                        (target_id, p_kind),
                     )
-                else:
-                    if has_row_version:
+                    perm = cur.fetchone()
+                    if perm:
                         cur.execute(
-                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (0, 1, ?, 1)",
-                            (target_id,),
+                            "UPDATE Permissions SET Value = ? WHERE Id = ?",
+                            (p_val, perm[0]),
                         )
                     else:
-                        cur.execute(
-                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (0, 1, ?)",
-                            (target_id,),
-                        )
+                        if has_row_version:
+                            cur.execute(
+                                "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, ?, ?, 1)",
+                                (p_kind, p_val, target_id),
+                            )
+                        else:
+                            cur.execute(
+                                "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, ?, ?)",
+                                (p_kind, p_val, target_id),
+                            )
 
             conn.commit()
             conn.close()
@@ -246,19 +283,16 @@ def sync_jellyfin_admin_credentials(config_dir, username, password):
                 [candidate_fields[c] for c in insert_cols],
             )
             if has_permissions:
-                admin_permissions = [
-                    0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23
-                ]
-                for p_kind in admin_permissions:
+                for p_kind, p_val in admin_permissions.items():
                     if has_row_version:
                         cur.execute(
-                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, 1, ?, 1)",
-                            (p_kind, new_id),
+                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, ?, ?, 1)",
+                            (p_kind, p_val, new_id),
                         )
                     else:
                         cur.execute(
-                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, 1, ?)",
-                            (p_kind, new_id),
+                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, ?, ?)",
+                            (p_kind, p_val, new_id),
                         )
             conn.commit()
             conn.close()
