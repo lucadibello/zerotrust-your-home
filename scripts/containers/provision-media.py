@@ -103,7 +103,109 @@ def read_bazarr_key(config_path):
     return None
 
 
-def setup_jellyfin(admin_user, admin_password):
+def sync_jellyfin_admin_credentials(config_dir, username, password):
+    db_paths = [
+        os.path.join(config_dir, "jellyfin", "data", "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin", "jellyfin.db"),
+    ]
+    db_path = None
+    for p in db_paths:
+        if os.path.exists(p):
+            db_path = p
+            break
+
+    if not db_path:
+        return False
+
+    try:
+        import hashlib
+        import sqlite3
+        import uuid
+
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='Users'"
+        )
+        if not cur.fetchone():
+            conn.close()
+            return False
+
+        cur.execute("SELECT Id, Username, Password FROM Users")
+        users = cur.fetchall()
+
+        salt = os.urandom(16)
+        key = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 210000, 64)
+        password_hash = f"$PBKDF2-SHA512$iterations=210000${salt.hex().upper()}${key.hex().upper()}"
+
+        if users:
+            target_id = None
+            for u in users:
+                if u[1].lower() == username.lower():
+                    target_id = u[0]
+                    break
+
+            if target_id:
+                cur.execute(
+                    "UPDATE Users SET Password = ?, EasyPassword = NULL, MustUpdatePassword = 0, InvalidLoginAttemptCount = 0 WHERE Id = ?",
+                    (password_hash, target_id),
+                )
+            else:
+                target_id = users[0][0]
+                cur.execute(
+                    "UPDATE Users SET Username = ?, NormalizedUsername = ?, Password = ?, EasyPassword = NULL, MustUpdatePassword = 0, InvalidLoginAttemptCount = 0 WHERE Id = ?",
+                    (username, username.upper(), password_hash, target_id),
+                )
+            conn.commit()
+            conn.close()
+            log("[*] Synchronized Jellyfin admin credentials in SQLite database.")
+            return True
+        else:
+            new_id = str(uuid.uuid4()).replace("-", "")
+            cur.execute(
+                """
+                INSERT INTO Users (
+                    Id, Username, NormalizedUsername, Password,
+                    MustUpdatePassword, InvalidLoginAttemptCount, MaxActiveSessions,
+                    SubtitleMode, PlayDefaultAudioTrack, DisplayMissingEpisodes,
+                    DisplayCollectionsView, EnableLocalPassword, HidePlayedInLatest,
+                    RememberAudioSelections, RememberSubtitleSelections,
+                    EnableNextEpisodeAutoPlay, EnableAutoLogin, EnableUserPreferenceAccess,
+                    SyncPlayAccess, AuthenticationProviderId, PasswordResetProviderId,
+                    RowVersion, InternalId
+                ) VALUES (
+                    ?, ?, ?, ?,
+                    0, 0, 0,
+                    0, 1, 0,
+                    1, 1, 0,
+                    1, 1,
+                    1, 0, 1,
+                    0, 'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider',
+                    'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider',
+                    1, 1
+                )
+                """,
+                (new_id, username, username.upper(), password_hash),
+            )
+            cur.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
+            )
+            if cur.fetchone():
+                cur.execute(
+                    "INSERT INTO Permissions (Kind, Value, UserId) VALUES (0, 1, ?)",
+                    (new_id,),
+                )
+            conn.commit()
+            conn.close()
+            log("[*] Initialized Jellyfin admin user in SQLite database.")
+            return True
+    except Exception as e:
+        log_warn(f"Failed to sync Jellyfin database: {e}")
+        return False
+
+
+def setup_jellyfin(config_dir, admin_user, admin_password):
     log("[*] Configuring Jellyfin...")
     public_info = request_json("http://jellyfin:8096/System/Info/Public")
     if public_info.get("_error"):
@@ -113,6 +215,7 @@ def setup_jellyfin(admin_user, admin_password):
     is_wizard_done = public_info.get("StartupWizardCompleted", False)
     if not is_wizard_done:
         log("[*] Completing Jellyfin initial startup wizard...")
+        request_json("http://jellyfin:8096/Startup/User")
         request_json(
             "http://jellyfin:8096/Startup/User",
             method="POST",
@@ -135,6 +238,17 @@ def setup_jellyfin(admin_user, admin_password):
         data={"Username": admin_user, "Pw": admin_password},
         headers=auth_headers,
     )
+
+    if auth_resp.get("_error"):
+        log("[*] Syncing Jellyfin admin credentials directly with database...")
+        sync_jellyfin_admin_credentials(config_dir, admin_user, admin_password)
+        time.sleep(1)
+        auth_resp = request_json(
+            "http://jellyfin:8096/Users/AuthenticateByName",
+            method="POST",
+            data={"Username": admin_user, "Pw": admin_password},
+            headers=auth_headers,
+        )
 
     if auth_resp.get("_error"):
         log_err(
@@ -636,7 +750,7 @@ def main():
     )
 
     # Step 2: Configure Jellyfin & obtain API key
-    jellyfin_key, server_id = setup_jellyfin(admin_user, admin_pass)
+    jellyfin_key, server_id = setup_jellyfin(config_dir, admin_user, admin_pass)
 
     # Step 3: Configure Radarr with qBittorrent credentials
     setup_radarr(radarr_key, qbt_user, qbt_pass)

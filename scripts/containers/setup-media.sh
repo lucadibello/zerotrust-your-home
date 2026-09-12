@@ -229,6 +229,10 @@ EOF
   cp "$JELLYFIN_NET_XML" "$MEDIA_CONFIG_DIR/jellyfin/network.xml" 2>/dev/null || true
 fi
 
+# Pre-configure Jellyfin admin credentials if database exists
+python3 "$PROJECT_ROOT/scripts/containers/configure-jellyfin.py" \
+  "$MEDIA_CONFIG_DIR/jellyfin" "$JELLYFIN_ADMIN_USER" "$JELLYFIN_ADMIN_PASSWORD"
+
 # Hardware transcoding check
 RENDER_DEV="${JELLYFIN_RENDER_DEVICE:-/dev/null}"
 if [ "$RENDER_DEV" != "/dev/null" ] && [ ! -e "$RENDER_DEV" ]; then
