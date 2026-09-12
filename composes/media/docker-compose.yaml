@@ -43,7 +43,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.seerr.rule=Host(`seerr.${DNS_DOMAIN}`))"
+      - "traefik.http.routers.seerr.rule=Host(`seerr.${DNS_DOMAIN}`)"
       - "traefik.http.routers.seerr.entrypoints=websecure"
       - "traefik.http.routers.seerr.tls.certresolver=letsencrypt"
       - "traefik.http.services.seerr.loadbalancer.server.port=5055"
