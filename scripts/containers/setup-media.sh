@@ -42,6 +42,23 @@ mkdir -p "$MEDIA_DIR/movies" \
 ensure_network "traefik-network"
 ensure_network "media-network"
 
+# Configure qBittorrent for Traefik reverse proxy (disable Host header validation)
+QBT_CONF_DIR="$MEDIA_CONFIG_DIR/qbittorrent/qBittorrent"
+QBT_CONF="$QBT_CONF_DIR/qBittorrent.conf"
+mkdir -p "$QBT_CONF_DIR"
+if [ ! -f "$QBT_CONF" ]; then
+  cat <<'EOF' > "$QBT_CONF"
+[Preferences]
+WebUI\HostHeaderValidation=false
+EOF
+elif ! grep -q "HostHeaderValidation" "$QBT_CONF"; then
+  if grep -q "\[Preferences\]" "$QBT_CONF"; then
+    $SED_INPLACE '/\[Preferences\]/a WebUI\\HostHeaderValidation=false' "$QBT_CONF"
+  else
+    printf "\n[Preferences]\nWebUI\\HostHeaderValidation=false\n" >> "$QBT_CONF"
+  fi
+fi
+
 # Hardware transcoding check
 RENDER_DEV="${JELLYFIN_RENDER_DEVICE:-/dev/null}"
 if [ "$RENDER_DEV" != "/dev/null" ] && [ ! -e "$RENDER_DEV" ]; then

@@ -281,18 +281,11 @@ else
       -p tcp -m tcp --dport 443 \
       -j ACCEPT || true
 
-    # Media & Torrent services (if ENABLE_MEDIA=true or ENABLE_JELLYFIN=true)
-    if is_service_enabled "media" false; then
-      add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
-        -p udp -m udp --dport 7359 \
-        -j ACCEPT || true
-      add_rule_if_missing DOCKER-USER -i $IF \
-        -p tcp -m tcp --dport 6881 \
-        -j ACCEPT || true
-      add_rule_if_missing DOCKER-USER -i $IF \
-        -p udp -m udp --dport 6881 \
-        -j ACCEPT || true
-    fi
+    # Clean up any legacy media service rules if previously added
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 8096 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 7359 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -p tcp -m tcp --dport 6881 -j ACCEPT 2>/dev/null || true
+    sudo iptables -D DOCKER-USER -i $IF -p udp -m udp --dport 6881 -j ACCEPT 2>/dev/null || true
   else
     echo "  [*] Local service access disabled, removing any existing rules..."
     # Remove existing local service rules if they exist
