@@ -77,8 +77,23 @@ ensure_network "media-network"
 
 # Pre-configure qBittorrent preferences with strict password authentication
 QBT_CONF="$MEDIA_CONFIG_DIR/qbittorrent/qBittorrent/qBittorrent.conf"
+qbt_was_running=false
+if command -v docker >/dev/null 2>&1; then
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^qbittorrent$'; then
+    echo "[*] Stopping running qBittorrent container to prevent in-memory config overwrite..."
+    docker stop qbittorrent >/dev/null 2>&1 || true
+    qbt_was_running=true
+  fi
+fi
+
 python3 "$PROJECT_ROOT/scripts/containers/configure-qbittorrent.py" \
   "$QBT_CONF" "$QBITTORRENT_WEBUI_USERNAME" "$QBITTORRENT_WEBUI_PASSWORD"
+
+if [ "$qbt_was_running" = true ]; then
+  echo "[*] Starting qBittorrent with updated credentials..."
+  docker start qbittorrent >/dev/null 2>&1 || true
+  echo "[OK] qBittorrent started successfully"
+fi
 
 
 QBT_CATEGORIES="$MEDIA_CONFIG_DIR/qbittorrent/qBittorrent/categories.json"
