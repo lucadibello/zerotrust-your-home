@@ -71,6 +71,19 @@ mkdir -p "$MEDIA_DIR/movies" \
   "$MEDIA_DIR/tv" \
   "$DOWNLOADS_DIR" 2>/dev/null || true
 
+# Ensure proper permissions and ownership so containers (Radarr/Sonarr) can write
+MEDIA_PUID="${MEDIA_PUID:-1000}"
+MEDIA_PGID="${MEDIA_PGID:-1000}"
+
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  docker run --rm \
+    -v "$MEDIA_DIR":/media \
+    -v "$DOWNLOADS_DIR":/downloads \
+    alpine sh -c "chown -R ${MEDIA_PUID}:${MEDIA_PGID} /media /downloads 2>/dev/null && chmod -R 775 /media /downloads 2>/dev/null" 2>/dev/null || true
+else
+  chmod -R 775 "$MEDIA_DIR" "$DOWNLOADS_DIR" 2>/dev/null || true
+fi
+
 # Ensure external networks exist
 ensure_network "traefik-network"
 ensure_network "media-network"
