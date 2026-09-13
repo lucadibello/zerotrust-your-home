@@ -421,11 +421,27 @@ def setup_jellyfin(config_dir, admin_user, admin_password):
             headers=session_headers,
         )
 
+    # Ensure real-time monitoring is enabled on libraries
+    folders = request_json(
+        "http://jellyfin:8096/Library/VirtualFolders", headers=session_headers
+    )
+    if isinstance(folders, list):
+        for f in folders:
+            opts = f.get("LibraryOptions", {})
+            if not opts.get("EnableRealtimeMonitor"):
+                opts["EnableRealtimeMonitor"] = True
+                request_json(
+                    "http://jellyfin:8096/Library/VirtualFolders/LibraryOptions",
+                    method="POST",
+                    data={"Id": f.get("ItemId"), "LibraryOptions": opts},
+                    headers=session_headers,
+                )
+
     log_ok("Jellyfin configured successfully.")
     return jellyfin_api_key, server_id
 
 
-def setup_radarr(api_key, qbt_user="admin", qbt_pass=""):
+def setup_radarr(api_key, qbt_user="admin", qbt_pass="", jellyfin_key=None):
     log("[*] Configuring Radarr...")
     headers = {"X-Api-Key": api_key}
 
@@ -550,10 +566,51 @@ def setup_radarr(api_key, qbt_user="admin", qbt_pass=""):
                 headers=headers,
             )
 
+    # 4. Connect to Jellyfin for automatic library refresh
+    if jellyfin_key:
+        notifications = request_json(
+            "http://radarr:7878/api/v3/notification", headers=headers
+        )
+        has_jellyfin = False
+        if isinstance(notifications, list):
+            has_jellyfin = any(
+                n.get("implementation") == "MediaBrowser" for n in notifications
+            )
+        if not has_jellyfin:
+            log("[*] Adding Jellyfin Connect notification to Radarr...")
+            payload = {
+                "name": "Jellyfin",
+                "implementation": "MediaBrowser",
+                "configContract": "MediaBrowserSettings",
+                "onDownload": True,
+                "onUpgrade": True,
+                "onRename": True,
+                "onMovieDelete": True,
+                "onMovieFileDelete": True,
+                "onMovieFileDeleteForUpgrade": True,
+                "fields": [
+                    {"name": "host", "value": "jellyfin"},
+                    {"name": "port", "value": 8096},
+                    {"name": "useSsl", "value": False},
+                    {"name": "urlBase", "value": ""},
+                    {"name": "apiKey", "value": jellyfin_key},
+                    {"name": "notify", "value": False},
+                    {"name": "updateLibrary", "value": True},
+                    {"name": "mapFrom", "value": ""},
+                    {"name": "mapTo", "value": ""},
+                ],
+            }
+            request_json(
+                "http://radarr:7878/api/v3/notification",
+                method="POST",
+                data=payload,
+                headers=headers,
+            )
+
     log_ok("Radarr configured successfully.")
 
 
-def setup_sonarr(api_key, qbt_user="admin", qbt_pass=""):
+def setup_sonarr(api_key, qbt_user="admin", qbt_pass="", jellyfin_key=None):
     log("[*] Configuring Sonarr...")
     headers = {"X-Api-Key": api_key}
 
@@ -675,6 +732,47 @@ def setup_sonarr(api_key, qbt_user="admin", qbt_pass=""):
                 "http://sonarr:8989/api/v3/config/mediamanagement",
                 method="PUT",
                 data=mm,
+                headers=headers,
+            )
+
+    # 4. Connect to Jellyfin for automatic library refresh
+    if jellyfin_key:
+        notifications = request_json(
+            "http://sonarr:8989/api/v3/notification", headers=headers
+        )
+        has_jellyfin = False
+        if isinstance(notifications, list):
+            has_jellyfin = any(
+                n.get("implementation") == "MediaBrowser" for n in notifications
+            )
+        if not has_jellyfin:
+            log("[*] Adding Jellyfin Connect notification to Sonarr...")
+            payload = {
+                "name": "Jellyfin",
+                "implementation": "MediaBrowser",
+                "configContract": "MediaBrowserSettings",
+                "onDownload": True,
+                "onUpgrade": True,
+                "onRename": True,
+                "onSeriesDelete": True,
+                "onEpisodeFileDelete": True,
+                "onEpisodeFileDeleteForUpgrade": True,
+                "fields": [
+                    {"name": "host", "value": "jellyfin"},
+                    {"name": "port", "value": 8096},
+                    {"name": "useSsl", "value": False},
+                    {"name": "urlBase", "value": ""},
+                    {"name": "apiKey", "value": jellyfin_key},
+                    {"name": "notify", "value": False},
+                    {"name": "updateLibrary", "value": True},
+                    {"name": "mapFrom", "value": ""},
+                    {"name": "mapTo", "value": ""},
+                ],
+            }
+            request_json(
+                "http://sonarr:8989/api/v3/notification",
+                method="POST",
+                data=payload,
                 headers=headers,
             )
 
@@ -1057,10 +1155,10 @@ def main():
     jellyfin_key, server_id = setup_jellyfin(config_dir, admin_user, admin_pass)
 
     # Step 3: Configure Radarr with qBittorrent credentials
-    setup_radarr(radarr_key, qbt_user, qbt_pass)
+    setup_radarr(radarr_key, qbt_user, qbt_pass, jellyfin_key=jellyfin_key)
 
     # Step 4: Configure Sonarr with qBittorrent credentials
-    setup_sonarr(sonarr_key, qbt_user, qbt_pass)
+    setup_sonarr(sonarr_key, qbt_user, qbt_pass, jellyfin_key=jellyfin_key)
 
     # Step 5: Configure Prowlarr
     setup_prowlarr(prowlarr_key, radarr_key, sonarr_key)
