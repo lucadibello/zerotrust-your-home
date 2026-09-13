@@ -28,6 +28,7 @@ ADGUARD_CONF="$PROJECT_ROOT/composes/adguard/conf/AdGuardHome.yaml"
 DNS_DOMAIN="${DNS_DOMAIN:-home.lucadibello.ch}"
 PRIMARY_DNS="${PRIMARY_DNS:-192.168.0.253}"
 LOCAL_NETWORK="${LOCAL_NETWORK:-192.168.0.0/24}"
+IP_ADDRESS="${IP_ADDRESS:-192.168.0.10}"
 
 if [ ! -f "$ADGUARD_CONF" ]; then
   cat <<EOF >"$ADGUARD_CONF"
@@ -55,6 +56,15 @@ dns:
     - 100.64.0.0/10
 http:
   address: 0.0.0.0:80
+filtering:
+  rewrites_enabled: true
+  rewrites:
+    - domain: '*.${DNS_DOMAIN}'
+      answer: ${IP_ADDRESS}
+      enabled: true
+    - domain: ${DNS_DOMAIN}
+      answer: ${IP_ADDRESS}
+      enabled: true
 filters:
   - enabled: true
     url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
@@ -64,9 +74,9 @@ EOF
   echo "[*] Initialized pre-configured AdGuard Home configuration (AdGuardHome.yaml)"
 fi
 
-# Ensure trusted_proxies, local upstream forwarder, and client access rules in existing configuration
+# Ensure trusted_proxies, local upstream forwarder, DNS rewrites, and client access rules in existing configuration
 set +e
-python3 "$PROJECT_ROOT/scripts/containers/configure-adguard.py" "$ADGUARD_CONF" "$DNS_DOMAIN" "$PRIMARY_DNS" "$LOCAL_NETWORK"
+python3 "$PROJECT_ROOT/scripts/containers/configure-adguard.py" "$ADGUARD_CONF" "$DNS_DOMAIN" "$PRIMARY_DNS" "$LOCAL_NETWORK" "$IP_ADDRESS"
 exit_code=$?
 set -e
 

@@ -6,7 +6,7 @@ import re
 import sys
 
 
-def configure_adguard(conf_file: str, dns_domain: str, primary_dns: str, local_network: str) -> int:
+def configure_adguard(conf_file: str, dns_domain: str, primary_dns: str, local_network: str, ip_address: str = "") -> int:
     if not os.path.isfile(conf_file):
         return 0
 
@@ -58,11 +58,53 @@ def configure_adguard(conf_file: str, dns_domain: str, primary_dns: str, local_n
             content = content.replace(allowed_match.group(0), f"  allowed_clients:\n{new_allowed}")
             changed = True
 
+    # Configure DNS rewrites for local domain resolution to machine address
+    if dns_domain and ip_address:
+        needed_rewrites = [
+            (f"*.{dns_domain}", ip_address),
+            (dns_domain, ip_address),
+        ]
+
+        if re.search(r"rewrites_enabled:\s*false", content):
+            content = re.sub(r"rewrites_enabled:\s*false", "rewrites_enabled: true", content)
+            changed = True
+
+        if "rewrites: []" in content:
+            rewrite_items = "".join([f"    - domain: '{dom}'\n      answer: {ip}\n      enabled: true\n" for dom, ip in needed_rewrites])
+            content = content.replace("rewrites: []", f"rewrites:\n{rewrite_items}".rstrip())
+            changed = True
+        elif "rewrites:" in content:
+            match = re.search(r"  rewrites:\n((?:    - [^\n]+\n(?:      [^\n]+\n)*)+)", content)
+            if match:
+                current_block = match.group(0)
+                items_text = match.group(1)
+                to_add = ""
+                for dom, ip in needed_rewrites:
+                    if f"domain: '{dom}'" not in items_text and f"domain: {dom}" not in items_text:
+                        to_add += f"    - domain: '{dom}'\n      answer: {ip}\n      enabled: true\n"
+                if to_add:
+                    new_block = current_block + to_add
+                    content = content.replace(current_block, new_block)
+                    changed = True
+            else:
+                rewrite_items = "".join([f"    - domain: '{dom}'\n      answer: {ip}\n      enabled: true\n" for dom, ip in needed_rewrites])
+                content = re.sub(r"  rewrites:\s*\n", f"  rewrites:\n{rewrite_items}", content)
+                changed = True
+        else:
+            rewrite_items = "".join([f"    - domain: '{dom}'\n      answer: {ip}\n      enabled: true\n" for dom, ip in needed_rewrites])
+            rewrite_block = f"  rewrites_enabled: true\n  rewrites:\n{rewrite_items}"
+            if re.search(r"^filtering:\n", content, flags=re.MULTILINE):
+                content = re.sub(r"^(filtering:\n)", r"\1" + rewrite_block, content, flags=re.MULTILINE)
+                changed = True
+            else:
+                content += f"\nfiltering:\n{rewrite_block}"
+                changed = True
+
     if changed:
         try:
             with open(conf_file, "w", encoding="utf-8") as f:
                 f.write(content)
-            print(f"[OK] Enforced trusted_proxies and upstream configuration in {conf_file}")
+            print(f"[OK] Enforced trusted_proxies, rewrites, and upstream configuration in {conf_file}")
             return 2
         except PermissionError:
             tmp_path = conf_file + ".tmp"
@@ -80,15 +122,16 @@ def configure_adguard(conf_file: str, dns_domain: str, primary_dns: str, local_n
 
 def main() -> None:
     if len(sys.argv) < 5:
-        print("Usage: configure-adguard.py <conf_file> <dns_domain> <primary_dns> <local_network>", file=sys.stderr)
+        print("Usage: configure-adguard.py <conf_file> <dns_domain> <primary_dns> <local_network> [ip_address]", file=sys.stderr)
         sys.exit(1)
 
     conf_file = sys.argv[1]
     dns_domain = sys.argv[2]
     primary_dns = sys.argv[3]
     local_network = sys.argv[4]
+    ip_address = sys.argv[5] if len(sys.argv) > 5 else os.environ.get("IP_ADDRESS", "")
 
-    code = configure_adguard(conf_file, dns_domain, primary_dns, local_network)
+    code = configure_adguard(conf_file, dns_domain, primary_dns, local_network, ip_address)
     sys.exit(code)
 
 
