@@ -240,6 +240,9 @@ if [ ! -f "$JELLYFIN_NET_XML" ]; then
 </NetworkConfiguration>
 EOF
   cp "$JELLYFIN_NET_XML" "$MEDIA_CONFIG_DIR/jellyfin/network.xml" 2>/dev/null || true
+elif ! grep -q "<KnownProxies>" "$JELLYFIN_NET_XML"; then
+  $SED_INPLACE "s|</NetworkConfiguration>|  <KnownProxies>\n    <string>127.0.0.1</string>\n    <string>10.0.0.0/8</string>\n    <string>172.16.0.0/12</string>\n    <string>${LOCAL_NETWORK}</string>\n  </KnownProxies>\n</NetworkConfiguration>|" "$JELLYFIN_NET_XML"
+  cp "$JELLYFIN_NET_XML" "$MEDIA_CONFIG_DIR/jellyfin/network.xml" 2>/dev/null || true
 fi
 
 # Pre-configure Jellyfin admin credentials if database exists
