@@ -100,6 +100,9 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
     devices:
       - /dev/kmsg
+    command:
+      - "--housekeeping_interval=55s"
+      - "--docker_only"
     privileged: true
 
 volumes:
