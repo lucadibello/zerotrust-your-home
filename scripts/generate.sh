@@ -245,6 +245,7 @@ ordered_scripts=(
   "./scripts/containers/setup-nextcloud.sh"
   "./scripts/containers/setup-searxng.sh"
   "./scripts/containers/setup-vaultwarden.sh"
+  "./scripts/containers/setup-media.sh"
   "./scripts/containers/setup-crowdsec.sh"
   "./scripts/containers/setup-gatus.sh"
   "./scripts/containers/setup-homepage.sh"

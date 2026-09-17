@@ -96,6 +96,7 @@ The following placeholders are available in `gatus.yaml` files and are substitut
 
 ## Notes
 
-- Extra services are **always enabled**—there is no `ENABLE_*` flag. If the directory and compose file exist, they are included.
-- To disable an extra service temporarily, rename or remove its `docker-compose.yml` file.
+- **Git-Ignored (Private)**: The `composes/extras/` directory is git-ignored by default, making it ideal for private, user-defined services that should not be committed or pushed upstream.
+- **Flexible Feature Toggles**: Extra services default to enabled if the directory and compose file exist. You can also explicitly toggle them in `.env` using `ENABLE_<SERVICE_NAME>=true` or `ENABLE_<SERVICE_NAME>=false` (e.g. `ENABLE_WHOAMI=false` or `ENABLE_STIRLING_PDF=true`).
+- **Gatus Health Monitoring**: Uses the exact same per-service `gatus.yaml` strategy as core services.
 - The `.env` file from the project root is passed to all compose files, so environment variables like `${DNS_DOMAIN}` work as expected.

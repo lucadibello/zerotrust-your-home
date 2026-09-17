@@ -19,17 +19,17 @@ http:
           Server: ""
           X-Powered-By: ""
 
-    # Rate Limiting (protects against brute-force, scraping, and DoS)
+    # Rate Limiting (protects against brute-force, scraping, and DoS while accommodating media streaming & gallery browsing)
     security-ratelimit:
       rateLimit:
-        average: 150
-        burst: 75
+        average: 1200
+        burst: 600
         period: 1m
 
-    # Connection Concurrency Limiter (prevents Slowloris & resource starvation)
+    # Connection Concurrency Limiter (prevents Slowloris & resource starvation while allowing parallel media streams/chunks)
     security-inflight:
       inFlightReq:
-        amount: 50
+        amount: 200
 
 tls:
   options:

@@ -15,4 +15,5 @@ $ORIGIN <DOMAIN>.
 ns      IN       A      <IP_ADDRESS>
 
 ; --- DNS Records for <DOMAIN> ---
+@       IN       A      <IP_ADDRESS>
 *       IN       A      <IP_ADDRESS>

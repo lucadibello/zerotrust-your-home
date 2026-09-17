@@ -36,6 +36,8 @@
     - [6.6.1. DNS Server](#661-dns-server)
     - [6.6.2. Reverse proxy](#662-reverse-proxy)
       - [6.6.2.1. SSL certificate generation and renewal for internal domain names](#6621-ssl-certificate-generation-and-renewal-for-internal-domain-names)
+      - [6.6.2.2. CrowdSec Intrusion Prevention & WAF (AppSec) Integration](#6622-crowdsec-intrusion-prevention--waf-appsec-integration)
+
 - [7. Exposing services to the internet securely via Cloudflare Tunnel](#7-exposing-services-to-the-internet-securely-via-cloudflare-tunnel)
 - [8. Secure remote access to the system via Cloudflare Access and Cloudflare WARP](#8-secure-remote-access-to-the-system-via-cloudflare-access-and-cloudflare-warp)
   - [8.1. Security features](#81-security-features)
@@ -144,6 +146,7 @@ These services require extra configuration in the `.env` file:
 | `ENABLE_IMMICH`    | Immich           | Self-hosted photo library with ML | `IMMICH_*` variables |
 | `ENABLE_SEARXNG`   | SearXNG          | Privacy-focused search engine     | None                 |
 | `ENABLE_MINECRAFT` | Minecraft Server | Game server with TCP tunnel       | `MC_TUNNEL_TOKEN`    |
+| `ENABLE_MEDIA`     | Media Stack      | Jellyfin + *Arr suite (Radarr, Sonarr, Seerr, Prowlarr, qBittorrent, Bazarr, FlareSolverr) | `MEDIA_DIR`, `DOWNLOADS_DIR` |
 
 ### 5.4. Using feature toggles
 
@@ -400,7 +403,33 @@ If the user has a domain name registered on Cloudflare, it is possible to levera
 
 This process is fully automated and requires no user intervention. For more details about the implementation of this feature, please refer to the official Traefik documentation [here](https://doc.traefik.io/traefik/https/acme/#dnschallenge).
 
+##### 6.6.2.2. CrowdSec Intrusion Prevention & WAF (AppSec) Integration
+
+To safeguard exposed web workloads against malicious IP addresses, automated vulnerability scanners, brute-force attacks, and application-layer exploits (e.g. CVEs, SQL injection, XSS), Traefik is integrated with [CrowdSec](https://www.crowdsec.net/) using the community [Traefik bouncer plugin](https://github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin) and the CrowdSec AppSec (WAF) Component.
+
+Key architecture highlights:
+- **Real-Time Remediation (Stream Mode)**: The Traefik bouncer plugin runs in `stream` mode, syncing decision lists from the CrowdSec Local API (`crowdsec:8080`) periodically and evaluating incoming requests in memory without introducing latency.
+- **Web Application Firewall (AppSec)**: Incoming HTTP requests on the `websecure` entrypoint are inspected in real time by the CrowdSec AppSec component (`crowdsec:7422`), providing virtual patching and blocking known exploit payloads before reaching backends.
+- **Log Parsing**: Traefik access logs (`/var/log/traefik/access.log` in JSON format) are continuously parsed by CrowdSec using the `crowdsecurity/traefik` collection.
+- **Secure Key Management**: Traefik reads the shared bouncer key directly from a mounted secret file (`/etc/traefik/crowdsec/BOUNCER_KEY_traefik`) via `crowdsecLapiKeyFile`, preventing sensitive keys from being committed in plaintext.
+- **Prometheus & Grafana Observability**: CrowdSec exposes real-time Prometheus metrics on port `6060` (`http://crowdsec:6060/metrics`). Prometheus scrapes these metrics automatically, and two pre-provisioned Grafana dashboards are available out-of-the-box:
+  - **CrowdSec - Overview**: High-level telemetry covering active decisions, alerts count, parsers efficiency, and bucket overflows.
+  - **CrowdSec - Metrics & AppSec WAF**: Deep-dive telemetry covering AppSec WAF inspections, rule hit distributions, blocked exploit attempts, LAPI metrics, and per-bouncer activity.
+- **Testing & Verification**:
+  ```bash
+  # Test WAF blocking (should return HTTP 403 Forbidden)
+  curl -I http://<host>/.env
+
+  # View AppSec WAF metrics
+  docker exec crowdsec cscli metrics show appsec
+
+  # View active bouncers and decisions
+  docker exec crowdsec cscli bouncers list
+  docker exec crowdsec cscli decisions list
+  ```
+
 ## 7. Exposing services to the internet securely via Cloudflare Tunnel
+
 
 To avoid the need to open ports in both the router and the server firewalls, is possible to leverage the services offered by [Cloudflare’s SSE & SASE Platform](https://www.cloudflare.com/zero-trust/). This platform offers a set of security services to facilitate the secure access to internal services and resources, one of these services is [Cloudflare Tunnel](https://www.cloudflare.com/products/tunnel/).
 
@@ -500,6 +529,8 @@ To showcase the extensibility of the implemented system, the following services 
 - [SearXNG](https://docs.searxng.org/): A privacy-respecting, hackable metasearch engine that aggregates results from multiple search engines without tracking users. Enable with `ENABLE_SEARXNG=true`. Accessible at `search.your.domain`.
 
 - [Minecraft Server](https://github.com/itzg/docker-minecraft-server): A containerized Minecraft server with Cloudflare TCP tunnel for secure remote access without exposing ports. Enable with `ENABLE_MINECRAFT=true`. Requires `MC_TUNNEL_TOKEN` for the Cloudflare tunnel.
+
+- [Media Stack](doc/media-stack.md): A comprehensive, zero-trust media streaming and management suite including **Jellyfin** (media server with hardware acceleration), **Seerr** (requests & discovery), **Radarr** (movies), **Sonarr** (TV shows), **Prowlarr** (indexers), **qBittorrent** (torrent client), **Bazarr** (subtitles), and **FlareSolverr** (indexer proxy). Enable with `ENABLE_MEDIA=true`. Protected with Traefik TLS, CrowdSec, and monitored via Gatus.
 
 ### 10.3. Per-service management
 

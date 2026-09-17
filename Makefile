@@ -5,7 +5,8 @@
 	backup-prune-cron-enable backup-prune-cron-disable \
 	backup-cron-enable-all backup-cron-disable-all \
 	restore view-backups check prune unlock configure-backup \
-	generate update-security update-security-headless update-firewall update-hardening
+	generate update-security update-security-headless update-firewall update-hardening \
+	provision-media
 
 COMPOSE = docker compose --project-name zerotrust-your-home --project-directory .
 ENVFILE = .env
@@ -20,6 +21,7 @@ FIND_COMPOSE = $(firstword $(wildcard \
 	composes/$(1).docker-compose.yaml \
 	composes/extras/$(1)/docker-compose.yml \
 	composes/extras/$(1)/docker-compose.yaml \
+	$(if $(filter media jellyfin seerr jellyseerr radarr sonarr prowlarr qbittorrent bazarr flaresolverr,$(1)),composes/media/docker-compose.yaml) \
 	$(if $(filter home homeassistant hass,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter home-assistant,$(1)),composes/home-assistant/docker-compose.yaml) \
 	$(if $(filter prometheus grafana alertmanager,$(1)),composes/monitoring/docker-compose.yaml) \
@@ -69,6 +71,8 @@ help:  # Show available commands
 	@echo "  make logs                       View live tail of all logs"
 	@echo "  make down                       Stop and remove all containers"
 	@echo "  make generate                   Regenerate configurations from .env"
+	@echo "  make provision-media            Run media stack auto-provisioning"
+
 	@echo ""
 	@echo "Service-specific targets (<service> = traefik, nextcloud, immich, etc.):"
 	@echo "  make start-<service>            Start a specific service"
@@ -187,6 +191,10 @@ backup-cron-status: # Show all backup and prune cronjob statuses
 
 generate: # Regenerate configuration files for all services based on .env configuration
 	@bash scripts/generate.sh --headless
+
+provision-media: check-env # Run media stack auto-provisioning
+	@$(COMPOSE) --file composes/media/docker-compose.yaml --env-file $(ENVFILE) run --rm media-provisioner
+
 
 update-security: # Update security posture (hardening + firewall) on existing instances
 	@bash scripts/update-security.sh

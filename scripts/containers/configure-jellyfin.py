@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+# Configure Jellyfin administrator credentials
+
+import hashlib
+import os
+import sqlite3
+import sys
+import uuid
+
+
+def hash_jellyfin_password(password: str):
+    if not password:
+        return None
+    salt = os.urandom(16)
+    key = hashlib.pbkdf2_hmac("sha512", password.encode("utf-8"), salt, 210000, 64)
+    return f"$PBKDF2-SHA512$iterations=210000${salt.hex().upper()}${key.hex().upper()}"
+
+
+def configure_jellyfin(config_dir: str, username: str, password: str) -> bool:
+    db_paths = [
+        os.path.join(config_dir, "data", "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin", "data", "jellyfin.db"),
+        os.path.join(config_dir, "jellyfin", "jellyfin.db"),
+    ]
+    db_path = None
+    for p in db_paths:
+        if os.path.exists(p):
+            db_path = p
+            break
+
+    if not db_path:
+        return False
+
+    if os.path.exists(db_path):
+        if not os.access(db_path, os.W_OK) or not os.access(os.path.dirname(db_path), os.W_OK):
+            print(
+                f"[*] Jellyfin database at {db_path} is owned by container (root); skipping host-level pre-configuration (media-provisioner container will sync it).",
+                file=sys.stderr,
+            )
+            return True
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='Users'"
+        )
+        if not cur.fetchone():
+            conn.close()
+            return False
+
+        cur.execute("SELECT Id, Username, Password FROM Users")
+        users = cur.fetchall()
+
+        password_hash = hash_jellyfin_password(password)
+
+        cur.execute("PRAGMA table_info(Users)")
+        user_cols = {col[1] for col in cur.fetchall()}
+
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='Permissions'"
+        )
+        has_permissions = cur.fetchone() is not None
+        has_row_version = False
+        if has_permissions:
+            cur.execute("PRAGMA table_info(Permissions)")
+            cols = [col[1] for col in cur.fetchall()]
+            has_row_version = "RowVersion" in cols
+
+        admin_permissions = {
+            0: 1,   # IsAdministrator
+            1: 0,   # IsHidden
+            2: 0,   # IsDisabled (unlock account if locked out)
+            3: 1,   # EnableContentDeletion
+            4: 1,   # EnableContentDownloading
+            5: 1,   # EnableSyncTranscoding
+            6: 1,   # EnableMediaPlayback
+            7: 1,   # EnableAudioPlaybackTranscoding
+            8: 1,   # EnableVideoPlaybackTranscoding
+            9: 1,   # EnablePlaybackRemuxing
+            11: 1,  # EnableLiveTvManagement
+            12: 1,  # EnableLiveTvAccess
+            13: 1,  # EnableMediaConversion
+            14: 1,  # EnableAllChannels
+            15: 1,  # EnableAllFolders
+            16: 1,  # EnableAllDevices
+            17: 1,  # EnableSharedDeviceControl
+            18: 1,  # EnableRemoteAccess (allow Docker container access)
+            19: 1,  # EnableRemoteControlOfOtherUsers
+            21: 1,  # EnableSubtitleManagement
+            22: 1,  # EnableChannelOrganization
+            23: 1,  # EnableUserPreferenceAccess
+        }
+
+        if users:
+            target_id = None
+            for u in users:
+                if u[1] and u[1].lower() == username.lower():
+                    target_id = u[0]
+                    break
+
+            if not target_id:
+                target_id = users[0][0]
+
+            update_clauses = ["Password = ?", "Username = ?"]
+            params = [password_hash, username]
+
+            if "NormalizedUsername" in user_cols:
+                update_clauses.append("NormalizedUsername = ?")
+                params.append(username.upper())
+            if "AuthenticationProviderId" in user_cols:
+                update_clauses.append(
+                    "AuthenticationProviderId = 'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider'"
+                )
+            if "PasswordResetProviderId" in user_cols:
+                update_clauses.append(
+                    "PasswordResetProviderId = 'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider'"
+                )
+            if "EnableLocalPassword" in user_cols:
+                update_clauses.append("EnableLocalPassword = 1")
+            if "EasyPassword" in user_cols:
+                update_clauses.append("EasyPassword = NULL")
+            if "MustUpdatePassword" in user_cols:
+                update_clauses.append("MustUpdatePassword = 0")
+            if "InvalidLoginAttemptCount" in user_cols:
+                update_clauses.append("InvalidLoginAttemptCount = 0")
+
+            params.append(target_id)
+            cur.execute(
+                f"UPDATE Users SET {', '.join(update_clauses)} WHERE Id = ?",
+                params,
+            )
+
+            if has_permissions:
+                for p_kind, p_val in admin_permissions.items():
+                    cur.execute(
+                        "SELECT Id FROM Permissions WHERE UserId = ? AND Kind = ?",
+                        (target_id, p_kind),
+                    )
+                    perm = cur.fetchone()
+                    if perm:
+                        cur.execute(
+                            "UPDATE Permissions SET Value = ? WHERE Id = ?",
+                            (p_val, perm[0]),
+                        )
+                    else:
+                        if has_row_version:
+                            cur.execute(
+                                "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, ?, ?, 1)",
+                                (p_kind, p_val, target_id),
+                            )
+                        else:
+                            cur.execute(
+                                "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, ?, ?)",
+                                (p_kind, p_val, target_id),
+                            )
+
+            conn.commit()
+            conn.close()
+            return True
+        else:
+            new_id = str(uuid.uuid4())
+            candidate_fields = {
+                "Id": new_id,
+                "Username": username,
+                "NormalizedUsername": username.upper(),
+                "Password": password_hash,
+                "MustUpdatePassword": 0,
+                "InvalidLoginAttemptCount": 0,
+                "MaxActiveSessions": 0,
+                "SubtitleMode": 0,
+                "PlayDefaultAudioTrack": 1,
+                "DisplayMissingEpisodes": 0,
+                "DisplayCollectionsView": 1,
+                "EnableLocalPassword": 1,
+                "HidePlayedInLatest": 0,
+                "RememberAudioSelections": 1,
+                "RememberSubtitleSelections": 1,
+                "EnableNextEpisodeAutoPlay": 1,
+                "EnableAutoLogin": 0,
+                "EnableUserPreferenceAccess": 1,
+                "SyncPlayAccess": 0,
+                "AuthenticationProviderId": "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider",
+                "PasswordResetProviderId": "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider",
+                "RowVersion": 1,
+                "InternalId": 1,
+            }
+            insert_cols = [c for c in candidate_fields if c in user_cols]
+            placeholders = ", ".join(["?"] * len(insert_cols))
+            col_names = ", ".join(insert_cols)
+            cur.execute(
+                f"INSERT INTO Users ({col_names}) VALUES ({placeholders})",
+                [candidate_fields[c] for c in insert_cols],
+            )
+            if has_permissions:
+                for p_kind, p_val in admin_permissions.items():
+                    if has_row_version:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId, RowVersion) VALUES (?, ?, ?, 1)",
+                            (p_kind, p_val, new_id),
+                        )
+                    else:
+                        cur.execute(
+                            "INSERT INTO Permissions (Kind, Value, UserId) VALUES (?, ?, ?)",
+                            (p_kind, p_val, new_id),
+                        )
+            conn.commit()
+            conn.close()
+            return True
+    except sqlite3.OperationalError as e:
+        if "readonly" in str(e).lower():
+            print(
+                f"[*] Jellyfin database at {db_path} is owned by container (root); skipping host-level pre-configuration (media-provisioner container will sync it).",
+                file=sys.stderr,
+            )
+            return True
+        print(f"[-] Error syncing Jellyfin database: {e}", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"[-] Error syncing Jellyfin database: {e}", file=sys.stderr)
+        return False
+
+
+def main() -> None:
+    if len(sys.argv) < 4:
+        print(
+            "Usage: configure-jellyfin.py <jellyfin_config_dir> <username> <password>",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    config_dir = sys.argv[1]
+    username = sys.argv[2]
+    password = sys.argv[3]
+
+    success = configure_jellyfin(config_dir, username, password)
+    if success:
+        print(f"[OK] Successfully configured Jellyfin credentials for '{username}'")
+    else:
+        print(f"[*] Jellyfin database not yet initialized in {config_dir}")
+
+
+if __name__ == "__main__":
+    main()

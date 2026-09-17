@@ -9,7 +9,7 @@ In this document, you can find instructions for deploying the home automation sy
 - [1.1.1. Define system parameters](#111-define-system-parameters)
 - [1.1.2. Create a Zero Trust Tunnel on Cloudflare](#112-create-a-zero-trust-tunnel-on-cloudflare)
 - [1.1.3. Create an S3 bucket on AWS and configure AWS IAM](#113-create-an-s3-bucket-on-aws-and-configure-aws-iam)
-- [1.1.4. Create a Telegram bot](#114-create-a-telegram-bot)
+- [1.1.4. Configure push notifications (ntfy)](#114-configure-push-notifications-ntfy)
 - [1.1.5. Prepare the OS on the remote server / Proxmox VM](#115-prepare-the-os-on-the-remote-server--proxmox-vm)
 - [1.1.6. Clone the repository locally](#116-clone-the-repository-locally)
 - [1.1.7. Create .env file](#117-create-env-file)
@@ -29,7 +29,7 @@ In this document, you can find instructions for deploying the home automation sy
   - [1.3.3. Firewall settings](#133-firewall-settings)
   - [1.3.4. Cloudflare API settings](#134-cloudflare-api-settings)
   - [1.3.5. Backup and Restore settings](#135-backup-and-restore-settings)
-  - [1.3.6. Telegram bot settings](#136-telegram-bot-settings)
+  - [1.3.6. Push notification settings](#136-push-notification-settings)
   - [1.3.7. Cloudflare Tunnel settings](#137-cloudflare-tunnel-settings)
   - [1.3.8. DNS settings](#138-dns-settings)
   - [1.3.9. Zigbee2MQTT settings](#139-zigbee2mqtt-settings)
@@ -66,11 +66,9 @@ To store the backups, the user must create an S3 bucket on AWS with the correct 
 
 ![Example](./assets/images/s3-console.png)
 
-## 1.1.4. Create a Telegram bot
+## 1.1.4. Configure push notifications (ntfy)
 
-This step is necessary to receive notifications from the *alertmanager*, *uptime-kuma*, *watchtower* and *restic* services. To create a Telegram bot, follow the steps outlined in the [official documentation](https://core.telegram.org/bots#how-do-i-create-a-bot). After the bot is created, the user must retrieve the bot token and the chat ID to later configure the home automation system.
-
-A more detailed guide is available in the paper.
+This step is necessary to receive notifications from *Alertmanager*, *Gatus*, *DIUN*, and *Restic* services via [ntfy](https://ntfy.sh). Specify `NTFY_URL` (public `https://ntfy.sh` or your self-hosted instance) and `NTFY_TOPIC` in your `.env` configuration. You can subscribe to this topic via the ntfy app (iOS/Android/Web) or browser notifications.
 
 ## 1.1.5. Prepare the OS on the remote server / Proxmox VM
 
@@ -314,14 +312,15 @@ The following variables are used to configure the backup and restore operations.
 | `AWS_ACCESS_KEY_ID` | AWS access key ID |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret access key |
 
-### 1.3.6. Telegram bot settings
+### 1.3.6. Push notification settings (ntfy)
 
-The following variables are used to configure the Telegram bot. These variables are used by the *alertmanager*, *uptime-kuma*, *watchtower* and *restic*  to send notifications to the Telegram bot.
+The following variables are used to configure push notifications via ntfy. These variables are used by *Alertmanager*, *Gatus*, *DIUN*, and *Restic* to send notifications and health alerts.
 
 | Variable | Description |
 | --- | --- |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Telegram chat ID |
+| `NTFY_URL` | ntfy server URL (e.g. `https://ntfy.sh` or `https://ntfy.yourdomain.com`) |
+| `NTFY_TOPIC` | ntfy topic name for alerts |
+| `NTFY_TOKEN` | Optional ntfy authentication token |
 
 ### 1.3.7. Cloudflare Tunnel settings
 

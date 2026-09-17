@@ -35,6 +35,7 @@ scrape_configs:
         - node_exporter:9100
   # Job for cAdvisor
   - job_name: "cadvisor"
+    scrape_interval: 30s
     static_configs:
       - targets: 
         - cadvisor:8080

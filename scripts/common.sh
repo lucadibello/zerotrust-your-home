@@ -313,6 +313,12 @@ is_service_enabled() {
       return $?
     fi
     ;;
+  media)
+    if [ -n "${ENABLE_JELLYFIN+x}" ]; then
+      [ "$ENABLE_JELLYFIN" = "true" ]
+      return $?
+    fi
+    ;;
   esac
 
   # 3. Default state if unset

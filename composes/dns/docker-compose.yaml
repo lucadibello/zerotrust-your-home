@@ -6,8 +6,8 @@ services:
       - BIND9_USER=root
       - TZ=Europe/Zurich
     ports:
-      - "${IP_ADDRESS}:53:53/tcp"
-      - "${IP_ADDRESS}:53:53/udp"
+      - "${IP_ADDRESS:-0.0.0.0}:53:53/tcp"
+      - "${IP_ADDRESS:-0.0.0.0}:53:53/udp"
     volumes:
       - ./composes/dns/config:/etc/bind/
       - ./composes/dns/cache:/var/cache/bind

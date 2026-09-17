@@ -20,6 +20,13 @@ else
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/../common.sh" ]; then
+  source "$SCRIPT_DIR/../common.sh"
+elif [ -f "./scripts/common.sh" ]; then
+  source "./scripts/common.sh"
+fi
+
 # Validate required variables
 if [ -z "$LOCAL_NETWORK" ]; then
   echo "[!] Required variable LOCAL_NETWORK must be set in .env"
@@ -174,6 +181,9 @@ sudo iptables -A LOGGING-DOCKER -j DROP
 # === Configure INPUT chain ===
 echo "[2/7] Configuring INPUT chain for local network ($LOCAL_NETWORK)..."
 
+# Allow all loopback traffic
+add_rule_if_missing INPUT -i lo -j ACCEPT || true
+
 # Enable PING from local network
 add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
   -p icmp -m icmp --icmp-type 8 \
@@ -208,8 +218,82 @@ else
     -j LOGGING-LOCAL || true
 fi
 
+# === Local Services Access (INPUT chain) ===
+echo "[4/7] Configuring local service access (INPUT chain)..."
+
+if [ "$ALLOW_LOCAL_SERVICES_ACCESS" = "true" ]; then
+  echo "  [*] Enabling access from local network to local services (INPUT chain)..."
+
+  # DNS (UDP + TCP)
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p udp -m udp --dport 53 \
+    -j ACCEPT || true
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p tcp -m tcp --dport 53 \
+    -j ACCEPT || true
+  if [ -n "${ADGUARD_DNS_PORT:-}" ] && [ "${ADGUARD_DNS_PORT}" != "53" ]; then
+    add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+      -p udp -m udp --dport "$ADGUARD_DNS_PORT" \
+      -j ACCEPT || true
+    add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+      -p tcp -m tcp --dport "$ADGUARD_DNS_PORT" \
+      -j ACCEPT || true
+  fi
+
+  # DNS-over-TLS & DNS-over-QUIC (TCP + UDP)
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p tcp -m tcp --dport 853 \
+    -j ACCEPT || true
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p udp -m udp --dport 853 \
+    -j ACCEPT || true
+
+  # HTTP + HTTPS (TCP + UDP for HTTP/3)
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p tcp -m tcp --dport 80 \
+    -j ACCEPT || true
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p tcp -m tcp --dport 443 \
+    -j ACCEPT || true
+  add_rule_if_missing INPUT -i $IF -s $LOCAL_NETWORK \
+    -p udp -m udp --dport 443 \
+    -j ACCEPT || true
+else
+  echo "  [*] Disabling access from local network to local services (INPUT chain)..."
+
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT
+  done
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT
+  done
+  if [ -n "${ADGUARD_DNS_PORT:-}" ] && [ "${ADGUARD_DNS_PORT}" != "53" ]; then
+    while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport "$ADGUARD_DNS_PORT" -j ACCEPT 2>/dev/null; do
+      sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport "$ADGUARD_DNS_PORT" -j ACCEPT
+    done
+    while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport "$ADGUARD_DNS_PORT" -j ACCEPT 2>/dev/null; do
+      sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport "$ADGUARD_DNS_PORT" -j ACCEPT
+    done
+  fi
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 853 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 853 -j ACCEPT
+  done
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT
+  done
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT
+  done
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT
+  done
+  while rule_exists INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 443 -j ACCEPT 2>/dev/null; do
+    sudo iptables -D INPUT -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 443 -j ACCEPT
+  done
+fi
+
 # === Allow established connections ===
-echo "[4/7] Configuring connection tracking..."
+echo "[5/7] Configuring connection tracking..."
 
 add_rule_if_missing INPUT \
   -m conntrack --ctstate RELATED,ESTABLISHED \
@@ -224,7 +308,7 @@ sudo iptables -A INPUT -i $IF -j LOGGING-LOCAL
 echo "  [+] Added default DROP rule for INPUT"
 
 # === Configure DOCKER-USER chain ===
-echo "[5/7] Configuring DOCKER-USER chain..."
+echo "[6/7] Configuring DOCKER-USER chain..."
 
 # Check if DOCKER-USER chain exists (Docker must be installed)
 if ! chain_exists "DOCKER-USER"; then
@@ -237,7 +321,7 @@ else
     -j ACCEPT || true
 
   # === Local services access ===
-  echo "[6/7] Configuring local service access..."
+  echo "  [*] Configuring local service access (DOCKER-USER chain)..."
 
   if [ "$ALLOW_LOCAL_SERVICES_ACCESS" = "true" ]; then
     echo "  [*] Enabling access from local network to docker services..."
@@ -266,22 +350,74 @@ else
       -p udp -m udp --dport 853 \
       -j ACCEPT || true
 
-    # HTTP + HTTPS
+    # HTTP + HTTPS (TCP + UDP for HTTP/3)
     add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
       -p tcp -m tcp --dport 80 \
       -j ACCEPT || true
     add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
       -p tcp -m tcp --dport 443 \
       -j ACCEPT || true
+    add_rule_if_missing DOCKER-USER -i $IF -s $LOCAL_NETWORK \
+      -p udp -m udp --dport 443 \
+      -j ACCEPT || true
+
+    # Clean up any legacy media service rules if previously added
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 8096 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 8096 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 7359 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 7359 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -p tcp -m tcp --dport 6881 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -p tcp -m tcp --dport 6881 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -p udp -m udp --dport 6881 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -p udp -m udp --dport 6881 -j ACCEPT
+    done
   else
     echo "  [*] Local service access disabled, removing any existing rules..."
     # Remove existing local service rules if they exist
-    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT 2>/dev/null || true
-    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT 2>/dev/null || true
-    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 853 -j ACCEPT 2>/dev/null || true
-    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT 2>/dev/null || true
-    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT 2>/dev/null || true
-    sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT 2>/dev/null || true
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 53 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 53 -j ACCEPT
+    done
+    if [ -n "${ADGUARD_DNS_PORT:-}" ] && [ "${ADGUARD_DNS_PORT}" != "53" ]; then
+      while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport "$ADGUARD_DNS_PORT" -j ACCEPT 2>/dev/null; do
+        sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport "$ADGUARD_DNS_PORT" -j ACCEPT
+      done
+      while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport "$ADGUARD_DNS_PORT" -j ACCEPT 2>/dev/null; do
+        sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport "$ADGUARD_DNS_PORT" -j ACCEPT
+      done
+    fi
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 853 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 853 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 853 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 80 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 443 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 443 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 443 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 8096 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p tcp -m tcp --dport 8096 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 7359 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -s $LOCAL_NETWORK -p udp -m udp --dport 7359 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -p tcp -m tcp --dport 6881 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -p tcp -m tcp --dport 6881 -j ACCEPT
+    done
+    while rule_exists DOCKER-USER -i $IF -p udp -m udp --dport 6881 -j ACCEPT 2>/dev/null; do
+      sudo iptables -D DOCKER-USER -i $IF -p udp -m udp --dport 6881 -j ACCEPT
+    done
   fi
 
   # Block all other traffic from docker-user chain

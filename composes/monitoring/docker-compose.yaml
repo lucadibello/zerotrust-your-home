@@ -100,6 +100,15 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
     devices:
       - /dev/kmsg
+    command:
+      - "--docker_only"
+      - "--housekeeping_interval=30s"
+      - "--max_housekeeping_interval=60s"
+      - "--allow_dynamic_housekeeping=false"
+      - "--enable_metrics=cpu,memory,network,oom_event"
+      - "--disable_metrics=disk,diskIO,tcp,udp,percpu,sched,process"
+      - "--store_container_labels=false"
+      - "--whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service,com.docker.compose.project.working_dir"
     privileged: true
 
 volumes:

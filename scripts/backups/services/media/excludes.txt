@@ -1,0 +1,5 @@
+composes/media/cache
+*/media/cache
+*/transcodes
+/mnt/media
+/mnt/downloads
