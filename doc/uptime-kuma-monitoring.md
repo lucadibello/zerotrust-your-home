@@ -29,4 +29,4 @@ As cited in the README, *Uptime Kuma* has been configured to monitor the status 
   - *Restic (Prune)*: Docker container health monitoring
 
 - Group 6 - Automatic updates
-  - *DIUN*: Docker image update notifier health monitoring
+  - *WUD*: What's Up Docker image update notifier health monitoring

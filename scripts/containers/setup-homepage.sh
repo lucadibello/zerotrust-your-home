@@ -297,6 +297,14 @@ if [ "${ENABLE_PORTAINER:-false}" = "true" ]; then
 "
 fi
 
+if [ "${ENABLE_WUD:-false}" = "true" ]; then
+  mgmt_entries+="    - WUD:
+        icon: wud.png
+        href: https://wud.${DOMAIN}
+        description: Docker Image Update Notifier
+"
+fi
+
 if [ -n "$mgmt_entries" ]; then
   has_any_service=true
   cat <<EOF >> "$services_file"

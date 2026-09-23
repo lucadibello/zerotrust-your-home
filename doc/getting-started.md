@@ -68,7 +68,7 @@ To store the backups, the user must create an S3 bucket on AWS with the correct 
 
 ## 1.1.4. Configure push notifications (ntfy)
 
-This step is necessary to receive notifications from *Alertmanager*, *Gatus*, *DIUN*, and *Restic* services via [ntfy](https://ntfy.sh). Specify `NTFY_URL` (public `https://ntfy.sh` or your self-hosted instance) and `NTFY_TOPIC` in your `.env` configuration. You can subscribe to this topic via the ntfy app (iOS/Android/Web) or browser notifications.
+This step is necessary to receive notifications from *Alertmanager*, *Gatus*, *WUD*, and *Restic* services via [ntfy](https://ntfy.sh). Specify `NTFY_URL` (public `https://ntfy.sh` or your self-hosted instance) and `NTFY_TOPIC` in your `.env` configuration. You can subscribe to this topic via the ntfy app (iOS/Android/Web) or browser notifications.
 
 ## 1.1.5. Prepare the OS on the remote server / Proxmox VM
 
@@ -314,7 +314,7 @@ The following variables are used to configure the backup and restore operations.
 
 ### 1.3.6. Push notification settings (ntfy)
 
-The following variables are used to configure push notifications via ntfy. These variables are used by *Alertmanager*, *Gatus*, *DIUN*, and *Restic* to send notifications and health alerts.
+The following variables are used to configure push notifications via ntfy. These variables are used by *Alertmanager*, *Gatus*, *WUD*, and *Restic* to send notifications and health alerts.
 
 | Variable | Description |
 | --- | --- |

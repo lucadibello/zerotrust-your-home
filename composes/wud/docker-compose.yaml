@@ -1,0 +1,30 @@
+services:
+  wud:
+    image: getwud/wud:latest
+    container_name: wud
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - wud_data:/store
+    env_file:
+      - ./composes/wud/wud.env
+    dns:
+      - ${PRIMARY_DNS:-192.168.0.253}
+      - ${SECONDARY_DNS:-1.1.1.1}
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wud.rule=Host(`wud.${DNS_DOMAIN}`)"
+      - "traefik.http.routers.wud.entrypoints=websecure"
+      - "traefik.http.routers.wud.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wud.loadbalancer.server.port=3000"
+      - "traefik.docker.network=traefik-network"
+
+volumes:
+  wud_data:
+    name: wud_data
+
+networks:
+  traefik-network:
+    external: true

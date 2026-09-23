@@ -133,7 +133,7 @@ These services can be enabled based on user requirements:
 | `ENABLE_NEXTCLOUD`       | Nextcloud                              | Self-hosted cloud storage    |
 | `ENABLE_PORTAINER`       | Portainer                              | Docker management UI         |
 | `ENABLE_GATUS`           | Gatus                                  | Service health monitoring & status page |
-| `ENABLE_DIUN`            | DIUN                                   | Docker image update notifier |
+| `ENABLE_WUD`             | WUD                                    | What's Up Docker image update notifier |
 | `ENABLE_ADGUARD`         | AdGuard Home                           | DNS-over-HTTPS ad & tracker blocker |
 | `ENABLE_CROWDSEC`        | CrowdSec                               | Intrusion prevention & security engine |
 
@@ -375,9 +375,9 @@ To solve this problem, the system configuration script installs and configure th
 
 Given the virtualized nature of the system infrastructure, it is critical to keep Docker containers up to date with the latest security patches and updates. Similar to system updates, this can be done either manually by administrators or autonomously using dedicated tools that periodically check for new image versions and update running containers.
 
-To automate this process, [DIUN (Docker Image Update Notifier)](https://github.com/crazy-max/diun) has been selected. This tool periodically scans running containers and registries for outdated images and sends notifications via ntfy whenever an updated image is published.
+To automate this process, [WUD (What's Up Docker)](https://getwud.app) has been selected. This tool periodically scans running containers and registries for outdated images and sends notifications via ntfy whenever an updated image is published.
 
-The _DIUN_ container is configured to check for new image versions daily. Notifications with image tags, digests, and details are sent directly to the configured ntfy topic.
+The _WUD_ container is configured to check for new image versions daily. Notifications with image tags, digests, and details are sent directly to the configured ntfy topic.
 
 ### 6.6. Network infrastructure
 
@@ -781,7 +781,7 @@ The following table outlines the services used to build the current infrastructu
 | Grafana Loki                                  | Log aggregation system to collect and store logs                             | Yes        | -                       | 3100    |
 | Grafana Promtail                              | Loki log collector (agent)                                                   | Yes        | -                       | 9080    |
 | **Automatic updates**                         |
-| DIUN                                          | Docker image update notifier                                                 | Yes        | -                       | -       |
+| WUD                                           | What's Up Docker image update notifier                                       | Yes        | wud.your.domain         | 3000    |
 | Unattended-upgrades                           | Automatic system updates and security patches                                | No         | -                       | -       |
 | **Additional services (optional)**            |
 | ntfy                                          | Self-hosted push notification service                                        | Yes        | ntfy.your.domain        | 80      |
@@ -831,7 +831,7 @@ The following table lists all information about the containers used by the serve
 | `restic`                        | `instrumentisto/restic:latest`                       | `traefik-network`                                                       | `unless-stopped` |
 | `loki`                          | `grafana/loki:latest`                                | `traefik-network`, `loki-network`                                       | `always`         |
 | `promtail`                      | `grafana/promtail:latest`                            | `loki-network`                                                          | `always`         |
-| `diun`                          | `crazymax/diun:latest`                               | `traefik-network`                                                       | `always`         |
+| `wud`                           | `getwud/wud:latest`                                  | `traefik-network`                                                       | `unless-stopped` |
 | `vaultwarden`                   | `vaultwarden/server:latest`                          | `traefik-network`                                                       | `always`         |
 | `nextcloud-aio-mastercontainer` | `nextcloud/all-in-one:latest`                        | `traefik-network`                                                       | `always`         |
 | `portainer`                     | `portainer/portainer-ce:latest`                      | `traefik-network`                                                       | `always`         |

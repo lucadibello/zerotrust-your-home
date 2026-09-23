@@ -249,7 +249,7 @@ ordered_scripts=(
   "./scripts/containers/setup-crowdsec.sh"
   "./scripts/containers/setup-gatus.sh"
   "./scripts/containers/setup-homepage.sh"
-  "./scripts/containers/setup-diun.sh"
+  "./scripts/containers/setup-wud.sh"
   "./scripts/containers/setup-minecraft.sh"
   "./scripts/containers/setup-backup.sh"
 )

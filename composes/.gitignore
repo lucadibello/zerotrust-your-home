@@ -23,9 +23,9 @@ ntfy/config/server.yml
 ntfy/cache/
 ntfy/data/
 
-# DIUN generated configuration and database
-diun/config/
-diun/data/
+# WUD generated configuration and database
+wud/wud.env
+wud/data/
 
 # SearXNG generated settings
 searxng/settings.yml
