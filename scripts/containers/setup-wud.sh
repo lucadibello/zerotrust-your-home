@@ -46,6 +46,7 @@ render_template "$TEMPLATE" "$TARGET" \
   WUD_ADMIN_PASSWORD="${WUD_ADMIN_PASSWORD:-admin}" \
   NTFY_URL="${NTFY_URL:-https://ntfy.home.lucadibello.ch}" \
   NTFY_TOPIC="${NTFY_TOPIC:-lucadibello-homelab-status}" \
-  NTFY_AUTH_TOKEN_CONFIG="$token_config"
+  NTFY_AUTH_TOKEN_CONFIG="$token_config" \
+  WUD_WATCHER_LOCAL_WATCHDIGESTDEFAULT="${WUD_WATCHER_LOCAL_WATCHDIGESTDEFAULT:-true}"
 
 echo "[OK] WUD setup completed"
